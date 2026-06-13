@@ -1,0 +1,22 @@
+{
+  "stats": {
+    "potenzaInstallataKWp": 20000,
+    "co2RisparmiataT": 45000,
+    "energiaProdottaMWh": 85000,
+    "progettiRealizzati": 300
+  },
+  "tipologie": ["Residenziali", "Industriali C&I", "Solar Farm", "Revamping"],
+  "servizi": [
+    "Progettazione",
+    "Installazione",
+    "Monitoraggio",
+    "Gestione amministrativa",
+    "Consulenza",
+    "Manutenzione O&M"
+  ],
+  "progettiVetrina": [
+    { "nome": "Cava Osio Sopra (BG)", "tipo": "Solar Farm", "potenzaMW": 18 },
+    { "nome": "Impianto industriale AUNDE", "tipo": "Industriale C&I" },
+    { "nome": "Campo NEO", "tipo": "Solar Farm" }
+  ]
+}

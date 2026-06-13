@@ -1,38 +1,88 @@
 [
   {
-    "id": "prod-001",
-    "name": "Cavo Ricarica Type 2 — 5m 32A Trifase",
-    "slug": "type2-5m-32a-trifase",
-    "connector": "Type 2",
-    "lengthM": 5,
-    "currentA": 32,
-    "phase": "trifase",
-    "priceEur": 149.9,
-    "image": "/placeholders/product-1.jpg",
-    "compatibleWith": ["Tesla Model 3", "Volkswagen ID.4", "Renault Megane E-Tech"]
+    "id": "modo3-t2-trifase-liscio",
+    "name": "Cavo Mennekes Modo 3 / Tipo 2 – Trifase – Liscio",
+    "category": "Stazioni di ricarica",
+    "price": 219.0,
+    "currency": "EUR",
+    "bestSeller": false,
+    "specs": {
+      "mode": "Modo 3",
+      "connector": "Tipo 2",
+      "plug": "Tipo 2",
+      "phase": "trifase",
+      "shape": "liscio",
+      "use": "stazione pubblica / colonnina"
+    },
+    "image": "/assets/products/modo3-t2-trifase-liscio.jpg",
+    "sourceUrl": "https://cavoperfetto.it/product/cavo-ricarica-automobile-elettric-mennekes-modo-3-tipo-2/"
   },
   {
-    "id": "prod-002",
-    "name": "Cavo Ricarica Type 2 — 7m 16A Monofase",
-    "slug": "type2-7m-16a-monofase",
-    "connector": "Type 2",
-    "lengthM": 7,
-    "currentA": 16,
-    "phase": "mono",
-    "priceEur": 119.9,
-    "image": "/placeholders/product-2.jpg",
-    "compatibleWith": ["Fiat 500e", "Peugeot e-208", "Dacia Spring"]
+    "id": "modo3-t2-trifase-spiralato",
+    "name": "Cavo Mennekes Modo 3 / Tipo 2 – Trifase – Spiralato",
+    "category": "Stazioni di ricarica",
+    "price": 219.0,
+    "currency": "EUR",
+    "bestSeller": true,
+    "specs": {
+      "mode": "Modo 3",
+      "connector": "Tipo 2",
+      "plug": "Tipo 2",
+      "phase": "trifase",
+      "shape": "spiralato",
+      "use": "stazione pubblica / colonnina"
+    },
+    "image": "/assets/products/modo3-t2-trifase-spiralato.jpg",
+    "sourceUrl": "https://cavoperfetto.it/product/cavo-ricarica-auto-elettrica-wallbox-e-stazioni-modo-3-tipo-2-spiralato/"
   },
   {
-    "id": "prod-003",
-    "name": "Cavo Ricarica Type 2 — 10m 32A Trifase",
-    "slug": "type2-10m-32a-trifase",
-    "connector": "Type 2",
-    "lengthM": 10,
-    "currentA": 32,
-    "phase": "trifase",
-    "priceEur": 199.9,
-    "image": "/placeholders/product-3.jpg",
-    "compatibleWith": ["BMW i4", "Hyundai Ioniq 5", "Kia EV6"]
+    "id": "modo3-t2-monofase-liscio",
+    "name": "Cavo Mennekes Modo 3 / Tipo 2 – Monofase – Liscio (Wallbox residenziali)",
+    "category": "Wallbox residenziali",
+    "price": 189.0,
+    "currency": "EUR",
+    "bestSeller": false,
+    "specs": {
+      "mode": "Modo 3",
+      "connector": "Tipo 2",
+      "plug": "Tipo 2",
+      "phase": "monofase",
+      "shape": "liscio",
+      "use": "wallbox residenziale"
+    },
+    "image": "/assets/products/modo3-t2-monofase-liscio.jpg",
+    "sourceUrl": "https://cavoperfetto.it/product/cavo-mennekes-per-wallbox-residenziali-modo-3-tipo-2-monofase-connettore-standard-liscio/"
+  },
+  {
+    "id": "modo2-t2-schuko-liscio",
+    "name": "Cavo Mennekes Modo 2 / Tipo 2 – Spina Schuko – Liscio (Presa domestica)",
+    "category": "Prese tradizionali",
+    "price": 389.0,
+    "currency": "EUR",
+    "bestSeller": false,
+    "specs": {
+      "mode": "Modo 2",
+      "connector": "Tipo 2",
+      "plug": "Schuko",
+      "phase": "monofase",
+      "shape": "liscio",
+      "use": "presa domestica"
+    },
+    "image": "/assets/products/modo2-t2-schuko-liscio.jpg",
+    "sourceUrl": "https://cavoperfetto.it/product/cavo-mennekes-presa-domestica-modo-2-tipo-2-spina-schuko-liscio-copia/"
+  },
+  {
+    "id": "estensione-garanzia-56m",
+    "name": "Estensione di Garanzia 56 mesi",
+    "category": "Servizi",
+    "price": null,
+    "currency": "EUR",
+    "bestSeller": false,
+    "specs": {
+      "type": "add-on",
+      "coverage": "56 mesi"
+    },
+    "image": "/assets/products/estensione-garanzia.jpg",
+    "sourceUrl": "https://cavoperfetto.it/estensione-di-garanzia/"
   }
 ]

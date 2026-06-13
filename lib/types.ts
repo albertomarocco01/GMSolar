@@ -1,6 +1,7 @@
 /**
- * Tipi dei dati di dominio. I record reali vivono in /data come JSON
- * placeholder e verranno sostituiti con i contenuti definitivi.
+ * Tipi dei dati di dominio. I record vivono in /data come JSON: contenuti
+ * "mock ma realistici" derivati dallo scraping dei siti reali dei brand
+ * (vedi /scraping per la provenienza e i sourceUrl).
  */
 
 export type GeoCoordinates = {
@@ -8,19 +9,38 @@ export type GeoCoordinates = {
   lng: number;
 };
 
-/** GM Solar — progetto fotovoltaico (per mappa progetti e stats). */
-export type SolarProject = {
-  id: string;
-  name: string;
-  location: string;
-  capacityKwp: number;
-  annualProductionMwh: number;
-  year: number;
-  coordinates: GeoCoordinates;
-  image: string;
+/* =============================================================
+   GM Solar — EPC fotovoltaico
+   File: data/solar-projects.json
+   ============================================================= */
+
+/** Numeri chiave dell'azienda (per la sezione stats). */
+export type SolarStats = {
+  potenzaInstallataKWp: number;
+  co2RisparmiataT: number;
+  energiaProdottaMWh: number;
+  progettiRealizzati: number;
 };
 
-/** GMobility — punto di ricarica (wallbox / colonnina). */
+/** Progetto in vetrina (potenzaMW non sempre disponibile). */
+export type SolarShowcaseProject = {
+  nome: string;
+  tipo: string;
+  potenzaMW?: number;
+};
+
+export type SolarContent = {
+  stats: SolarStats;
+  tipologie: string[];
+  servizi: string[];
+  progettiVetrina: SolarShowcaseProject[];
+};
+
+/* =============================================================
+   GMobility — wallbox / colonnine di ricarica
+   File: data/charging-points.json
+   ============================================================= */
+
 export type ChargingPoint = {
   id: string;
   name: string;
@@ -32,16 +52,33 @@ export type ChargingPoint = {
   status: "available" | "busy" | "offline";
 };
 
-/** Cavo Perfetto — prodotto del catalogo e-commerce. */
+/* =============================================================
+   Cavo Perfetto — e-commerce cavi di ricarica
+   File: data/products.json
+   ============================================================= */
+
+/** Specifiche tecniche del cavo (campi variabili per categoria/servizio). */
+export type ProductSpecs = {
+  mode?: string;
+  connector?: string;
+  plug?: string;
+  phase?: "monofase" | "trifase";
+  shape?: "liscio" | "spiralato";
+  use?: string;
+  /** Per i servizi/add-on (es. estensione garanzia). */
+  type?: string;
+  coverage?: string;
+};
+
 export type Product = {
   id: string;
   name: string;
-  slug: string;
-  connector: string;
-  lengthM: number;
-  currentA: number;
-  phase: "mono" | "trifase";
-  priceEur: number;
+  category: string;
+  /** null per i servizi senza prezzo fisso. */
+  price: number | null;
+  currency: string;
+  bestSeller: boolean;
+  specs: ProductSpecs;
   image: string;
-  compatibleWith: string[];
+  sourceUrl: string;
 };
