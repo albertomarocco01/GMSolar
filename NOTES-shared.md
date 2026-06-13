@@ -54,6 +54,14 @@ In questo modo il design system resta coerente e nessuna sezione rompe le altre.
   né le altre sezioni (three lo usa solo Mobility). Committato sul branch per far passare il
   typecheck; segnalato qui per trasparenza.
 
+### [SOLAR] Centralizzare i path dei poster video in `lib/assets.ts` (opzionale)
+
+- Per il taglio cinematografico la sezione Solar usa due poster placeholder
+  (`/public/assets/gm-solar-hero-poster.svg`, `gm-solar-drone-poster.svg`) come fallback dei
+  `<video>`. Per non toccare la zona condivisa li referenzio con una costante LOCALE nei
+  componenti Solar. Se si vuole coerenza, aggiungere a `lib/assets.ts → VIDEOS` (o un nuovo
+  `POSTERS`) i relativi path e farli consumare ai componenti. _Non bloccante._
+
 ---
 
 ## Note / debiti tecnici noti
@@ -69,7 +77,11 @@ In questo modo il design system resta coerente e nessuna sezione rompe le altre.
   legge più quel file: i punti pubblici arrivano in tempo reale da **Open Charge Map**
   (route `app/mobility/api/charging-points`), più 3 pin showcase di clienti reali in Piemonte
   (Borello, Ronchiverdi, Bellini — coordinate a livello città, da confermare). Suggerito:
-  svuotare/aggiornare quel JSON o rimuoverlo.
+  svuotare/aggiornare quel JSON o rimuoverlo. _(Fase 5: svuotato a `[]`.)_
+- **[SOLAR] Poster video = PLACEHOLDER branded.** `gm-solar-hero-poster.svg` e
+  `gm-solar-drone-poster.svg` in `/public/assets` sono SVG segnaposto (gradiente + motivo
+  solare): da sostituire con un frame reale esportato dai video (JPG/WebP). Il fallback vero
+  "se il video non parte" resta comunque il layer a gradiente dietro al `<video>`.
 - **Contrasto accent.** Gli accent lime/verde hanno contrasto basso come TESTO su sfondo
   chiaro: per il testo usare sempre `text-accent-ink` (o gli `*-ink` di brand), mai
   `text-accent` su superfici chiare. `text-accent` va bene su superfici scure.
