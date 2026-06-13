@@ -73,7 +73,16 @@ export default function SplitTextReveal({
   }, [text, by, duration, stagger, delay, start, once]);
 
   const pieces = toPieces(text, by);
-  const Tag = as;
+  // Cast necessario: con React Three Fiber nel progetto, `React.JSX.IntrinsicElements`
+  // include gli elementi three e allarga `React.ElementType`, facendo collassare a
+  // `never` le prop del tag polimorfico. Il cast riporta le prop attese (no-op a
+  // runtime). Vedi NOTES-shared.md → richiesta Mobility.
+  const Tag = as as React.ComponentType<{
+    ref?: React.Ref<HTMLElement>;
+    className?: string;
+    "aria-label"?: string;
+    children?: React.ReactNode;
+  }>;
 
   return (
     <Tag ref={ref} className={cn(className)} aria-label={text}>
