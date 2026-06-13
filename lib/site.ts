@@ -22,6 +22,55 @@ export const GROUP = {
 } as const;
 
 /* =============================================================
+   URL canonico del sito. Serve a metadataBase, OpenGraph, sitemap,
+   robots e ai dati strutturati. Priorità:
+   1) NEXT_PUBLIC_SITE_URL (impostala su Vercel col dominio reale)
+   2) dominio di produzione Vercel (auto, in fase di build)
+   3) localhost in sviluppo
+   ============================================================= */
+export const SITE_URL = (
+  process.env.NEXT_PUBLIC_SITE_URL ??
+  (process.env.VERCEL_PROJECT_PRODUCTION_URL
+    ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
+    : "http://localhost:3000")
+).replace(/\/$/, "");
+
+/**
+ * Dati strutturati schema.org per il gruppo (Organization + LocalBusiness).
+ * Anagrafica REALE confermata (GM Solar S.R.L., Settimo Torinese, P.IVA);
+ * l'email è ancora un PLACEHOLDER (vedi NOTES-shared.md). Iniettato site-wide
+ * dal RootLayout per i rich result / knowledge panel di Google.
+ */
+export function groupJsonLd() {
+  return {
+    "@context": "https://schema.org",
+    "@type": ["Organization", "LocalBusiness"],
+    "@id": `${SITE_URL}/#organization`,
+    name: GROUP.name,
+    legalName: GROUP.legalName,
+    url: SITE_URL,
+    email: GROUP.email,
+    vatID: `IT${GROUP.vat}`,
+    taxID: GROUP.vat,
+    slogan: GROUP.tagline,
+    logo: `${SITE_URL}${LOGOS.gmSolar}`,
+    address: {
+      "@type": "PostalAddress",
+      addressLocality: "Settimo Torinese",
+      addressRegion: "TO",
+      addressCountry: "IT",
+    },
+    areaServed: "IT",
+    // I tre brand operativi del gruppo.
+    brand: WORLDS.map((w) => ({
+      "@type": "Brand",
+      name: w.brand,
+      url: `${SITE_URL}${w.href}`,
+    })),
+  } as const;
+}
+
+/* =============================================================
    I tre "mondi" del gruppo. L'ordine racconta la storia:
    produci energia → muoviti elettrico → collega tutto.
    `theme` collega ogni mondo all'accent runtime (vedi ThemeProvider).

@@ -6,6 +6,7 @@ import Badge from "@/components/ui/Badge";
 import ProductImage from "@/components/shop/ProductImage";
 import AddToCartButton from "@/components/shop/cart/AddToCartButton";
 import { formatPrice } from "@/components/shop/format";
+import { SITE_URL } from "@/lib/site";
 import productsData from "@/data/products.json";
 import type { Product } from "@/lib/types";
 
@@ -43,6 +44,7 @@ export async function generateMetadata({
   return {
     title: product.name,
     description: `${product.name} — ${product.category}. ${formatPrice(product.price)}. Cavo di ricarica Cavo Perfetto.`,
+    alternates: { canonical: `/shop/${product.id}` },
   };
 }
 
@@ -54,7 +56,7 @@ export default async function ProductPage({ params }: { params: Promise<{ id: st
   const specEntries = Object.entries(product.specs).filter(([, v]) => Boolean(v));
 
   // JSON-LD Product schema (rich result Google). Offers solo se c'è un prezzo.
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "";
+  const siteUrl = SITE_URL;
   const jsonLd: Record<string, unknown> = {
     "@context": "https://schema.org",
     "@type": "Product",

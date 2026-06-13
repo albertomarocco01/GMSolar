@@ -6,7 +6,7 @@ import Footer from "@/components/layout/Footer";
 import PageTransition from "@/components/layout/PageTransition";
 import ThemeProvider from "@/components/providers/ThemeProvider";
 import LenisProvider from "@/components/providers/LenisProvider";
-import { GROUP } from "@/lib/site";
+import { GROUP, SITE_URL, groupJsonLd } from "@/lib/site";
 
 // Testo: Inter (workhorse super leggibile). Display: Space Grotesk (titoli/stat).
 const inter = Inter({
@@ -21,13 +21,32 @@ const spaceGrotesk = Space_Grotesk({
   display: "swap",
 });
 
+const SITE_DESCRIPTION =
+  "Ecosistema GM Group: energia solare (GM Solar), mobilità elettrica (GMobility) e accessori di ricarica (Cavo Perfetto).";
+
 export const metadata: Metadata = {
+  // Base per risolvere OpenGraph/canonical in URL assoluti (vedi lib/site.ts).
+  metadataBase: new URL(SITE_URL),
   title: {
-    default: GROUP.name,
+    default: `${GROUP.name} — ${GROUP.tagline}`,
     template: `%s — ${GROUP.name}`,
   },
-  description:
-    "Ecosistema GM Group: energia solare (GM Solar), mobilità elettrica (GMobility) e accessori di ricarica (Cavo Perfetto).",
+  description: SITE_DESCRIPTION,
+  applicationName: GROUP.name,
+  alternates: { canonical: "/" },
+  // Niente title/description espliciti su openGraph/twitter: così Next li deriva
+  // PER-ROUTE dal title/description risolti (es. "Solar — GM Group"). Qui restano
+  // solo i campi strutturali condivisi.
+  openGraph: {
+    type: "website",
+    siteName: GROUP.name,
+    locale: "it_IT",
+    url: "/",
+  },
+  twitter: {
+    card: "summary_large_image",
+  },
+  robots: { index: true, follow: true },
 };
 
 /**
@@ -51,6 +70,11 @@ export default function RootLayout({
     >
       <body className="flex min-h-full flex-col">
         <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
+        {/* Dati strutturati del gruppo (Organization/LocalBusiness), site-wide. */}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(groupJsonLd()) }}
+        />
         <ThemeProvider>
           <LenisProvider>
             <Header />
