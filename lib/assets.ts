@@ -15,3 +15,12 @@ export const VIDEOS = {
   solarHero: "/assets/gm-solar-hero.mp4",
   solarDrone: "/assets/gm-solar-drone.mp4",
 } as const;
+
+/**
+ * Poster dei video (fallback `poster=` dei <video> + prima frame mostrata).
+ * Placeholder SVG branded: sostituire con un frame reale esportato dai video.
+ */
+export const POSTERS = {
+  solarHero: "/assets/gm-solar-hero-poster.svg",
+  solarDrone: "/assets/gm-solar-drone-poster.svg",
+} as const;

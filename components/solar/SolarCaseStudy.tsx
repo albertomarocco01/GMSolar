@@ -6,11 +6,11 @@ import Badge from "@/components/ui/Badge";
 import SplitTextReveal from "@/components/ui/SplitTextReveal";
 import ScrollReveal from "@/components/ui/ScrollReveal";
 import { gsap } from "@/lib/gsap";
-import { VIDEOS } from "@/lib/assets";
+import { VIDEOS, POSTERS } from "@/lib/assets";
 import { useReducedMotion, useIsoLayoutEffect } from "@/lib/motion";
 import solar from "@/data/solar-projects.json";
 
-const DRONE_POSTER = "/assets/gm-solar-drone-poster.svg";
+const DRONE_POSTER = POSTERS.solarDrone;
 
 /**
  * Case study con parallax: sezione full-bleed con video drone reale di sfondo

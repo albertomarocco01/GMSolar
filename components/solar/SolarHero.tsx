@@ -7,16 +7,12 @@ import Badge from "@/components/ui/Badge";
 import Button from "@/components/ui/Button";
 import SplitTextReveal from "@/components/ui/SplitTextReveal";
 import { gsap } from "@/lib/gsap";
-import { VIDEOS } from "@/lib/assets";
+import { VIDEOS, POSTERS } from "@/lib/assets";
 import { useReducedMotion, useIsoLayoutEffect } from "@/lib/motion";
 import { IconArrowRight } from "@/components/solar/SolarIcons";
 
-/**
- * Poster placeholder locale (vedi public/assets/*.svg). Non lo aggiungo a
- * lib/assets.ts perché è zona condivisa (vedi CLAUDE.md / NOTES-shared.md):
- * sostituire con un frame reale del video quando disponibile.
- */
-const HERO_POSTER = "/assets/gm-solar-hero-poster.svg";
+/** Poster placeholder branded: sostituire con un frame reale del video. */
+const HERO_POSTER = POSTERS.solarHero;
 
 /**
  * Hero cinematografico di GM Solar: video reale a tutto schermo (Section
