@@ -1,0 +1,38 @@
+[
+  {
+    "id": "prod-001",
+    "name": "Cavo Ricarica Type 2 — 5m 32A Trifase",
+    "slug": "type2-5m-32a-trifase",
+    "connector": "Type 2",
+    "lengthM": 5,
+    "currentA": 32,
+    "phase": "trifase",
+    "priceEur": 149.9,
+    "image": "/placeholders/product-1.jpg",
+    "compatibleWith": ["Tesla Model 3", "Volkswagen ID.4", "Renault Megane E-Tech"]
+  },
+  {
+    "id": "prod-002",
+    "name": "Cavo Ricarica Type 2 — 7m 16A Monofase",
+    "slug": "type2-7m-16a-monofase",
+    "connector": "Type 2",
+    "lengthM": 7,
+    "currentA": 16,
+    "phase": "mono",
+    "priceEur": 119.9,
+    "image": "/placeholders/product-2.jpg",
+    "compatibleWith": ["Fiat 500e", "Peugeot e-208", "Dacia Spring"]
+  },
+  {
+    "id": "prod-003",
+    "name": "Cavo Ricarica Type 2 — 10m 32A Trifase",
+    "slug": "type2-10m-32a-trifase",
+    "connector": "Type 2",
+    "lengthM": 10,
+    "currentA": 32,
+    "phase": "trifase",
+    "priceEur": 199.9,
+    "image": "/placeholders/product-3.jpg",
+    "compatibleWith": ["BMW i4", "Hyundai Ioniq 5", "Kia EV6"]
+  }
+]

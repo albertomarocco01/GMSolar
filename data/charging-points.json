@@ -1,0 +1,32 @@
+[
+  {
+    "id": "cp-001",
+    "name": "GMobility Hub Centro",
+    "address": "Via Roma 12",
+    "city": "Milano",
+    "coordinates": { "lat": 45.4642, "lng": 9.19 },
+    "powerKw": 22,
+    "connector": "Type 2",
+    "status": "available"
+  },
+  {
+    "id": "cp-002",
+    "name": "Stazione Fast A4",
+    "address": "Area di servizio Brianza Est",
+    "city": "Monza",
+    "coordinates": { "lat": 45.5845, "lng": 9.2744 },
+    "powerKw": 150,
+    "connector": "CCS Combo 2",
+    "status": "busy"
+  },
+  {
+    "id": "cp-003",
+    "name": "Wallbox Residenziale Demo",
+    "address": "Via dei Tigli 7",
+    "city": "Bergamo",
+    "coordinates": { "lat": 45.6983, "lng": 9.6773 },
+    "powerKw": 11,
+    "connector": "Type 2",
+    "status": "offline"
+  }
+]
