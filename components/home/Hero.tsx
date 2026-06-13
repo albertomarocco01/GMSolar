@@ -5,7 +5,7 @@ import Container from "@/components/ui/Container";
 import Button from "@/components/ui/Button";
 import Badge from "@/components/ui/Badge";
 import SplitTextReveal from "@/components/ui/SplitTextReveal";
-import { VIDEOS } from "@/lib/assets";
+import { VIDEOS, POSTERS } from "@/lib/assets";
 import { useReducedMotion } from "@/lib/motion";
 
 /**
@@ -41,6 +41,7 @@ export default function Hero() {
         loop={!reduced}
         playsInline
         preload="metadata"
+        poster={POSTERS.solarHero}
       >
         <source src={VIDEOS.solarHero} type="video/mp4" />
       </video>
