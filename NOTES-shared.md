@@ -85,3 +85,38 @@ In questo modo il design system resta coerente e nessuna sezione rompe le altre.
 - **Contrasto accent.** Gli accent lime/verde hanno contrasto basso come TESTO su sfondo
   chiaro: per il testo usare sempre `text-accent-ink` (o gli `*-ink` di brand), mai
   `text-accent` su superfici chiare. `text-accent` va bene su superfici scure.
+
+---
+
+## Fase 5 — note di integrazione (merge su `main`)
+
+Le tre sezioni sono state mergiate su `main` (mobility → solar → shop), build verde,
+typecheck pulito. Recepiti ufficialmente i due interventi shared di Mobility (`@types/three`
+e il cast in `SplitTextReveal`). Aggiunti, sempre in fase 5, SEO sitewide (metadata/OG per
+route, `sitemap.ts`, `robots.ts`, JSON-LD Organization/LocalBusiness, favicon brandizzata) e
+una piccola ottimizzazione perf (poster sul video hero della home → LCP ~4.8s→2.4s).
+
+### Due rilievi di accessibilità nella ZONA CONDIVISA — servono al proprietario del design system
+
+Lighthouse mobile dà A11y 95–96 su tutte le route. I due rilievi residui sono entrambi
+**in `/components/layout` (Header/Footer)**, quindi NON li ho toccati (regola ferrea):
+
+1. **Contrasto `text-muted/70`** (Footer): `#6f7681` su `#0a0c10` = **4.27:1**, sotto la
+   soglia AA di 4.5:1 per testo piccolo. Fix possibile: usare `text-muted` pieno (senza
+   `/70`) per quel testo, o scurire un filo il token muted. Tocca il design system → decidere
+   a livello shared.
+2. **`label-content-name-mismatch`** sul link logo (Header): `aria-label="GM Group — home"`
+   mentre il testo visibile è "GM Group". Per i voice-control è meglio che l'accessible name
+   contenga esattamente il testo visibile (es. `aria-label="GM Group, vai alla home"` →
+   include "GM Group"). Fix in `components/layout/Header`.
+
+### Mobility: Performance Lighthouse = 0 (artefatto di misura, NON un problema di UX)
+
+`/mobility` mostra Performance 0 con errore `NO_TTI_CPU_IDLE_PERIOD`: il `<Canvas>` R3F gira
+in `frameloop="always"` (richiesto dal pilotaggio scroll via `progressRef`, letto ogni frame),
+quindi la pagina non raggiunge mai un periodo di CPU idle e Lighthouse non riesce a calcolare
+TBT/TTI → azzera lo _score_. Le metriche di paint reali sono però sane (FCP ~2.4s, LCP ~4.5s,
+CLS 0) e la pagina è interattiva. **Fix consigliato (mobility-owned, da QA visivo):** passare
+a `frameloop="demand"` e chiamare `invalidate()` dentro l'`onUpdate` di ScrollTrigger (render
+solo durante lo scroll). Non l'ho fatto in fase 5 per non alterare il cuore dell'esperienza 3D
+senza verifica visiva.

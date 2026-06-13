@@ -13,6 +13,9 @@ import { resolveProvider, runProvider, type ChatMessage, type FinderEvent } from
 // Niente cache: è una risposta conversazionale in streaming.
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+// La chat con function-calling può durare più del default Vercel: alziamo il
+// tetto (Vercel rispetta questo segment config; max 60s su Hobby, di più su Pro).
+export const maxDuration = 60;
 
 export function GET() {
   const provider = resolveProvider();
