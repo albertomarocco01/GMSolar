@@ -60,7 +60,7 @@ export default function CartDrawer() {
         aria-modal="true"
         aria-label="Carrello"
         className={cn(
-          "bg-background border-border ease-out-expo fixed top-0 right-0 z-[61] flex h-full w-full max-w-md flex-col border-l shadow-lift transition-transform duration-(--duration-base)",
+          "bg-background border-border ease-out-expo shadow-lift fixed top-0 right-0 z-[61] flex h-full w-full max-w-md flex-col border-l transition-transform duration-(--duration-base)",
           isOpen ? "translate-x-0" : "translate-x-full",
         )}
       >
@@ -75,7 +75,12 @@ export default function CartDrawer() {
             aria-label="Chiudi carrello"
           >
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden>
-              <path d="M6 6l12 12M18 6L6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+              <path
+                d="M6 6l12 12M18 6L6 18"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+              />
             </svg>
           </button>
         </header>
@@ -85,7 +90,13 @@ export default function CartDrawer() {
             <div className="flex h-full flex-col items-center justify-center text-center">
               <div className="bg-accent text-accent-contrast flex h-14 w-14 items-center justify-center rounded-full">
                 <svg width="26" height="26" viewBox="0 0 24 24" fill="none" aria-hidden>
-                  <path d="M5 13l4 4L19 7" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+                  <path
+                    d="M5 13l4 4L19 7"
+                    stroke="currentColor"
+                    strokeWidth="2.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
                 </svg>
               </div>
               <h3 className="font-display mt-4 text-lg font-bold">Ordine confermato</h3>

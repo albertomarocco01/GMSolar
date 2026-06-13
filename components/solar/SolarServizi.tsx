@@ -35,7 +35,8 @@ const PRESENTATION: Record<string, { icon: Icon; description: string }> = {
   },
   "Gestione amministrativa": {
     icon: IconDocument,
-    description: "Pratiche, permessi, incentivi e connessione alla rete: la burocrazia la gestiamo noi.",
+    description:
+      "Pratiche, permessi, incentivi e connessione alla rete: la burocrazia la gestiamo noi.",
   },
   Consulenza: {
     icon: IconChat,

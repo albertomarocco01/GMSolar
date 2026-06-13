@@ -20,7 +20,7 @@ export default function ShopChrome({ children }: { children: React.ReactNode }) 
         type="button"
         onClick={open}
         aria-label={`Apri il carrello${count > 0 ? ` (${count} articoli)` : ""}`}
-        className="bg-accent text-accent-contrast hover:bg-accent-strong ease-out-expo fixed right-5 bottom-5 z-50 flex h-14 w-14 items-center justify-center rounded-full shadow-lift transition-[transform,background-color] duration-(--duration-fast) hover:-translate-y-0.5"
+        className="bg-accent text-accent-contrast hover:bg-accent-strong ease-out-expo shadow-lift fixed right-5 bottom-5 z-50 flex h-14 w-14 items-center justify-center rounded-full transition-[transform,background-color] duration-(--duration-fast) hover:-translate-y-0.5"
       >
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden>
           <path

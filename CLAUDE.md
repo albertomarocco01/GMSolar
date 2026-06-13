@@ -36,11 +36,11 @@ La fase 1 ha costruito le fondamenta condivise (design system, theming, primitiv
 motion, layout, hub). Da qui le tre sezioni possono procedere IN PARALLELO, ognuna nel
 proprio recinto.
 
-| Agente   | POSSIEDE (crea/modifica)                       | LEGGE (dati)                                   |
-| -------- | ---------------------------------------------- | ---------------------------------------------- |
-| SOLAR    | `/app/solar/**`, `/components/solar/**`        | `/data/solar-projects.json`; video drone in `/public/assets` (`gm-solar-hero.mp4`, `gm-solar-drone.mp4`) |
-| MOBILITY | `/app/mobility/**`, `/components/mobility/**`  | `/data/charging-points.json` + Open Charge Map |
-| SHOP     | `/app/shop/**`, `/components/shop/**`          | `/data/products.json`                          |
+| Agente   | POSSIEDE (crea/modifica)                      | LEGGE (dati)                                                                                             |
+| -------- | --------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| SOLAR    | `/app/solar/**`, `/components/solar/**`       | `/data/solar-projects.json`; video drone in `/public/assets` (`gm-solar-hero.mp4`, `gm-solar-drone.mp4`) |
+| MOBILITY | `/app/mobility/**`, `/components/mobility/**` | `/data/charging-points.json` + Open Charge Map                                                           |
+| SHOP     | `/app/shop/**`, `/components/shop/**`         | `/data/products.json`                                                                                    |
 
 ### REGOLA FERREA (zona condivisa, NON si tocca)
 

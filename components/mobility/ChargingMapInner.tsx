@@ -26,7 +26,10 @@ const DARK_RASTER: StyleSpecification = {
 };
 
 function escapeHtml(s: string) {
-  return s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]!);
+  return s.replace(
+    /[&<>"]/g,
+    (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]!,
+  );
 }
 
 function popupHtml(title: string, lines: string[]) {
@@ -86,11 +89,10 @@ export default function ChargingMapInner({ points }: Props) {
     for (const p of points) {
       const fast = (p.powerKw ?? 0) >= 50;
       const popup = new maplibregl.Popup({ offset: 14, closeButton: false }).setHTML(
-        popupHtml(p.name, [
-          p.town ?? "",
-          p.powerKw ? `${p.powerKw} kW` : "",
-          p.connector ?? "",
-        ].filter(Boolean)),
+        popupHtml(
+          p.name,
+          [p.town ?? "", p.powerKw ? `${p.powerKw} kW` : "", p.connector ?? ""].filter(Boolean),
+        ),
       );
       markers.push(
         new maplibregl.Marker({ element: publicMarkerEl(fast) })

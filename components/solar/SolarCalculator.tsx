@@ -115,10 +115,7 @@ export default function SolarCalculator() {
   const [superficie, setSuperficie] = useState(40); // m²
 
   const amount = mode === "spesa" ? spesa : consumo;
-  const est = useMemo(
-    () => computeEstimate(mode, amount, superficie),
-    [mode, amount, superficie],
-  );
+  const est = useMemo(() => computeEstimate(mode, amount, superficie), [mode, amount, superficie]);
 
   const results = [
     { label: "Potenza consigliata", value: nf(1).format(est.kwp), unit: "kWp" },
@@ -205,8 +202,8 @@ export default function SolarCalculator() {
           />
 
           <p className="text-muted text-xs leading-relaxed">
-            Ipotesi: {nf(2).format(PRICE_PER_KWH)} €/kWh, {nf(0).format(YIELD_KWH_PER_KWP)}{" "}
-            kWh/kWp l&apos;anno, ~6 m² di tetto per kWp.
+            Ipotesi: {nf(2).format(PRICE_PER_KWH)} €/kWh, {nf(0).format(YIELD_KWH_PER_KWP)} kWh/kWp
+            l&apos;anno, ~6 m² di tetto per kWp.
           </p>
         </div>
 
@@ -234,7 +231,7 @@ export default function SolarCalculator() {
             </div>
             <div className="bg-border mt-2 h-2 overflow-hidden rounded-full">
               <div
-                className="bg-accent h-full rounded-full transition-[width] duration-(--duration-base) ease-out-expo"
+                className="bg-accent ease-out-expo h-full rounded-full transition-[width] duration-(--duration-base)"
                 style={{ width: `${est.coperturaPct}%` }}
               />
             </div>

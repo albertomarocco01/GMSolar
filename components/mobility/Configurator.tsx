@@ -7,11 +7,7 @@ import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 import { cn } from "@/lib/utils";
 import { GROUP } from "@/lib/site";
-import {
-  COUNT_OPTIONS,
-  POWER_OPTIONS,
-  type ConfigUsage,
-} from "@/components/mobility/content";
+import { COUNT_OPTIONS, POWER_OPTIONS, type ConfigUsage } from "@/components/mobility/content";
 
 type Selection = {
   usage: ConfigUsage | null;

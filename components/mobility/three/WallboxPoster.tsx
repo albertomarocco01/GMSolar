@@ -15,9 +15,27 @@ export default function WallboxPoster() {
         {/* piastra a muro */}
         <rect x="46" y="18" width="108" height="244" rx="10" fill="#0e1116" />
         {/* corpo */}
-        <rect x="58" y="30" width="84" height="208" rx="20" fill="#171b22" stroke="#232b34" strokeWidth="2" />
+        <rect
+          x="58"
+          y="30"
+          width="84"
+          height="208"
+          rx="20"
+          fill="#171b22"
+          stroke="#232b34"
+          strokeWidth="2"
+        />
         {/* display */}
-        <rect x="74" y="52" width="52" height="34" rx="6" fill="#0a0e0b" stroke="currentColor" strokeOpacity="0.4" />
+        <rect
+          x="74"
+          y="52"
+          width="52"
+          height="34"
+          rx="6"
+          fill="#0a0e0b"
+          stroke="currentColor"
+          strokeOpacity="0.4"
+        />
         {/* barra LED emissiva */}
         <rect x="66" y="60" width="7" height="120" rx="3.5" fill="currentColor">
           <animate attributeName="opacity" values="0.6;1;0.6" dur="2.4s" repeatCount="indefinite" />

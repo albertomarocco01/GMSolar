@@ -5,12 +5,7 @@ import Card from "@/components/ui/Card";
 import ScrollReveal from "@/components/ui/ScrollReveal";
 import SplitTextReveal from "@/components/ui/SplitTextReveal";
 import solar from "@/data/solar-projects.json";
-import {
-  IconHome,
-  IconFactory,
-  IconSolarFarm,
-  IconRevamp,
-} from "@/components/solar/SolarIcons";
+import { IconHome, IconFactory, IconSolarFarm, IconRevamp } from "@/components/solar/SolarIcons";
 
 type Icon = ComponentType<SVGProps<SVGSVGElement>>;
 
@@ -57,11 +52,7 @@ export default function SolarTipologie() {
         </p>
       </div>
 
-      <ScrollReveal
-        className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-4"
-        stagger={0.1}
-        y={32}
-      >
+      <ScrollReveal className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-4" stagger={0.1} y={32}>
         {solar.tipologie.map((nome) => {
           const { icon: Icon, description } = PRESENTATION[nome] ?? {
             icon: IconSolarFarm,

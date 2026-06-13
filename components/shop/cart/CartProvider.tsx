@@ -1,6 +1,13 @@
 "use client";
 
-import { createContext, useCallback, useContext, useMemo, useState, useSyncExternalStore } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useMemo,
+  useState,
+  useSyncExternalStore,
+} from "react";
 import type { Product } from "@/lib/types";
 
 /**
@@ -66,7 +73,11 @@ function addItem(product: Pick<Product, "id" | "name" | "price">) {
   );
 }
 function setItemQty(id: string, qty: number) {
-  setCart(qty <= 0 ? cartState.filter((i) => i.id !== id) : cartState.map((i) => (i.id === id ? { ...i, qty } : i)));
+  setCart(
+    qty <= 0
+      ? cartState.filter((i) => i.id !== id)
+      : cartState.map((i) => (i.id === id ? { ...i, qty } : i)),
+  );
 }
 function removeItem(id: string) {
   setCart(cartState.filter((i) => i.id !== id));

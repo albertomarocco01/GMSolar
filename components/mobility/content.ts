@@ -126,8 +126,18 @@ export type ShowcasePin = {
 };
 
 export const SHOWCASE_PINS: ShowcasePin[] = [
-  { id: "sc-borello", name: "Borello", city: "Beinasco (TO)", coordinates: { lat: 45.0046, lng: 7.5876 } },
-  { id: "sc-ronchiverdi", name: "Ronchiverdi", city: "Torino", coordinates: { lat: 45.0273, lng: 7.697 } },
+  {
+    id: "sc-borello",
+    name: "Borello",
+    city: "Beinasco (TO)",
+    coordinates: { lat: 45.0046, lng: 7.5876 },
+  },
+  {
+    id: "sc-ronchiverdi",
+    name: "Ronchiverdi",
+    city: "Torino",
+    coordinates: { lat: 45.0273, lng: 7.697 },
+  },
   { id: "sc-bellini", name: "Bellini", city: "Torino", coordinates: { lat: 45.0709, lng: 7.6868 } },
 ];
 
@@ -139,19 +149,20 @@ export const MAP_CENTER: GeoCoordinates = { lat: 45.07, lng: 7.69 };
    ============================================================= */
 export type ConfigUsage = "home" | "business";
 
-export const POWER_OPTIONS: Record<ConfigUsage, { value: string; label: string; hint: string }[]> = {
-  home: [
-    { value: "3.7", label: "3,7 kW", hint: "Monofase, ricarica notturna" },
-    { value: "7.4", label: "7,4 kW", hint: "Monofase potenziata" },
-    { value: "11", label: "11 kW", hint: "Trifase, ricarica veloce" },
-    { value: "22", label: "22 kW", hint: "Trifase, massima potenza AC" },
-  ],
-  business: [
-    { value: "22", label: "22 kW AC", hint: "Dipendenti e clienti" },
-    { value: "50", label: "50 kW DC", hint: "Fast charge" },
-    { value: "150", label: "150 kW DC", hint: "Ultra-fast per hub" },
-  ],
-};
+export const POWER_OPTIONS: Record<ConfigUsage, { value: string; label: string; hint: string }[]> =
+  {
+    home: [
+      { value: "3.7", label: "3,7 kW", hint: "Monofase, ricarica notturna" },
+      { value: "7.4", label: "7,4 kW", hint: "Monofase potenziata" },
+      { value: "11", label: "11 kW", hint: "Trifase, ricarica veloce" },
+      { value: "22", label: "22 kW", hint: "Trifase, massima potenza AC" },
+    ],
+    business: [
+      { value: "22", label: "22 kW AC", hint: "Dipendenti e clienti" },
+      { value: "50", label: "50 kW DC", hint: "Fast charge" },
+      { value: "150", label: "150 kW DC", hint: "Ultra-fast per hub" },
+    ],
+  };
 
 export const COUNT_OPTIONS = [
   { value: "1", label: "1 punto" },

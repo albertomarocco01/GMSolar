@@ -31,7 +31,10 @@ function detectWebGL(): boolean {
   if (typeof window === "undefined") return false;
   try {
     const c = document.createElement("canvas");
-    return !!(window.WebGLRenderingContext && (c.getContext("webgl") || c.getContext("experimental-webgl")));
+    return !!(
+      window.WebGLRenderingContext &&
+      (c.getContext("webgl") || c.getContext("experimental-webgl"))
+    );
   } catch {
     return false;
   }
@@ -71,10 +74,9 @@ export default function MobilityStage() {
   useEffect(() => {
     const el = wrapperRef.current;
     if (!el || webgl === null) return;
-    const io = new IntersectionObserver(
-      ([entry]) => setNear(entry.isIntersecting),
-      { rootMargin: "300px 0px" },
-    );
+    const io = new IntersectionObserver(([entry]) => setNear(entry.isIntersecting), {
+      rootMargin: "300px 0px",
+    });
     io.observe(el);
     return () => io.disconnect();
   }, [webgl]);

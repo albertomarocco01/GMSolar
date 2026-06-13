@@ -55,7 +55,10 @@ export async function POST(req: Request) {
     return Response.json({ type: "error", message: "Richiesta non valida." }, { status: 400 });
   }
   if (messages.length === 0) {
-    return Response.json({ type: "error", message: "Nessun messaggio da elaborare." }, { status: 400 });
+    return Response.json(
+      { type: "error", message: "Nessun messaggio da elaborare." },
+      { status: 400 },
+    );
   }
 
   const encoder = new TextEncoder();
@@ -65,7 +68,12 @@ export async function POST(req: Request) {
   const stream = new ReadableStream({
     async start(controller) {
       try {
-        for await (const ev of runProvider(provider.name, messages, provider.apiKey, provider.model)) {
+        for await (const ev of runProvider(
+          provider.name,
+          messages,
+          provider.apiKey,
+          provider.model,
+        )) {
           write(controller, ev);
         }
       } catch (err) {

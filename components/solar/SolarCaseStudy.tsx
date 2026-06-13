@@ -94,11 +94,7 @@ export default function SolarCaseStudy() {
           </p>
         </div>
 
-        <ScrollReveal
-          className="mt-12 grid gap-6 md:grid-cols-3"
-          stagger={0.12}
-          y={36}
-        >
+        <ScrollReveal className="mt-12 grid gap-6 md:grid-cols-3" stagger={0.12} y={36}>
           {solar.progettiVetrina.map((p) => (
             <article
               key={p.nome}

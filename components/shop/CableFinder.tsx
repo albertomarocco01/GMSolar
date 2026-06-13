@@ -104,7 +104,8 @@ export default function CableFinder({ aiEnabled }: { aiEnabled: boolean }) {
           }
           if (ev.type === "text") patch((m) => ({ ...m, text: m.text + ev.text }));
           else if (ev.type === "products") patch((m) => ({ ...m, products: ev.products }));
-          else if (ev.type === "error") patch((m) => ({ ...m, text: m.text || `⚠️ ${ev.message}` }));
+          else if (ev.type === "error")
+            patch((m) => ({ ...m, text: m.text || `⚠️ ${ev.message}` }));
         }
       }
     } catch {

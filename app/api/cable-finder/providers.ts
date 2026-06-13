@@ -12,7 +12,12 @@
  * al client come NDJSON dalla route.
  */
 import type { Product } from "@/lib/types";
-import { findCable, type ChargeLocation, type Phase, type Shape } from "@/components/shop/cable-matcher";
+import {
+  findCable,
+  type ChargeLocation,
+  type Phase,
+  type Shape,
+} from "@/components/shop/cable-matcher";
 import { lookupEvModel } from "@/components/shop/ev-onboard";
 
 /* ============================================================
@@ -56,7 +61,8 @@ const FIND_CABLE = {
     properties: {
       car_model: {
         type: "string",
-        description: "Marca e modello dell'auto se l'utente li cita (es. 'Tesla Model 3'). Serve a dedurre la fase.",
+        description:
+          "Marca e modello dell'auto se l'utente li cita (es. 'Tesla Model 3'). Serve a dedurre la fase.",
       },
       charge_location: {
         type: "string",
@@ -110,7 +116,9 @@ function executeFindCable(rawInput: unknown): ToolExecution {
   }
 
   const shape: Shape | undefined =
-    input.cable_shape === "liscio" || input.cable_shape === "spiralato" ? input.cable_shape : undefined;
+    input.cable_shape === "liscio" || input.cable_shape === "spiralato"
+      ? input.cable_shape
+      : undefined;
 
   const result = findCable({ chargeLocation, phase, shape });
 
@@ -216,7 +224,13 @@ async function* runAnthropic(
         model,
         max_tokens: 1024,
         system: SYSTEM_PROMPT,
-        tools: [{ name: FIND_CABLE.name, description: FIND_CABLE.description, input_schema: FIND_CABLE.parameters }],
+        tools: [
+          {
+            name: FIND_CABLE.name,
+            description: FIND_CABLE.description,
+            input_schema: FIND_CABLE.parameters,
+          },
+        ],
         tool_choice: { type: "auto" },
         messages: convo,
         stream: true,
@@ -229,7 +243,10 @@ async function* runAnthropic(
     }
 
     // Ricostruzione dei blocchi della risposta assistant, per indice.
-    const blocks = new Map<number, { type: "text"; text: string } | { type: "tool_use"; id: string; name: string; json: string }>();
+    const blocks = new Map<
+      number,
+      { type: "text"; text: string } | { type: "tool_use"; id: string; name: string; json: string }
+    >();
     let stopReason: string | null = null;
 
     for await (const raw of parseSSE(res.body)) {
@@ -237,7 +254,12 @@ async function* runAnthropic(
       if (ev.type === "content_block_start" && ev.index !== undefined && ev.content_block) {
         const cb = ev.content_block;
         if (cb.type === "tool_use") {
-          blocks.set(ev.index, { type: "tool_use", id: cb.id ?? "", name: cb.name ?? "", json: "" });
+          blocks.set(ev.index, {
+            type: "tool_use",
+            id: cb.id ?? "",
+            name: cb.name ?? "",
+            json: "",
+          });
         } else {
           blocks.set(ev.index, { type: "text", text: "" });
         }
@@ -247,7 +269,11 @@ async function* runAnthropic(
         if (ev.delta.type === "text_delta" && b.type === "text" && ev.delta.text) {
           b.text += ev.delta.text;
           yield { type: "text", text: ev.delta.text };
-        } else if (ev.delta.type === "input_json_delta" && b.type === "tool_use" && ev.delta.partial_json) {
+        } else if (
+          ev.delta.type === "input_json_delta" &&
+          b.type === "tool_use" &&
+          ev.delta.partial_json
+        ) {
           b.json += ev.delta.partial_json;
         }
       } else if (ev.type === "message_delta" && ev.delta?.stop_reason) {
@@ -382,7 +408,8 @@ export type ProviderName = "anthropic" | "gemini";
 export function resolveProvider(): { name: ProviderName; apiKey: string; model: string } | null {
   const apiKey = process.env.AI_API_KEY;
   if (!apiKey) return null;
-  const name: ProviderName = process.env.AI_PROVIDER?.toLowerCase() === "gemini" ? "gemini" : "anthropic";
+  const name: ProviderName =
+    process.env.AI_PROVIDER?.toLowerCase() === "gemini" ? "gemini" : "anthropic";
   const model =
     process.env.AI_MODEL ?? (name === "gemini" ? "gemini-2.0-flash" : "claude-opus-4-8");
   return { name, apiKey, model };
@@ -394,5 +421,7 @@ export function runProvider(
   apiKey: string,
   model: string,
 ): AsyncGenerator<FinderEvent> {
-  return name === "gemini" ? runGemini(messages, apiKey, model) : runAnthropic(messages, apiKey, model);
+  return name === "gemini"
+    ? runGemini(messages, apiKey, model)
+    : runAnthropic(messages, apiKey, model);
 }

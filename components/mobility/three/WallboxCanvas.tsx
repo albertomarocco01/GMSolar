@@ -52,12 +52,7 @@ export default function WallboxCanvas({ progressRef, animated, exploded }: Wallb
 
       {/* Bloom selettivo sui materiali emissivi (barra LED, impulso del cavo). */}
       <EffectComposer>
-        <Bloom
-          intensity={0.9}
-          luminanceThreshold={0.6}
-          luminanceSmoothing={0.25}
-          mipmapBlur
-        />
+        <Bloom intensity={0.9} luminanceThreshold={0.6} luminanceSmoothing={0.25} mipmapBlur />
       </EffectComposer>
 
       {!animated && <Settle />}

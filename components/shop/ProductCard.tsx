@@ -31,7 +31,9 @@ export default function ProductCard({ product }: { product: Product }) {
       </Link>
 
       <div className="flex flex-1 flex-col p-5">
-        <p className="text-muted text-xs font-medium tracking-widest uppercase">{product.category}</p>
+        <p className="text-muted text-xs font-medium tracking-widest uppercase">
+          {product.category}
+        </p>
         <Link href={`/shop/${product.id}`} className="mt-1">
           <h3 className="font-display text-base leading-snug font-bold tracking-tight text-balance">
             {product.name}

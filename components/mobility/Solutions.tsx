@@ -34,8 +34,8 @@ export default function Solutions() {
           Due strade, una sola energia
         </h2>
         <p className="text-muted mt-4 text-lg text-pretty">
-          Che tu gestisca una flotta o cerchi la wallbox di casa, costruiamo la soluzione di ricarica
-          su misura.
+          Che tu gestisca una flotta o cerchi la wallbox di casa, costruiamo la soluzione di
+          ricarica su misura.
         </p>
       </div>
 
@@ -56,10 +56,7 @@ export default function Solutions() {
               ))}
             </ul>
             <div className="mt-7 pt-1">
-              <Button
-                href={`#configuratore`}
-                variant={sol.id === "business" ? "solid" : "outline"}
-              >
+              <Button href={`#configuratore`} variant={sol.id === "business" ? "solid" : "outline"}>
                 {sol.cta}
               </Button>
             </div>
