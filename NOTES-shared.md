@@ -17,7 +17,12 @@ In questo modo il design system resta coerente e nessuna sezione rompe le altre.
 
 ## Richieste aperte
 
-_(nessuna per ora)_
+- **[SOLAR] Centralizzare i path dei poster video in `lib/assets.ts` (opzionale).**
+  Per il taglio cinematografico la sezione Solar usa due poster placeholder
+  (`/public/assets/gm-solar-hero-poster.svg`, `gm-solar-drone-poster.svg`) come fallback dei
+  `<video>`. Per non toccare la zona condivisa li referenzio con una costante LOCALE nei
+  componenti Solar. Se si vuole coerenza, aggiungere a `lib/assets.ts → VIDEOS` (o un nuovo
+  `POSTERS`) i relativi path e farli consumare ai componenti. _Non bloccante._
 
 ---
 
@@ -29,6 +34,10 @@ _(nessuna per ora)_
   **P.IVA 10086000014**.
 - **Asset = PLACEHOLDER** (regola di progetto): video di stock, loghi reali, cataloghi finti
   in `/data`. Tutto è strutturato per sostituire gli asset reali senza toccare il codice.
+- **[SOLAR] Poster video = PLACEHOLDER branded.** `gm-solar-hero-poster.svg` e
+  `gm-solar-drone-poster.svg` in `/public/assets` sono SVG segnaposto (gradiente + motivo
+  solare): da sostituire con un frame reale esportato dai video (JPG/WebP). Il fallback vero
+  "se il video non parte" resta comunque il layer a gradiente dietro al `<video>`.
 - **Contrasto accent.** Gli accent lime/verde hanno contrasto basso come TESTO su sfondo
   chiaro: per il testo usare sempre `text-accent-ink` (o gli `*-ink` di brand), mai
   `text-accent` su superfici chiare. `text-accent` va bene su superfici scure.
