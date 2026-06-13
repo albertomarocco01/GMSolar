@@ -8,7 +8,7 @@ export const metadata: Metadata = {
 
 export default function MobilityPage() {
   return (
-    <PagePlaceholder eyebrow="GMobility" title="Mobilità elettrica" accentClassName="text-mobility">
+    <PagePlaceholder eyebrow="GMobility" title="Mobilità elettrica">
       <p>
         Segnaposto della sezione Mobility (wallbox e colonnine). Qui arriverà lo storytelling 3D in
         scroll con React Three Fiber per raccontare prodotti e rete di ricarica.

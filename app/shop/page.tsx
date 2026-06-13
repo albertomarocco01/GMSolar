@@ -8,7 +8,7 @@ export const metadata: Metadata = {
 
 export default function ShopPage() {
   return (
-    <PagePlaceholder eyebrow="Cavo Perfetto" title="Shop ricarica" accentClassName="text-shop">
+    <PagePlaceholder eyebrow="Cavo Perfetto" title="Shop ricarica">
       <p>
         Segnaposto della sezione Shop (e-commerce cavi di ricarica). Qui arriveranno il catalogo
         prodotti e l&apos;assistente AI &laquo;trova il cavo per la tua auto&raquo;.

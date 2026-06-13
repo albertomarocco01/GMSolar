@@ -1,32 +1,56 @@
 import Link from "next/link";
 import Container from "@/components/ui/Container";
-import { NAV_ITEMS } from "@/lib/nav";
+import { GROUP, WORLDS } from "@/lib/site";
 
-/** Footer del sito con brand del gruppo e navigazione secondaria. */
+/** Footer con anagrafica reale del gruppo e navigazione ai tre mondi. */
 export default function Footer() {
   const year = new Date().getFullYear();
 
   return (
-    <footer className="border-line/70 text-muted border-t py-10 text-sm">
-      <Container className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
-        <div>
-          <p className="text-foreground font-semibold">GM Group</p>
-          <p>Energia solare · Mobilità elettrica · Accessori di ricarica</p>
+    <footer className="border-border/70 text-muted mt-auto border-t py-12 text-sm">
+      <Container className="grid gap-10 md:grid-cols-3">
+        {/* Gruppo + anagrafica societaria (dati reali). */}
+        <div className="space-y-3">
+          <p className="font-display text-foreground text-base font-bold tracking-tight">
+            GM<span className="text-accent-ink">Group</span>
+          </p>
+          <p className="max-w-xs">{GROUP.tagline}</p>
+          <address className="text-muted/90 space-y-0.5 not-italic">
+            <p className="text-foreground/80 font-medium">{GROUP.legalName}</p>
+            <p>{GROUP.city}</p>
+            <p>P.IVA {GROUP.vat}</p>
+          </address>
         </div>
 
-        <nav aria-label="Navigazione footer">
-          <ul className="flex gap-4">
-            {NAV_ITEMS.map((item) => (
-              <li key={item.href}>
-                <Link href={item.href} className="hover:text-foreground transition-colors">
-                  {item.label}
+        {/* I tre mondi. */}
+        <nav aria-label="I mondi del gruppo" className="space-y-3">
+          <p className="text-foreground/80 font-medium">I nostri mondi</p>
+          <ul className="space-y-2">
+            {WORLDS.map((world) => (
+              <li key={world.href}>
+                <Link href={world.href} className="hover:text-foreground transition-colors">
+                  {world.brand}
+                  <span className="text-muted/70"> — {world.role}</span>
                 </Link>
               </li>
             ))}
           </ul>
         </nav>
 
-        <p>© {year} GM Group — demo</p>
+        {/* Contatti. */}
+        <div className="space-y-3">
+          <p className="text-foreground/80 font-medium">Contatti</p>
+          <a href={`mailto:${GROUP.email}`} className="hover:text-foreground transition-colors">
+            {GROUP.email}
+          </a>
+        </div>
+      </Container>
+
+      <Container className="border-border/60 text-muted/80 mt-10 flex flex-col gap-2 border-t pt-6 text-xs sm:flex-row sm:items-center sm:justify-between">
+        <p>
+          © {year} {GROUP.legalName} — demo dimostrativa
+        </p>
+        <p>Energia solare · Mobilità elettrica · Accessori di ricarica</p>
       </Container>
     </footer>
   );

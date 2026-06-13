@@ -3,38 +3,47 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import Container from "@/components/ui/Container";
-import { NAV_ITEMS } from "@/lib/nav";
+import { WORLDS } from "@/lib/site";
 import { cn } from "@/lib/utils";
 
-/** Header sticky con navigazione tra i tre "mondi" + Home. */
+/**
+ * Header sticky con "group switcher": wordmark del gruppo + segmented control
+ * verso i tre mondi. L'header CONSUMA l'accent attivo (--accent) impostato dal
+ * ThemeProvider, quindi si ri-tematizza passando da una sezione all'altra.
+ */
 export default function Header() {
   const pathname = usePathname();
 
   return (
-    <header className="border-line/70 bg-background/80 sticky top-0 z-50 border-b backdrop-blur">
-      <Container className="flex h-16 items-center justify-between">
-        <Link href="/" className="text-lg font-semibold tracking-tight">
-          GM<span className="text-brand-500">Group</span>
+    <header className="border-border/70 bg-background/80 sticky top-0 z-50 border-b backdrop-blur-md">
+      <Container className="flex h-16 items-center justify-between gap-4">
+        {/* Logo gruppo (wordmark): "Group" prende l'accent del mondo attivo. */}
+        <Link
+          href="/"
+          className="font-display text-lg font-bold tracking-tight"
+          aria-label="GM Group — home"
+        >
+          GM<span className="text-accent-ink">Group</span>
         </Link>
 
-        <nav aria-label="Navigazione principale">
-          <ul className="flex items-center gap-1">
-            {NAV_ITEMS.map((item) => {
-              const active = item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
-
+        {/* Group switcher: segmented control verso i tre mondi. */}
+        <nav aria-label="Naviga tra i mondi del gruppo">
+          <ul className="bg-surface-2 flex items-center gap-1 rounded-full p-1">
+            {WORLDS.map((world) => {
+              const active = pathname.startsWith(world.href);
               return (
-                <li key={item.href}>
+                <li key={world.href}>
                   <Link
-                    href={item.href}
+                    href={world.href}
                     aria-current={active ? "page" : undefined}
                     className={cn(
-                      "rounded-md px-3 py-2 text-sm transition-colors",
+                      "block rounded-full px-3 py-1.5 text-sm font-medium transition-colors sm:px-4",
                       active
-                        ? "bg-brand-500/10 text-brand-700"
+                        ? "bg-accent text-accent-contrast shadow-sm"
                         : "text-muted hover:text-foreground",
                     )}
                   >
-                    {item.label}
+                    {world.label}
                   </Link>
                 </li>
               );
