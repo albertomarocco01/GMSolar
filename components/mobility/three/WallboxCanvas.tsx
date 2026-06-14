@@ -22,22 +22,38 @@ export type WallboxCanvasProps = {
   animated: boolean;
   /** True quando i componenti sono "esplosi": rivela le label. */
   exploded: boolean;
+  /**
+   * True quando la scena è davvero nel viewport. Gating del render loop: fuori
+   * dallo schermo il loop continuo va in pausa ("never") per non sprecare
+   * GPU/batteria su mobile; rientra "always" appena torna visibile.
+   */
+  inView: boolean;
 };
 
 /**
  * Wrapper del <Canvas> R3F. Caricato in dynamic import (ssr:false) dal lato
  * client: qui dentro vivono camera, luci, Bloom e la scena. Performance: dpr
- * limitato, frameloop "demand" quando non serve animare, dispose automatico al
- * dismount (lo gestisce R3F + il gating in MobilityStage).
+ * limitato, frameloop "demand" quando non serve animare, "never" quando la
+ * scena è fuori viewport, dispose automatico al dismount.
  */
-export default function WallboxCanvas({ progressRef, animated, exploded }: WallboxCanvasProps) {
+export default function WallboxCanvas({
+  progressRef,
+  animated,
+  exploded,
+  inView,
+}: WallboxCanvasProps) {
+  // - static (reduced/no-webgl): "demand" + un paio di render (Settle).
+  // - animato e visibile: "always" (storytelling pieno).
+  // - animato ma fuori viewport: "never" (loop in pausa).
+  const frameloop = !animated ? "demand" : inView ? "always" : "never";
+
   return (
     <Canvas
       className="!absolute inset-0"
       dpr={[1, 1.75]}
       gl={{ antialias: true, alpha: true, powerPreference: "high-performance" }}
       camera={{ position: [0, 0.1, 5.8], fov: 38 }}
-      frameloop={animated ? "always" : "demand"}
+      frameloop={frameloop}
     >
       {/* Illuminazione: niente HDR di rete (offline-friendly), solo luci. */}
       <ambientLight intensity={0.55} />

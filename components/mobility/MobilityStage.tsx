@@ -52,6 +52,11 @@ export default function MobilityStage() {
   const reduced = useReducedMotion();
   const [webgl, setWebgl] = useState<boolean | null>(null);
   const [near, setNear] = useState(false);
+  // Render-loop gate. Default true: il Canvas si MONTA solo quando è `near` (≤300px
+  // dal viewport), quindi è già/sta per essere a schermo — partire da "renderizza"
+  // evita un frame nero prima che l'IntersectionObserver confermi la visibilità.
+  // L'observer lo mette a false solo quando la scena esce davvero dal viewport.
+  const [visible, setVisible] = useState(true);
   const [exploded, setExploded] = useState(false);
 
   const wrapperRef = useRef<HTMLDivElement>(null);
@@ -70,15 +75,25 @@ export default function MobilityStage() {
   // animated = scroll storytelling pieno. Finché webgl è null restiamo "static".
   const animated = hasWebGL && !reduced;
 
-  // Monta il Canvas solo quando la scena è vicina al viewport (risparmia GPU).
+  // Due IntersectionObserver sullo stesso wrapper:
+  // - mountIO (margine 300px): MONTA il Canvas in anticipo, niente pop-in.
+  // - viewIO (nessun margine): gating del RENDER LOOP sul viewport reale, così
+  //   il loop continuo gira solo mentre la scena è davvero a schermo.
   useEffect(() => {
     const el = wrapperRef.current;
     if (!el || webgl === null) return;
-    const io = new IntersectionObserver(([entry]) => setNear(entry.isIntersecting), {
+    const mountIO = new IntersectionObserver(([entry]) => setNear(entry.isIntersecting), {
       rootMargin: "300px 0px",
     });
-    io.observe(el);
-    return () => io.disconnect();
+    const viewIO = new IntersectionObserver(([entry]) => setVisible(entry.isIntersecting), {
+      rootMargin: "0px",
+    });
+    mountIO.observe(el);
+    viewIO.observe(el);
+    return () => {
+      mountIO.disconnect();
+      viewIO.disconnect();
+    };
   }, [webgl]);
 
   // ScrollTrigger (solo in modalità animata): pilota progress + dissolve il copy.
@@ -117,7 +132,12 @@ export default function MobilityStage() {
       <CanvasSkeleton />
     ) : hasWebGL ? (
       near ? (
-        <WallboxCanvas progressRef={progress} animated={animated} exploded={exploded} />
+        <WallboxCanvas
+          progressRef={progress}
+          animated={animated}
+          exploded={exploded}
+          inView={visible}
+        />
       ) : (
         <CanvasSkeleton />
       )
@@ -172,7 +192,7 @@ export default function MobilityStage() {
       aria-label="Anatomia della colonnina di ricarica"
       className="relative h-[360svh]"
     >
-      <div className="sticky top-0 flex h-[100svh] items-center overflow-hidden">
+      <div className="sticky top-0 flex h-svh items-center overflow-hidden">
         <StageBackdrop />
         {/* Scena 3D a tutto riquadro */}
         <div className="absolute inset-0">{visual}</div>
@@ -188,7 +208,7 @@ export default function MobilityStage() {
 function StageBackdrop() {
   return (
     <div aria-hidden className="absolute inset-0 -z-10 overflow-hidden">
-      <div className="from-brand-950 via-background to-background absolute inset-0 bg-gradient-to-b" />
+      <div className="from-brand-950 via-background to-background absolute inset-0 bg-linear-to-b" />
       <div
         className="absolute top-1/2 left-1/2 h-[60vmin] w-[60vmin] -translate-x-1/2 -translate-y-1/2 rounded-full opacity-30 blur-3xl"
         style={{ background: "radial-gradient(circle, var(--accent) 0%, transparent 65%)" }}
