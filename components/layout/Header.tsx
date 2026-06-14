@@ -21,9 +21,9 @@ export default function Header() {
         <Link
           href="/"
           className="font-display text-lg font-bold tracking-tight"
-          aria-label="GM Group — home"
+          aria-label="GM Group"
         >
-          GM<span className="text-accent-ink">Group</span>
+          GM <span className="text-accent-ink">Group</span>
         </Link>
 
         {/* Group switcher: segmented control verso i tre mondi. */}

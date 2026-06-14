@@ -30,7 +30,7 @@ export default function Footer() {
               <li key={world.href}>
                 <Link href={world.href} className="hover:text-foreground transition-colors">
                   {world.brand}
-                  <span className="text-muted/70"> — {world.role}</span>
+                  <span className="text-muted"> — {world.role}</span>
                 </Link>
               </li>
             ))}
