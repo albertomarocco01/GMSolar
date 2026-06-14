@@ -24,11 +24,28 @@ export default function SolarCaseStudy() {
   const sectionRef = useRef<HTMLElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
 
+  // Video LAZY: è molto sotto la piega. Con `preload="none"` non si scarica al
+  // primo load; lo avviamo (→ download) solo quando la sezione si avvicina al
+  // viewport, così non compete con l'LCP dell'hero in cima alla pagina.
   useEffect(() => {
     const v = videoRef.current;
-    if (!v) return;
-    if (reduced) v.pause();
-    else void v.play().catch(() => {});
+    const section = sectionRef.current;
+    if (!v || !section) return;
+    if (reduced) {
+      v.pause();
+      return;
+    }
+    const io = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          void v.play().catch(() => {});
+          io.disconnect();
+        }
+      },
+      { rootMargin: "200px 0px" },
+    );
+    io.observe(section);
+    return () => io.disconnect();
   }, [reduced]);
 
   useIsoLayoutEffect(() => {
@@ -62,12 +79,11 @@ export default function SolarCaseStudy() {
       {/* Video di sfondo sovradimensionato per il parallax. */}
       <video
         ref={videoRef}
-        className="absolute inset-x-0 -top-[15%] -z-10 h-[130%] w-full object-cover"
-        autoPlay={!reduced}
+        className="absolute inset-x-0 top-[-15%] -z-10 h-[130%] w-full object-cover"
         muted
         loop={!reduced}
         playsInline
-        preload="metadata"
+        preload="none"
         poster={DRONE_POSTER}
       >
         <source src={VIDEOS.solarDrone} type="video/mp4" />
@@ -77,7 +93,7 @@ export default function SolarCaseStudy() {
       <div aria-hidden className="absolute inset-0 -z-10 bg-black/55" />
       <div
         aria-hidden
-        className="absolute inset-0 -z-10 bg-gradient-to-t from-black/85 via-black/30 to-black/60"
+        className="absolute inset-0 -z-10 bg-linear-to-t from-black/85 via-black/30 to-black/60"
       />
 
       <Container className="py-section">

@@ -30,7 +30,7 @@ export default function Hero() {
       {/* Fallback se il video non carica / non è disponibile. */}
       <div
         aria-hidden
-        className="from-brand-950 via-background to-background absolute inset-0 -z-20 bg-gradient-to-br"
+        className="from-brand-950 via-background to-background absolute inset-0 -z-20 bg-linear-to-br"
       />
       {/* Video reale (placeholder drone GM Solar). */}
       <video
@@ -48,7 +48,7 @@ export default function Hero() {
       {/* Overlay scuro per il contrasto del testo. */}
       <div
         aria-hidden
-        className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/45 to-black/25"
+        className="absolute inset-0 bg-linear-to-t from-black/85 via-black/45 to-black/25"
       />
 
       <Container className="relative z-10 pt-32 pb-16 md:pb-24">

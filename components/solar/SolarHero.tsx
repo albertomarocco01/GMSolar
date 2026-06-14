@@ -31,12 +31,26 @@ export default function SolarHero() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
 
-  // Autoplay solo se l'utente non chiede meno movimento (coerente con la home).
+  // Avvio DIFFERITO del video (solo se l'utente non chiede meno movimento).
+  // Il video pesa: con `preload="none"` e senza l'attributo `autoPlay` non viene
+  // scaricato/decodificato durante il primo paint, così a fare da LCP è il poster
+  // leggero (e il testo dell'hero) — niente più render-delay da decode video.
+  // Dopo il primo frame avviamo play() (che innesca il download).
   useEffect(() => {
     const v = videoRef.current;
     if (!v) return;
-    if (reduced) v.pause();
-    else void v.play().catch(() => {});
+    if (reduced) {
+      v.pause();
+      return;
+    }
+    let timer = 0;
+    const raf = requestAnimationFrame(() => {
+      timer = window.setTimeout(() => void v.play().catch(() => {}), 200);
+    });
+    return () => {
+      cancelAnimationFrame(raf);
+      clearTimeout(timer);
+    };
   }, [reduced]);
 
   // Parallax video + fade contenuto, guidati dallo scroll (scrub).
@@ -68,12 +82,12 @@ export default function SolarHero() {
     <Section fullBleed>
       <div
         ref={sectionRef}
-        className="relative isolate flex min-h-[100svh] items-end overflow-hidden text-white"
+        className="relative isolate flex min-h-svh items-end overflow-hidden text-white"
       >
         {/* Fallback branded: visibile se il video non carica / non parte. */}
         <div
           aria-hidden
-          className="from-brand-950 via-background to-background absolute inset-0 -z-20 bg-gradient-to-br"
+          className="from-brand-950 via-background to-background absolute inset-0 -z-20 bg-linear-to-br"
         />
 
         {/* Video reale (placeholder). Leggermente sovradimensionato in altezza
@@ -81,11 +95,10 @@ export default function SolarHero() {
         <video
           ref={videoRef}
           className="absolute inset-x-0 top-0 -z-10 h-[112%] w-full object-cover"
-          autoPlay={!reduced}
           muted
           loop={!reduced}
           playsInline
-          preload="metadata"
+          preload="none"
           poster={HERO_POSTER}
         >
           <source src={VIDEOS.solarHero} type="video/mp4" />
@@ -94,7 +107,7 @@ export default function SolarHero() {
         {/* Overlay per la leggibilità del testo. */}
         <div
           aria-hidden
-          className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/45 to-black/20"
+          className="absolute inset-0 bg-linear-to-t from-black/85 via-black/45 to-black/20"
         />
 
         <Container className="relative z-10 pt-32 pb-20 md:pb-28">

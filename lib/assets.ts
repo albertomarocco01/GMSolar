@@ -17,10 +17,12 @@ export const VIDEOS = {
 } as const;
 
 /**
- * Poster dei video (fallback `poster=` dei <video> + prima frame mostrata).
- * Placeholder SVG branded: sostituire con un frame reale esportato dai video.
+ * Poster dei video (fallback `poster=` dei <video> + primo frame mostrato).
+ * Placeholder branded in WebP (~5–7KB): RASTER apposta, così è un candidato LCP
+ * valido e leggero (gli SVG poster vengono esclusi dall'LCP da Chrome) e dipinge
+ * subito al posto del testo. Sorgenti SVG accanto, da sostituire con frame reali.
  */
 export const POSTERS = {
-  solarHero: "/assets/gm-solar-hero-poster.svg",
-  solarDrone: "/assets/gm-solar-drone-poster.svg",
+  solarHero: "/assets/gm-solar-hero-poster.webp",
+  solarDrone: "/assets/gm-solar-drone-poster.webp",
 } as const;
