@@ -1,3 +1,12 @@
+packages:
+  - apps/*
+  - packages/*
+
+# Security: forza postcss patchato (vuln transitiva via next, GHSA-qx2v-qp2m-jg93).
+overrides:
+  postcss@<8.5.10: ">=8.5.10"
+
+# Dipendenze native che possono eseguire script di build (pnpm le blocca per default).
 allowBuilds:
   sharp: true
   unrs-resolver: true
