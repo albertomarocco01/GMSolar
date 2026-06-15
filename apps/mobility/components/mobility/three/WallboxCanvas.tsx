@@ -47,31 +47,35 @@ export default function WallboxCanvas({
   // - animato ma fuori viewport: "never" (loop in pausa).
   const frameloop = !animated ? "demand" : inView ? "always" : "never";
 
+  // La className va sul wrapper, non sul <Canvas> (CanvasProps non espone
+  // `className` nel typecheck). Il <Canvas> riempie il wrapper al 100%, quindi
+  // il layout resta identico: il canvas riempie in absolute il contenitore hero.
   return (
-    <Canvas
-      className="!absolute inset-0"
-      dpr={[1, 1.75]}
-      gl={{ antialias: true, alpha: true, powerPreference: "high-performance" }}
-      camera={{ position: [0, 0.1, 5.8], fov: 38 }}
-      frameloop={frameloop}
-    >
-      {/* Illuminazione: niente HDR di rete (offline-friendly), solo luci. */}
-      <ambientLight intensity={0.55} />
-      <hemisphereLight args={["#cfe8ff", "#0a0c10", 0.5]} />
-      <directionalLight position={[3, 4, 5]} intensity={1.15} />
-      <directionalLight position={[-4, 1, -2]} intensity={0.4} color="#3c9e3a" />
-      <pointLight position={[0, -1.5, 2]} intensity={1.2} color="#5ee36f" distance={6} />
+    <div className="absolute inset-0">
+      <Canvas
+        dpr={[1, 1.75]}
+        gl={{ antialias: true, alpha: true, powerPreference: "high-performance" }}
+        camera={{ position: [0, 0.1, 5.8], fov: 38 }}
+        frameloop={frameloop}
+      >
+        {/* Illuminazione: niente HDR di rete (offline-friendly), solo luci. */}
+        <ambientLight intensity={0.55} />
+        <hemisphereLight args={["#cfe8ff", "#0a0c10", 0.5]} />
+        <directionalLight position={[3, 4, 5]} intensity={1.15} />
+        <directionalLight position={[-4, 1, -2]} intensity={0.4} color="#3c9e3a" />
+        <pointLight position={[0, -1.5, 2]} intensity={1.2} color="#5ee36f" distance={6} />
 
-      <Suspense fallback={null}>
-        <WallboxScene progressRef={progressRef} animated={animated} exploded={exploded} />
-      </Suspense>
+        <Suspense fallback={null}>
+          <WallboxScene progressRef={progressRef} animated={animated} exploded={exploded} />
+        </Suspense>
 
-      {/* Bloom selettivo sui materiali emissivi (barra LED, impulso del cavo). */}
-      <EffectComposer>
-        <Bloom intensity={0.9} luminanceThreshold={0.6} luminanceSmoothing={0.25} mipmapBlur />
-      </EffectComposer>
+        {/* Bloom selettivo sui materiali emissivi (barra LED, impulso del cavo). */}
+        <EffectComposer>
+          <Bloom intensity={0.9} luminanceThreshold={0.6} luminanceSmoothing={0.25} mipmapBlur />
+        </EffectComposer>
 
-      {!animated && <Settle />}
-    </Canvas>
+        {!animated && <Settle />}
+      </Canvas>
+    </div>
   );
 }
