@@ -1,0 +1,82 @@
+/* =============================================================
+   Stili base globali del gruppo. I token vivono in ./tokens.css;
+   l'import di Tailwind e dei token avviene nel globals.css di ogni app.
+   ============================================================= */
+
+html {
+  scroll-behavior: smooth;
+  /* Lenis gestisce lo smooth scroll quando attivo; questo è il fallback. */
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* Titoli display con il font display per default dove si usa la classe. */
+.font-display {
+  font-feature-settings: "ss01";
+}
+
+/* Selezione testo tematizzata sull'accent del mondo attivo. */
+::selection {
+  background: var(--accent);
+  color: var(--accent-contrast);
+}
+
+/* Focus visibile coerente e tematizzato (accessibilità). */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: var(--radius-xs);
+}
+
+/* Transizione di pagina base (vedi components/layout/PageTransition.tsx). */
+.page-transition {
+  animation: page-fade var(--duration-base) var(--ease-out-expo) both;
+}
+
+@keyframes page-fade {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* Quando Lenis è attivo aggiunge .lenis a <html>; disattiva lo scroll nativo. */
+html.lenis,
+html.lenis body {
+  height: auto;
+}
+.lenis.lenis-smooth {
+  scroll-behavior: auto !important;
+}
+.lenis.lenis-stopped {
+  overflow: clip;
+}
+
+/* =============================================================
+   Regola di progetto: rispettare SEMPRE prefers-reduced-motion.
+   Azzera animazioni/transizioni non essenziali. I provider JS
+   (Lenis/GSAP) controllano lo stesso media query lato logica.
+   ============================================================= */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

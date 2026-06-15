@@ -1,0 +1,33 @@
+{
+  "name": "@gmgroup/lib",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./assets": "./src/assets.ts",
+    "./gsap": "./src/gsap.ts",
+    "./motion": "./src/motion.ts",
+    "./site": "./src/site.ts",
+    "./theme": "./src/theme.ts",
+    "./types": "./src/types.ts",
+    "./utils": "./src/utils.ts"
+  },
+  "scripts": {
+    "lint": "eslint",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "gsap": "^3.15.0"
+  },
+  "peerDependencies": {
+    "react": "^19"
+  },
+  "devDependencies": {
+    "@gmgroup/config": "workspace:*",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "eslint": "^9",
+    "react": "19.2.4",
+    "typescript": "^5"
+  }
+}
