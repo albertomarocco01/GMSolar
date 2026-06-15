@@ -4,7 +4,7 @@ import dynamic from "next/dynamic";
 import { useEffect, useRef, useState } from "react";
 import Section from "@gmgroup/ui/Section";
 import Badge from "@gmgroup/ui/Badge";
-import type { ApiChargingPoint } from "@/app/api/charging-points/route";
+import type { ApiChargingPoint, ChargingSource } from "@/app/api/charging-points/route";
 import { SHOWCASE_PINS } from "@/components/mobility/content";
 
 /* MapLibre è pesante: dynamic ssr:false + mount pigro all'avvicinarsi al viewport. */
@@ -13,7 +13,8 @@ const ChargingMapInner = dynamic(() => import("./ChargingMapInner"), {
   loading: () => <MapSkeleton />,
 });
 
-type Status = "idle" | "ready" | "empty";
+/* Da quale fonte arrivano i punti. `null` = ancora in caricamento. */
+type Source = ChargingSource | "unavailable" | null;
 
 /* Voce di legenda. */
 function Legend({ swatch, label }: { swatch: React.ReactNode; label: string }) {
@@ -34,7 +35,7 @@ export default function ChargingMap() {
   const sectionRef = useRef<HTMLDivElement>(null);
   const [near, setNear] = useState(false);
   const [points, setPoints] = useState<ApiChargingPoint[]>([]);
-  const [status, setStatus] = useState<Status>("idle");
+  const [source, setSource] = useState<Source>(null);
 
   // Mount pigro: osserva la sezione.
   useEffect(() => {
@@ -59,13 +60,12 @@ export default function ChargingMap() {
     let alive = true;
     fetch("/api/charging-points")
       .then((r) => r.json())
-      .then((data: { points: ApiChargingPoint[] }) => {
+      .then((data: { points: ApiChargingPoint[]; source: ChargingSource }) => {
         if (!alive) return;
-        const pts = Array.isArray(data.points) ? data.points : [];
-        setPoints(pts);
-        setStatus(pts.length ? "ready" : "empty");
+        setPoints(Array.isArray(data.points) ? data.points : []);
+        setSource(data.source ?? "unavailable");
       })
-      .catch(() => alive && setStatus("empty"));
+      .catch(() => alive && setSource("unavailable"));
     return () => {
       alive = false;
     };
@@ -102,9 +102,12 @@ export default function ChargingMap() {
 
       <div className="border-border bg-surface relative mt-8 h-[60vh] min-h-[420px] overflow-hidden rounded-xl border">
         {near ? <ChargingMapInner points={points} /> : <MapSkeleton />}
-        {status === "empty" && (
-          <div className="bg-background/80 text-muted pointer-events-none absolute bottom-3 left-3 rounded-md px-3 py-1.5 text-xs backdrop-blur">
-            Rete pubblica non disponibile ora — mostriamo le installazioni GMobility.
+        {/* Onestà: quando i punti non sono il feed in tempo reale (fallback curato
+            o rete non raggiungibile) lo segnaliamo, senza lasciare la mappa muta. */}
+        {(source === "curated" || source === "unavailable") && (
+          <div className="bg-background/80 text-muted pointer-events-none absolute bottom-3 left-3 max-w-[16rem] rounded-md px-3 py-1.5 text-xs backdrop-blur">
+            Punti indicativi sul territorio — la rete in tempo reale non è disponibile in questo
+            momento.
           </div>
         )}
       </div>

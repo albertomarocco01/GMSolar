@@ -23,6 +23,8 @@ const SPEC_LABELS: Record<string, string> = {
   plug: "Spina",
   phase: "Fase",
   shape: "Forma del cavo",
+  current: "Corrente max",
+  length: "Lunghezza",
   use: "Uso consigliato",
   type: "Tipo",
   coverage: "Copertura",

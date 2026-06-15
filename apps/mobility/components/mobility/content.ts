@@ -16,14 +16,61 @@ export type WallboxPart = {
   label: string;
   /** Micro-descrizione tecnica. */
   hint: string;
+  /** Specifiche di dettaglio mostrate nel pannello dell'explode interattivo. */
+  specs: string[];
 };
 
 export const WALLBOX_PARTS: WallboxPart[] = [
-  { id: "shell", label: "Corpo IP55", hint: "Scocca robusta per interni ed esterni" },
-  { id: "strip", label: "Barra di stato LED", hint: "Stato di ricarica a colpo d'occhio" },
-  { id: "socket", label: "Connettore Tipo 2", hint: "Standard europeo Mennekes" },
-  { id: "cable", label: "Cavo Mode 3", hint: "Ricarica AC fino a 22 kW" },
-  { id: "plate", label: "Piastra a muro", hint: "Installazione rapida e sicura" },
+  {
+    id: "shell",
+    label: "Corpo IP55",
+    hint: "Scocca robusta per interni ed esterni",
+    specs: [
+      "Grado di protezione IP55 (polvere e getti d'acqua)",
+      "Tecnopolimero anti-UV per installazione all'aperto",
+      "Funzionamento da −25 °C a +40 °C",
+    ],
+  },
+  {
+    id: "strip",
+    label: "Barra di stato LED",
+    hint: "Stato di ricarica a colpo d'occhio",
+    specs: [
+      "Colore = stato: standby, in carica, errore",
+      "Leggibile anche in pieno giorno",
+      "Attenuazione automatica di notte",
+    ],
+  },
+  {
+    id: "socket",
+    label: "Connettore Tipo 2",
+    hint: "Standard europeo Mennekes",
+    specs: [
+      "Standard europeo Mennekes (IEC 62196-2)",
+      "Fino a 22 kW in AC trifase",
+      "Otturatori di sicurezza sui contatti",
+    ],
+  },
+  {
+    id: "cable",
+    label: "Cavo Mode 3",
+    hint: "Ricarica AC fino a 22 kW",
+    specs: [
+      "Ricarica AC controllata (Mode 3, IEC 61851)",
+      "Cavo solidale fino a 5 m, Type 2 → Type 2",
+      "Alloggiamento integrato sul corpo",
+    ],
+  },
+  {
+    id: "plate",
+    label: "Piastra a muro",
+    hint: "Installazione rapida e sicura",
+    specs: [
+      "Dima di foratura inclusa",
+      "Ingresso cavi dal retro o dal basso",
+      "Posa a cura di elettricista qualificato",
+    ],
+  },
 ];
 
 /* =============================================================

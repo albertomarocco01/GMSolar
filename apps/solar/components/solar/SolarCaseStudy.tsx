@@ -9,8 +9,22 @@ import { gsap } from "@gmgroup/lib/gsap";
 import { VIDEOS, POSTERS } from "@gmgroup/lib/assets";
 import { useReducedMotion, useIsoLayoutEffect } from "@gmgroup/lib/motion";
 import solar from "@/data/solar-projects.json";
+import SolarProjectPhoto from "@/components/solar/SolarProjectPhoto";
 
 const DRONE_POSTER = POSTERS.solarDrone;
+
+const nf0 = new Intl.NumberFormat("it-IT", { maximumFractionDigits: 0 });
+const nf1 = new Intl.NumberFormat("it-IT", { maximumFractionDigits: 1 });
+
+/** CO₂/anno evitata (t) da kWp: 1200 kWh/kWp × 0,35 kg/kWh ÷ 1000 (stesse ipotesi del calcolatore). */
+const co2AnnoT = (kWp: number) => (kWp * 1200 * 0.35) / 1000;
+
+/** Potenza leggibile: ≥ 1 MW in MW, altrimenti in kWp. */
+function powerLabel(kWp: number) {
+  return kWp >= 1000
+    ? { value: nf1.format(kWp / 1000), unit: "MW" }
+    : { value: nf0.format(kWp), unit: "kWp" };
+}
 
 /**
  * Case study con parallax: sezione full-bleed con video drone reale di sfondo
@@ -111,27 +125,64 @@ export default function SolarCaseStudy() {
         </div>
 
         <ScrollReveal className="mt-12 grid gap-6 md:grid-cols-3" stagger={0.12} y={36}>
-          {solar.progettiVetrina.map((p) => (
-            <article
-              key={p.nome}
-              className="flex h-full flex-col justify-between rounded-xl border border-white/15 bg-white/5 p-6 backdrop-blur-md"
-            >
-              <span className="text-accent w-fit rounded-full bg-white/10 px-3 py-1 text-xs font-medium tracking-wide">
-                {p.tipo}
-              </span>
-              {p.potenzaMW != null ? (
-                <p className="font-display mt-8 text-4xl font-bold tabular-nums">
-                  {p.potenzaMW}
-                  <span className="ml-1 text-2xl text-white/70">MW</span>
-                </p>
-              ) : (
-                <div className="mt-8" />
-              )}
-              <h3 className="font-display mt-2 text-lg font-bold tracking-tight text-balance">
-                {p.nome}
-              </h3>
-            </article>
-          ))}
+          {solar.progettiVetrina.map((p, i) => {
+            const power = powerLabel(p.kWp);
+            return (
+              <article
+                key={p.nome}
+                className="group relative isolate overflow-hidden rounded-xl border border-white/15"
+              >
+                {/* Foto del progetto (PLACEHOLDER branded, sostituibile con una vera immagine). */}
+                <SolarProjectPhoto
+                  seed={i}
+                  className="ease-out-expo absolute inset-0 -z-10 h-full w-full duration-(--duration-slow) motion-safe:transition-transform motion-safe:group-hover:scale-105"
+                />
+                {/* Overlay per la leggibilità del testo sopra la foto. */}
+                <div
+                  aria-hidden
+                  className="absolute inset-0 -z-10 bg-linear-to-t from-black/85 via-black/35 to-transparent"
+                />
+
+                <div className="flex min-h-76 flex-col p-5">
+                  <span className="text-accent w-fit rounded-full bg-black/40 px-3 py-1 text-xs font-medium tracking-wide backdrop-blur">
+                    {p.tipo}
+                  </span>
+
+                  <div className="mt-auto pt-10">
+                    <h3 className="font-display text-xl font-bold tracking-tight text-balance">
+                      {p.nome}
+                    </h3>
+                    <dl className="mt-4 flex flex-wrap gap-x-6 gap-y-3">
+                      <div>
+                        <dt className="text-[0.65rem] tracking-wide text-white/55 uppercase">
+                          Potenza
+                        </dt>
+                        <dd className="font-display text-lg font-bold tabular-nums">
+                          {power.value}
+                          <span className="ml-1 text-sm font-medium text-white/70">
+                            {power.unit}
+                          </span>
+                        </dd>
+                      </div>
+                      <div>
+                        <dt className="text-[0.65rem] tracking-wide text-white/55 uppercase">
+                          CO₂ evitata
+                        </dt>
+                        <dd className="font-display text-lg font-bold tabular-nums">
+                          {nf0.format(co2AnnoT(p.kWp))}
+                          <span className="ml-1 text-sm font-medium text-white/70">t/anno</span>
+                        </dd>
+                      </div>
+                      <div>
+                        <dt className="text-[0.65rem] tracking-wide text-white/55 uppercase">Anno</dt>
+                        <dd className="font-display text-lg font-bold tabular-nums">{p.anno}</dd>
+                      </div>
+                    </dl>
+                  </div>
+                </div>
+              </article>
+            );
+          })}
         </ScrollReveal>
       </Container>
     </section>

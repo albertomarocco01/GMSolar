@@ -1,9 +1,11 @@
 import type { Metadata } from "next";
 import SolarHero from "@/components/solar/SolarHero";
 import SolarStats from "@/components/solar/SolarStats";
+import SolarTrust from "@/components/solar/SolarTrust";
 import SolarTipologie from "@/components/solar/SolarTipologie";
 import SolarServizi from "@/components/solar/SolarServizi";
 import SolarCaseStudy from "@/components/solar/SolarCaseStudy";
+import SolarMap from "@/components/solar/SolarMap";
 import SolarCalculator from "@/components/solar/SolarCalculator";
 import SolarCTA from "@/components/solar/SolarCTA";
 
@@ -24,9 +26,11 @@ export default function SolarPage() {
     <>
       <SolarHero />
       <SolarStats />
+      <SolarTrust />
       <SolarTipologie />
       <SolarServizi />
       <SolarCaseStudy />
+      <SolarMap />
       <SolarCalculator />
       <SolarCTA />
     </>

@@ -10,9 +10,13 @@ import { gsap } from "@gmgroup/lib/gsap";
 import { VIDEOS, POSTERS } from "@gmgroup/lib/assets";
 import { useReducedMotion, useIsoLayoutEffect } from "@gmgroup/lib/motion";
 import { IconArrowRight } from "@/components/solar/SolarIcons";
+import solar from "@/data/solar-projects.json";
 
 /** Poster placeholder branded: sostituire con un frame reale del video. */
 const HERO_POSTER = POSTERS.solarHero;
+
+/** Numeri di credibilità dal dato reale (data/solar-projects.json). */
+const nfIt = new Intl.NumberFormat("it-IT");
 
 /**
  * Hero cinematografico di GM Solar: video reale a tutto schermo (Section
@@ -116,7 +120,7 @@ export default function SolarHero() {
             <SplitTextReveal
               as="h1"
               by="word"
-              text="Our Best Chance to Save the Planet is You"
+              text="La nostra migliore occasione di salvare il pianeta sei tu"
               className="font-display text-display-sm sm:text-display-md md:text-display-lg font-bold text-balance"
             />
             <p className="mt-6 max-w-2xl text-lg text-white/80 md:text-xl">
@@ -132,6 +136,25 @@ export default function SolarHero() {
                 Guarda i progetti
               </Button>
             </div>
+
+            {/* Micro-kicker di credibilità: numeri reali dal dato, niente claim inventati. */}
+            <p className="mt-8 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-white/75">
+              <span>
+                <strong className="font-semibold tabular-nums text-white">
+                  {nfIt.format(solar.stats.potenzaInstallataKWp)} kWp
+                </strong>{" "}
+                installati
+              </span>
+              <span aria-hidden className="text-white/30">
+                ·
+              </span>
+              <span>
+                <strong className="font-semibold tabular-nums text-white">
+                  {nfIt.format(solar.stats.progettiRealizzati)}+
+                </strong>{" "}
+                progetti realizzati
+              </span>
+            </p>
           </div>
         </Container>
 

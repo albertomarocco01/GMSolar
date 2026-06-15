@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { useCart } from "./CartProvider";
+import { useCart, MAX_QTY } from "./CartProvider";
 import Button from "@gmgroup/ui/Button";
 import { formatPrice } from "@/components/shop/format";
 import { cn } from "@gmgroup/lib/utils";
@@ -127,7 +127,11 @@ export default function CartDrawer() {
                         −
                       </QtyButton>
                       <span className="w-6 text-center text-sm tabular-nums">{item.qty}</span>
-                      <QtyButton label="Aumenta" onClick={() => setQty(item.id, item.qty + 1)}>
+                      <QtyButton
+                        label="Aumenta"
+                        onClick={() => setQty(item.id, item.qty + 1)}
+                        disabled={item.qty >= MAX_QTY}
+                      >
                         +
                       </QtyButton>
                     </div>
@@ -174,17 +178,20 @@ function QtyButton({
   children,
   label,
   onClick,
+  disabled,
 }: {
   children: React.ReactNode;
   label: string;
   onClick: () => void;
+  disabled?: boolean;
 }) {
   return (
     <button
       type="button"
       onClick={onClick}
+      disabled={disabled}
       aria-label={label}
-      className="border-border hover:border-accent flex h-7 w-7 items-center justify-center rounded-full border text-base leading-none transition-colors"
+      className="border-border flex h-7 w-7 items-center justify-center rounded-full border text-base leading-none transition-colors not-disabled:hover:border-accent disabled:cursor-not-allowed disabled:opacity-40"
     >
       {children}
     </button>

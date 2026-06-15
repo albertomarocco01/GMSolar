@@ -1,8 +1,8 @@
 "use client";
 
-import { useMemo, useRef, type RefObject } from "react";
+import { useEffect, useMemo, useRef, useState, type RefObject } from "react";
 import * as THREE from "three";
-import { useFrame } from "@react-three/fiber";
+import { useFrame, useThree, type ThreeEvent } from "@react-three/fiber";
 import { Html, Instance, Instances, RoundedBox } from "@react-three/drei";
 import { WALLBOX_PARTS } from "@/components/mobility/content";
 
@@ -69,6 +69,10 @@ type SceneProps = {
   animated: boolean;
   /** True quando i componenti sono "esplosi": rivela le label (via CSS). */
   exploded: boolean;
+  /** Id del componente selezionato (explode interattivo) o null. */
+  selected: string | null;
+  /** Seleziona/deseleziona un componente (apre il pannello di dettaglio). */
+  onSelect: (id: string | null) => void;
 };
 
 /**
@@ -78,7 +82,13 @@ type SceneProps = {
  * e "separa" i componenti (explode). Tutto guidato in useFrame da un ref →
  * nessun re-render React nel loop di rendering.
  */
-export default function WallboxScene({ progressRef, animated, exploded }: SceneProps) {
+export default function WallboxScene({
+  progressRef,
+  animated,
+  exploded,
+  selected,
+  onSelect,
+}: SceneProps) {
   const group = useRef<THREE.Group>(null);
   const plate = useRef<THREE.Group>(null);
   const shell = useRef<THREE.Group>(null);
@@ -88,6 +98,48 @@ export default function WallboxScene({ progressRef, animated, exploded }: SceneP
   const cable = useRef<THREE.Group>(null);
   const bead = useRef<THREE.Mesh>(null);
   const eased = useRef(0);
+
+  // Explode interattivo: hover locale + invalidate quando lo stato cambia (il
+  // render-loop è "demand", quindi va "svegliato" a ogni cambio visivo).
+  const [hovered, setHovered] = useState<string | null>(null);
+  const invalidate = useThree((s) => s.invalidate);
+  // L'hover conta solo a esplosione avviata (gli handler sono attivi solo allora):
+  // così, ri-assemblando, un eventuale hover residuo viene semplicemente ignorato
+  // senza dover azzerare lo stato dentro un effect.
+  const activeHover = exploded ? hovered : null;
+
+  // Render-loop "demand": sveglia il loop a ogni cambio visivo (hover/selezione).
+  useEffect(() => {
+    invalidate();
+  }, [activeHover, selected, invalidate]);
+
+  // Cursore a "manina" quando si è sopra un componente cliccabile.
+  useEffect(() => {
+    document.body.style.cursor = activeHover ? "pointer" : "";
+    return () => {
+      document.body.style.cursor = "";
+    };
+  }, [activeHover]);
+
+  // Handler di interazione, attivi SOLO a esplosione avviata (da assemblati i
+  // pezzi si sovrappongono: il click non avrebbe un bersaglio chiaro).
+  const partHandlers = (id: string) =>
+    exploded
+      ? {
+          onPointerOver: (e: ThreeEvent<PointerEvent>) => {
+            e.stopPropagation();
+            setHovered(id);
+          },
+          onPointerOut: (e: ThreeEvent<PointerEvent>) => {
+            e.stopPropagation();
+            setHovered((h) => (h === id ? null : h));
+          },
+          onClick: (e: ThreeEvent<MouseEvent>) => {
+            e.stopPropagation();
+            onSelect(selected === id ? null : id);
+          },
+        }
+      : {};
 
   // Curva del cavo (CatmullRom): parte dal connettore e scende a tendina.
   const cableCurve = useMemo(
@@ -124,6 +176,17 @@ export default function WallboxScene({ progressRef, animated, exploded }: SceneP
     place(socket.current, "socket", e);
     place(cable.current, "cable", e);
 
+    // Highlight del componente attivo (hover o selezionato): leggero "pop".
+    const lift = (g: THREE.Group | null, key: string) => {
+      if (!g) return;
+      g.scale.setScalar(key === activeHover || key === selected ? 1.09 : 1);
+    };
+    lift(plate.current, "plate");
+    lift(shell.current, "shell");
+    lift(strip.current, "strip");
+    lift(socket.current, "socket");
+    lift(cable.current, "cable");
+
     // Camera dolly: si allontana per inquadrare i pezzi separati. Uso state.camera
     // (non un valore catturato in render) così resta una mutazione "imperativa".
     const cam = state.camera;
@@ -144,15 +207,22 @@ export default function WallboxScene({ progressRef, animated, exploded }: SceneP
   return (
     <group ref={group} scale={0.92}>
       {/* --- Piastra a muro --- */}
-      <group ref={plate} position={HOME.plate}>
+      <group ref={plate} position={HOME.plate} {...partHandlers("plate")}>
         <RoundedBox args={[1.7, 2.55, 0.12]} radius={0.08} smoothness={3}>
           <meshStandardMaterial color={"#0e1116"} metalness={0.3} roughness={0.8} />
         </RoundedBox>
-        {animated && <PartLabel index={4} show={exploded} position={[0, -1.45, 0]} />}
+        {animated && (
+          <PartLabel
+            index={4}
+            show={exploded}
+            active={selected === "plate" || activeHover === "plate"}
+            position={[0, -1.45, 0]}
+          />
+        )}
       </group>
 
       {/* --- Scocca / corpo IP55 --- */}
-      <group ref={shell} position={HOME.shell}>
+      <group ref={shell} position={HOME.shell} {...partHandlers("shell")}>
         <RoundedBox args={[1.4, 2.2, 0.5]} radius={0.18} smoothness={4}>
           <meshStandardMaterial color={BODY} metalness={0.45} roughness={0.45} />
         </RoundedBox>
@@ -160,7 +230,14 @@ export default function WallboxScene({ progressRef, animated, exploded }: SceneP
         <RoundedBox args={[1.42, 0.06, 0.52]} radius={0.03} position={[0, 1.05, 0]}>
           <meshStandardMaterial color={BODY_EDGE} metalness={0.6} roughness={0.3} />
         </RoundedBox>
-        {animated && <PartLabel index={0} show={exploded} position={[-0.85, 0.7, 0.3]} />}
+        {animated && (
+          <PartLabel
+            index={0}
+            show={exploded}
+            active={selected === "shell" || activeHover === "shell"}
+            position={[-0.85, 0.7, 0.3]}
+          />
+        )}
       </group>
 
       {/* --- Display / logo (lieve emissivo) --- */}
@@ -177,7 +254,7 @@ export default function WallboxScene({ progressRef, animated, exploded }: SceneP
       </group>
 
       {/* --- Barra di stato LED (emissiva → bloom) --- */}
-      <group ref={strip} position={HOME.strip}>
+      <group ref={strip} position={HOME.strip} {...partHandlers("strip")}>
         <mesh>
           <boxGeometry args={[0.12, 1.5, 0.06]} />
           <meshStandardMaterial
@@ -187,11 +264,18 @@ export default function WallboxScene({ progressRef, animated, exploded }: SceneP
             toneMapped={false}
           />
         </mesh>
-        {animated && <PartLabel index={1} show={exploded} position={[-0.45, 0.2, 0.2]} />}
+        {animated && (
+          <PartLabel
+            index={1}
+            show={exploded}
+            active={selected === "strip" || activeHover === "strip"}
+            position={[-0.45, 0.2, 0.2]}
+          />
+        )}
       </group>
 
       {/* --- Connettore Tipo 2 (contatti ISTANZIATI) --- */}
-      <group ref={socket} position={HOME.socket}>
+      <group ref={socket} position={HOME.socket} {...partHandlers("socket")}>
         {/* alloggiamento rotondo */}
         <mesh rotation={[Math.PI / 2, 0, 0]}>
           <cylinderGeometry args={[0.27, 0.29, 0.2, 36]} />
@@ -210,11 +294,18 @@ export default function WallboxScene({ progressRef, animated, exploded }: SceneP
             <Instance key={i} position={[x, y, 0]} rotation={[Math.PI / 2, 0, 0]} />
           ))}
         </Instances>
-        {animated && <PartLabel index={2} show={exploded} position={[0.55, 0.1, 0.2]} />}
+        {animated && (
+          <PartLabel
+            index={2}
+            show={exploded}
+            active={selected === "socket" || activeHover === "socket"}
+            position={[0.55, 0.1, 0.2]}
+          />
+        )}
       </group>
 
       {/* --- Cavo Mode 3 + impulso di energia --- */}
-      <group ref={cable} position={HOME.cable}>
+      <group ref={cable} position={HOME.cable} {...partHandlers("cable")}>
         <mesh>
           <tubeGeometry args={[cableCurve, 64, 0.05, 12, false]} />
           <meshStandardMaterial color={"#0d100f"} metalness={0.2} roughness={0.7} />
@@ -230,7 +321,14 @@ export default function WallboxScene({ progressRef, animated, exploded }: SceneP
             />
           </mesh>
         )}
-        {animated && <PartLabel index={3} show={exploded} position={[0.35, -0.9, 0.2]} />}
+        {animated && (
+          <PartLabel
+            index={3}
+            show={exploded}
+            active={selected === "cable" || activeHover === "cable"}
+            position={[0.35, -0.9, 0.2]}
+          />
+        )}
       </group>
     </group>
   );
@@ -242,10 +340,13 @@ export default function WallboxScene({ progressRef, animated, exploded }: SceneP
 function PartLabel({
   index,
   show,
+  active = false,
   position,
 }: {
   index: number;
   show: boolean;
+  /** Hover/selezione del pezzo: evidenzia la pill. */
+  active?: boolean;
   position: [number, number, number];
 }) {
   const part = WALLBOX_PARTS[index];
@@ -261,7 +362,12 @@ function PartLabel({
         style={{ opacity: show ? 1 : 0, transitionDelay: `${index * 70}ms` }}
         className="pointer-events-none w-max max-w-40 -translate-y-1/2 transition-opacity duration-500 select-none"
       >
-        <div className="flex items-center gap-2 rounded-full border border-white/15 bg-black/70 px-3 py-1 backdrop-blur">
+        <div
+          className={
+            "flex items-center gap-2 rounded-full border px-3 py-1 backdrop-blur transition-colors " +
+            (active ? "border-accent bg-accent/25" : "border-white/15 bg-black/70")
+          }
+        >
           <span className="bg-accent inline-block size-1.5 rounded-full" />
           <span className="text-xs font-semibold whitespace-nowrap text-white">{part.label}</span>
         </div>

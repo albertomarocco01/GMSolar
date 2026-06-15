@@ -13,18 +13,36 @@ import {
   LOCATION_LABELS,
   type ChargeLocation,
   type FindCableResult,
+  type Phase,
+  type Shape,
 } from "./cable-matcher";
+import { EV_MODELS, lookupEvModel } from "./ev-onboard";
 import { cn } from "@gmgroup/lib/utils";
 import type { Product } from "@gmgroup/lib/types";
+
+/** Contesto del match per il "perché questo" (mirror del tipo lato server). */
+type MatchContext = {
+  use: string;
+  phase?: Phase | null;
+  /** Auto riconosciuta da cui è stata dedotta la fase, es. "Tesla Model 3". */
+  car?: string | null;
+  relaxed: boolean;
+};
 
 /** Eventi NDJSON dalla route (definiti qui per non importare codice server nel client). */
 type FinderEvent =
   | { type: "text"; text: string }
-  | { type: "products"; products: Product[] }
+  | { type: "products"; products: Product[]; context?: MatchContext }
   | { type: "done" }
   | { type: "error"; message: string };
 
-type ChatMsg = { id: string; role: "user" | "assistant"; text: string; products?: Product[] };
+type ChatMsg = {
+  id: string;
+  role: "user" | "assistant";
+  text: string;
+  products?: Product[];
+  context?: MatchContext;
+};
 
 const LOCATIONS: ChargeLocation[] = ["stazione", "wallbox", "presa"];
 
@@ -35,8 +53,36 @@ const GREETING =
 let msgSeq = 0;
 const nextId = () => `m${msgSeq++}`;
 
+/* ---------------- Wizard deterministico (funziona anche senza chiave AI) ---------------- */
+
+/** Stato accumulato dal wizard: ciò che sappiamo dell'utente finora. */
+type WizardState = {
+  /** Fase dedotta dal modello auto riconosciuto. */
+  phase?: Phase;
+  /** Etichetta dell'auto riconosciuta, es. "Tesla Model 3". */
+  carLabel?: string;
+  /** Dove ricarica (dedotto dal testo o scelto col pulsante). */
+  location?: ChargeLocation;
+  /** Forma preferita, se indicata. */
+  shape?: Shape;
+};
+
+/**
+ * Deduce dove ricarica l'utente da testo libero (senza AI). Controlla prima i
+ * termini espliciti (wallbox, schuko…), poi gli indizi deboli ("a casa").
+ */
+function detectLocation(text: string): ChargeLocation | undefined {
+  const s = text.toLowerCase();
+  if (/wall\s?box/.test(s)) return "wallbox";
+  if (/schuko|presa/.test(s)) return "presa";
+  if (/colonnin|stazione|pubblic|supercharger|fast/.test(s)) return "stazione";
+  if (/garage|box auto|a casa|di casa|in casa/.test(s)) return "wallbox";
+  return undefined;
+}
+
 export default function CableFinder({ aiEnabled }: { aiEnabled: boolean }) {
   const headingId = useId();
+  const evListId = useId();
   const [messages, setMessages] = useState<ChatMsg[]>([
     { id: nextId(), role: "assistant", text: GREETING },
   ]);
@@ -44,8 +90,9 @@ export default function CableFinder({ aiEnabled }: { aiEnabled: boolean }) {
   const [streaming, setStreaming] = useState(false);
 
   // Stato del wizard (solo quando l'AI non è attiva).
-  const [pendingAsk, setPendingAsk] = useState<"shape" | null>(null);
-  const pendingLocation = useRef<ChargeLocation | null>(null);
+  const [wizard, setWizard] = useState<WizardState>({});
+  // Cosa stiamo chiedendo all'utente nel wizard: la posizione o la forma.
+  const [awaiting, setAwaiting] = useState<"location" | "shape" | null>(null);
 
   const scrollRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -55,8 +102,8 @@ export default function CableFinder({ aiEnabled }: { aiEnabled: boolean }) {
   function pushUser(text: string) {
     setMessages((prev) => [...prev, { id: nextId(), role: "user", text }]);
   }
-  function pushAssistant(text: string, products?: Product[]) {
-    setMessages((prev) => [...prev, { id: nextId(), role: "assistant", text, products }]);
+  function pushAssistant(text: string, products?: Product[], context?: MatchContext) {
+    setMessages((prev) => [...prev, { id: nextId(), role: "assistant", text, products, context }]);
   }
 
   /* ---------------- Percorso AI (chiave presente) ---------------- */
@@ -103,7 +150,8 @@ export default function CableFinder({ aiEnabled }: { aiEnabled: boolean }) {
             continue;
           }
           if (ev.type === "text") patch((m) => ({ ...m, text: m.text + ev.text }));
-          else if (ev.type === "products") patch((m) => ({ ...m, products: ev.products }));
+          else if (ev.type === "products")
+            patch((m) => ({ ...m, products: ev.products, context: ev.context }));
           else if (ev.type === "error")
             patch((m) => ({ ...m, text: m.text || `⚠️ ${ev.message}` }));
         }
@@ -125,29 +173,79 @@ export default function CableFinder({ aiEnabled }: { aiEnabled: boolean }) {
     return `${lead}Ti consiglio «${top.name}» a ${formatPrice(top.price)}.`;
   }
 
-  function wizardLocation(loc: ChargeLocation) {
-    pushUser(LOCATION_LABELS[loc]);
-    const res = findCable({ chargeLocation: loc });
-    const shapes = new Set(res.matches.map((m) => m.specs.shape).filter(Boolean));
-    if (shapes.size > 1) {
-      pendingLocation.current = loc;
-      setPendingAsk("shape");
-      pushAssistant(
-        `Per la ricarica «${res.use}» abbiamo sia cavi lisci sia spiralati. Quale preferisci?`,
-      );
-    } else {
-      setPendingAsk(null);
-      pushAssistant(recommend(res), res.matches);
+  /**
+   * Cuore del wizard: dato ciò che sappiamo (auto/fase, posizione, forma),
+   * decide il passo successivo — chiedere dove ricarica, chiedere la forma, o
+   * dare il consiglio finale. Usa lo stesso matcher deterministico dell'AI.
+   */
+  function decideWizard(state: WizardState) {
+    setWizard(state);
+
+    if (!state.location) {
+      setAwaiting("location");
+      pushAssistant("E dove ricarichi di solito? Scegli qui sotto.");
+      return;
     }
+
+    const res = findCable({
+      chargeLocation: state.location,
+      phase: state.phase,
+      shape: state.shape,
+    });
+
+    // Se per questo uso ci sono sia lisci sia spiralati e l'utente non ha
+    // ancora scelto, chiediamo la forma prima di consigliare.
+    const shapes = new Set(res.matches.map((m) => m.specs.shape).filter(Boolean));
+    if (!state.shape && shapes.size > 1) {
+      setAwaiting("shape");
+      pushAssistant(`Per «${res.use}» ho sia cavi lisci sia spiralati. Quale preferisci?`);
+      return;
+    }
+
+    setAwaiting(null);
+    const context: MatchContext = {
+      use: res.use,
+      phase: state.phase ?? null,
+      car: state.carLabel ?? null,
+      relaxed: res.relaxed,
+    };
+    pushAssistant(recommend(res), res.matches, context);
   }
 
-  function wizardShape(shape: "liscio" | "spiralato") {
-    const loc = pendingLocation.current;
-    if (!loc) return;
+  /** Testo libero in modalità wizard: prova a riconoscere auto e posizione. */
+  function wizardSubmit(text: string) {
+    pushUser(text);
+
+    const ev = lookupEvModel(text);
+    const loc = detectLocation(text);
+    const next: WizardState = { ...wizard };
+    if (ev) {
+      next.phase = ev.acPhase;
+      next.carLabel = `${ev.brand} ${ev.model}`;
+    }
+    if (loc) next.location = loc;
+
+    if (ev) {
+      pushAssistant(
+        `Ho riconosciuto la tua ${ev.brand} ${ev.model}: ricarica in ${ev.acPhase} (~${ev.acKw} kW AC, valore indicativo).`,
+      );
+    } else if (!loc) {
+      pushAssistant(
+        "Non ho trovato quel modello nella mia mini-banca dati — nessun problema, troviamo il cavo lo stesso.",
+      );
+    }
+
+    decideWizard(next);
+  }
+
+  function wizardLocation(loc: ChargeLocation) {
+    pushUser(LOCATION_LABELS[loc]);
+    decideWizard({ ...wizard, location: loc });
+  }
+
+  function wizardShape(shape: Shape) {
     pushUser(shape === "spiralato" ? "Spiralato" : "Liscio");
-    const res = findCable({ chargeLocation: loc, shape });
-    setPendingAsk(null);
-    pushAssistant(recommend(res), res.matches);
+    decideWizard({ ...wizard, shape });
   }
 
   /* ---------------- Invio ---------------- */
@@ -165,10 +263,18 @@ export default function CableFinder({ aiEnabled }: { aiEnabled: boolean }) {
     const text = input.trim();
     if (!text || streaming) return;
     setInput("");
-    void sendToAI(text);
+    if (aiEnabled) void sendToAI(text);
+    else wizardSubmit(text);
   }
 
-  const showShapeButtons = !aiEnabled && pendingAsk === "shape";
+  const showShapeButtons = !aiEnabled && awaiting === "shape";
+
+  // Testo annunciato agli screen reader: l'ultima risposta dell'assistente, ma
+  // solo a streaming concluso (durante lo streaming resta vuoto per non leggere
+  // i token parziali).
+  const liveAnnouncement = streaming
+    ? ""
+    : ([...messages].reverse().find((m) => m.role === "assistant")?.text ?? "");
 
   return (
     <Section id="cable-finder" className="bg-surface border-border border-y">
@@ -192,8 +298,8 @@ export default function CableFinder({ aiEnabled }: { aiEnabled: boolean }) {
             ) : (
               <>
                 <span className="font-medium">● </span>
-                Modalità guidata: rispondi ai pulsanti qui accanto — il motore di matching gira
-                comunque, senza AI.
+                Modalità guidata (senza AI): scrivi la tua auto o usa i pulsanti — il motore di
+                matching deduce mono/trifase e trova lo SKU.
               </>
             )}
           </p>
@@ -201,10 +307,12 @@ export default function CableFinder({ aiEnabled }: { aiEnabled: boolean }) {
 
         {/* Colonna destra: chat */}
         <Card className="flex h-[34rem] flex-col overflow-hidden">
+          {/* Trascrizione visiva: NON è una live region (annuncerebbe l'intera
+              conversazione ad ogni token). L'annuncio screen-reader avviene su
+              un nodo dedicato all'ultimo messaggio, qui sotto. */}
           <div
             ref={scrollRef}
             className="flex-1 space-y-4 overflow-y-auto p-5"
-            aria-live="polite"
             aria-labelledby={headingId}
           >
             <h3 id={headingId} className="sr-only">
@@ -215,6 +323,12 @@ export default function CableFinder({ aiEnabled }: { aiEnabled: boolean }) {
             ))}
             {streaming && <TypingDots />}
           </div>
+
+          {/* Live region dedicata: annuncia solo l'ultima risposta, a streaming
+              concluso, per non leggere i token parziali uno a uno. */}
+          <p className="sr-only" aria-live="polite" aria-atomic="true">
+            {liveAnnouncement}
+          </p>
 
           {/* Azioni rapide + input */}
           <div className="border-border space-y-3 border-t p-4">
@@ -234,21 +348,28 @@ export default function CableFinder({ aiEnabled }: { aiEnabled: boolean }) {
             </div>
 
             <form onSubmit={onSubmit} className="flex items-center gap-2">
+              {/* Suggerimenti auto: nativi, accessibili, zero costo. */}
+              <datalist id={evListId}>
+                {EV_MODELS.map((ev) => (
+                  <option key={`${ev.brand}-${ev.model}`} value={`${ev.brand} ${ev.model}`} />
+                ))}
+              </datalist>
               <input
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
-                disabled={!aiEnabled || streaming}
+                disabled={streaming}
+                list={evListId}
                 placeholder={
                   aiEnabled
                     ? "Es. «Ho una Tesla Model 3»"
-                    : "Scrivi disponibile con l'assistente AI attivo"
+                    : "Scrivi la tua auto, es. «Volkswagen ID.4»"
                 }
-                aria-label="Scrivi un messaggio all'assistente"
+                aria-label="Scrivi la tua auto o dove ricarichi"
                 className="border-border bg-background focus-visible:border-accent h-11 flex-1 rounded-full border px-4 text-sm outline-none disabled:opacity-60"
               />
               <button
                 type="submit"
-                disabled={!aiEnabled || streaming || !input.trim()}
+                disabled={streaming || !input.trim()}
                 aria-label="Invia"
                 className="bg-accent text-accent-contrast hover:bg-accent-strong flex h-11 w-11 shrink-0 items-center justify-center rounded-full transition-colors disabled:opacity-40"
               >
@@ -288,10 +409,39 @@ function ChatBubble({ msg }: { msg: ChatMsg }) {
       )}
       {msg.products && msg.products.length > 0 && (
         <div className="grid w-full max-w-[85%] gap-2">
+          {msg.context && <MatchWhy context={msg.context} />}
           {msg.products.slice(0, 2).map((p) => (
             <ChatProductCard key={p.id} product={p} />
           ))}
         </div>
+      )}
+    </div>
+  );
+}
+
+/** "Perché questo": rende tangibile cosa ha guidato il consiglio del tool. */
+function MatchWhy({ context }: { context: MatchContext }) {
+  const chips: string[] = [`Per ${context.use}`];
+  if (context.phase) {
+    chips.push(context.car ? `${context.phase} · ${context.car}` : context.phase);
+  }
+  return (
+    <div className="flex flex-wrap items-center gap-1.5">
+      <span className="text-muted text-[0.65rem] font-semibold tracking-widest uppercase">
+        Perché
+      </span>
+      {chips.map((c) => (
+        <span
+          key={c}
+          className="bg-accent-soft text-accent-ink rounded-full px-2.5 py-0.5 text-xs font-medium"
+        >
+          {c}
+        </span>
+      ))}
+      {context.relaxed && (
+        <span className="bg-surface-2 text-muted rounded-full px-2.5 py-0.5 text-xs">
+          alternativa più vicina
+        </span>
       )}
     </div>
   );

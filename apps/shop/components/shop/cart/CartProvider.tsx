@@ -5,10 +5,14 @@ import {
   useCallback,
   useContext,
   useMemo,
+  useRef,
   useState,
   useSyncExternalStore,
 } from "react";
 import type { Product } from "@gmgroup/lib/types";
+
+/** Tetto per riga: evita quantità assurde in una demo senza magazzino reale. */
+export const MAX_QTY = 20;
 
 /**
  * Stato carrello LOCALE (demo): un piccolo store esterno con persistenza su
@@ -63,20 +67,24 @@ function subscribe(listener: () => void) {
 const getSnapshot = () => cartState;
 const getServerSnapshot = () => EMPTY;
 
-// Operazioni sullo store (pure: producono un nuovo array).
+// Operazioni sullo store (pure: producono un nuovo array). Le quantità sono
+// sempre limitate a MAX_QTY.
 function addItem(product: Pick<Product, "id" | "name" | "price">) {
   const existing = cartState.find((i) => i.id === product.id);
   setCart(
     existing
-      ? cartState.map((i) => (i.id === product.id ? { ...i, qty: i.qty + 1 } : i))
+      ? cartState.map((i) =>
+          i.id === product.id ? { ...i, qty: Math.min(i.qty + 1, MAX_QTY) } : i,
+        )
       : [...cartState, { id: product.id, name: product.name, price: product.price, qty: 1 }],
   );
 }
 function setItemQty(id: string, qty: number) {
+  const capped = Math.min(qty, MAX_QTY);
   setCart(
-    qty <= 0
+    capped <= 0
       ? cartState.filter((i) => i.id !== id)
-      : cartState.map((i) => (i.id === id ? { ...i, qty } : i)),
+      : cartState.map((i) => (i.id === id ? { ...i, qty: capped } : i)),
   );
 }
 function removeItem(id: string) {
@@ -91,6 +99,8 @@ type CartContextValue = {
   count: number;
   total: number;
   isOpen: boolean;
+  /** Messaggio transitorio di conferma (toast), null quando non c'è nulla da mostrare. */
+  toast: string | null;
   add: (product: Pick<Product, "id" | "name" | "price">) => void;
   remove: (id: string) => void;
   setQty: (id: string, qty: number) => void;
@@ -110,11 +120,30 @@ export function useCart(): CartContextValue {
 export default function CartProvider({ children }: { children: React.ReactNode }) {
   const items = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
   const [isOpen, setIsOpen] = useState(false);
+  const [toast, setToast] = useState<string | null>(null);
+  const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const add: CartContextValue["add"] = useCallback((product) => {
-    addItem(product);
-    setIsOpen(true);
+  // Mostra un toast per qualche secondo (un solo timer attivo alla volta).
+  const flashToast = useCallback((message: string) => {
+    setToast(message);
+    if (toastTimer.current) clearTimeout(toastTimer.current);
+    toastTimer.current = setTimeout(() => setToast(null), 2800);
   }, []);
+
+  // Aggiunta = toast leggero (non apriamo il drawer ad ogni clic: il badge sul
+  // bottone flottante segnala già lo stato e il toast conferma l'azione).
+  const add: CartContextValue["add"] = useCallback(
+    (product) => {
+      const existing = cartState.find((i) => i.id === product.id);
+      if (existing && existing.qty >= MAX_QTY) {
+        flashToast(`Quantità massima (${MAX_QTY}) raggiunta`);
+        return;
+      }
+      addItem(product);
+      flashToast(`«${product.name}» aggiunto al carrello`);
+    },
+    [flashToast],
+  );
   const remove = useCallback((id: string) => removeItem(id), []);
   const setQty = useCallback((id: string, qty: number) => setItemQty(id, qty), []);
   const clear = useCallback(() => clearCart(), []);
@@ -124,8 +153,8 @@ export default function CartProvider({ children }: { children: React.ReactNode }
   const value = useMemo<CartContextValue>(() => {
     const count = items.reduce((n, i) => n + i.qty, 0);
     const total = items.reduce((sum, i) => sum + (i.price ?? 0) * i.qty, 0);
-    return { items, count, total, isOpen, add, remove, setQty, clear, open, close };
-  }, [items, isOpen, add, remove, setQty, clear, open, close]);
+    return { items, count, total, isOpen, toast, add, remove, setQty, clear, open, close };
+  }, [items, isOpen, toast, add, remove, setQty, clear, open, close]);
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;
 }

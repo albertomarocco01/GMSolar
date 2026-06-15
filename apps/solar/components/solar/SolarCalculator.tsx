@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useMemo, useState } from "react";
+import { useId, useMemo, useRef, useState, type KeyboardEvent } from "react";
 import Section from "@gmgroup/ui/Section";
 import Badge from "@gmgroup/ui/Badge";
 import Card from "@gmgroup/ui/Card";
@@ -12,19 +12,30 @@ import { IconSun } from "@/components/solar/SolarIcons";
    Assunzioni della stima (dichiarate, semplici e modificabili).
    NB: è una stima INDICATIVA, non un preventivo. Valori medi Italia.
    ============================================================= */
-const PRICE_PER_KWH = 0.25; // €/kWh medio in bolletta
+const PRICE_PER_KWH = 0.25; // €/kWh medio in bolletta (energia autoconsumata = risparmiata)
+const EXPORT_PRICE = 0.1; // €/kWh valorizzazione dell'energia immessa in rete (ritiro dedicato)
 const YIELD_KWH_PER_KWP = 1200; // producibilità media annua (kWh per kWp)
 const KWP_PER_M2 = 0.17; // ~6 m² di tetto per kWp installabile
 const CO2_KG_PER_KWH = 0.35; // fattore di emissione medio rete IT
+// Quota di produzione consumata sul posto SENZA accumulo: il resto è immesso in
+// rete. Realisticamente ~30-40% per un profilo domestico; con batteria sale.
+const SELF_CONSUMPTION = 0.35;
+const COST_PER_KWP = 1400; // costo "chiavi in mano" indicativo (€/kWp)
+const LIFETIME_YEARS = 25; // vita utile considerata per il risparmio cumulato
 
 type Mode = "spesa" | "consumo";
+
+/** Ordine dei tab: usato dalla navigazione con le frecce. */
+const MODES: Mode[] = ["spesa", "consumo"];
 
 type Estimate = {
   kwp: number;
   produzioneKwh: number;
-  risparmioEur: number;
+  risparmioEur: number; // beneficio annuo (autoconsumo evitato + immissione valorizzata)
   co2T: number;
-  coperturaPct: number;
+  coperturaPct: number; // quota di consumi coperta dall'autoconsumo solare
+  paybackAnni: number | null; // tempo di rientro dell'investimento (null se non rientra)
+  risparmio25: number; // beneficio cumulato sulla vita utile dell'impianto
 };
 
 /** Calcolo puro: input → stima. Tenuto fuori dal componente per leggibilità. */
@@ -38,12 +49,21 @@ function computeEstimate(mode: Mode, amount: number, superficieM2: number): Esti
   const kwp = Math.max(0, Math.min(kwpDaTetto, kwpServiti));
 
   const produzioneKwh = kwp * YIELD_KWH_PER_KWP;
-  const autoconsumabileKwh = Math.min(produzioneKwh, consumoKwh);
-  const risparmioEur = autoconsumabileKwh * PRICE_PER_KWH;
-  const co2T = (produzioneKwh * CO2_KG_PER_KWH) / 1000;
-  const coperturaPct = consumoKwh > 0 ? Math.min(100, (produzioneKwh / consumoKwh) * 100) : 0;
 
-  return { kwp, produzioneKwh, risparmioEur, co2T, coperturaPct };
+  // Senza accumulo solo una quota della produzione è consumata sul posto (e non
+  // può superare i consumi); il resto è immesso in rete a un prezzo inferiore.
+  const autoconsumoKwh = Math.min(produzioneKwh * SELF_CONSUMPTION, consumoKwh);
+  const immessaKwh = Math.max(0, produzioneKwh - autoconsumoKwh);
+  const risparmioEur = autoconsumoKwh * PRICE_PER_KWH + immessaKwh * EXPORT_PRICE;
+
+  const co2T = (produzioneKwh * CO2_KG_PER_KWH) / 1000;
+  const coperturaPct = consumoKwh > 0 ? Math.min(100, (autoconsumoKwh / consumoKwh) * 100) : 0;
+
+  const costoImpianto = kwp * COST_PER_KWP;
+  const paybackAnni = risparmioEur > 0 ? costoImpianto / risparmioEur : null;
+  const risparmio25 = risparmioEur * LIFETIME_YEARS;
+
+  return { kwp, produzioneKwh, risparmioEur, co2T, coperturaPct, paybackAnni, risparmio25 };
 }
 
 const nf = (decimals = 0) =>
@@ -117,11 +137,50 @@ export default function SolarCalculator() {
   const amount = mode === "spesa" ? spesa : consumo;
   const est = useMemo(() => computeEstimate(mode, amount, superficie), [mode, amount, superficie]);
 
+  // a11y: tablist con pattern WAI-ARIA. Ogni tab governa il proprio tabpanel e
+  // le frecce spostano la selezione + il focus (focus segue la selezione).
+  const tabsId = useId();
+  const tabId = (m: Mode) => `${tabsId}-tab-${m}`;
+  const panelId = (m: Mode) => `${tabsId}-panel-${m}`;
+  const tabRefs = useRef<Record<Mode, HTMLButtonElement | null>>({ spesa: null, consumo: null });
+
+  function handleTabKey(e: KeyboardEvent<HTMLButtonElement>) {
+    const i = MODES.indexOf(mode);
+    let next: Mode | null = null;
+    switch (e.key) {
+      case "ArrowRight":
+      case "ArrowDown":
+        next = MODES[(i + 1) % MODES.length];
+        break;
+      case "ArrowLeft":
+      case "ArrowUp":
+        next = MODES[(i - 1 + MODES.length) % MODES.length];
+        break;
+      case "Home":
+        next = MODES[0];
+        break;
+      case "End":
+        next = MODES[MODES.length - 1];
+        break;
+      default:
+        return;
+    }
+    e.preventDefault();
+    setMode(next);
+    tabRefs.current[next]?.focus();
+  }
+
   const results = [
     { label: "Potenza consigliata", value: nf(1).format(est.kwp), unit: "kWp" },
     { label: "Produzione stimata", value: nf(0).format(est.produzioneKwh), unit: "kWh/anno" },
     { label: "Risparmio stimato", value: nf(0).format(est.risparmioEur), unit: "€/anno" },
     { label: "CO₂ evitata", value: nf(1).format(est.co2T), unit: "t/anno" },
+    {
+      label: "Tempo di rientro",
+      value: est.paybackAnni != null ? nf(1).format(est.paybackAnni) : "—",
+      unit: est.paybackAnni != null ? "anni" : "",
+    },
+    { label: "Risparmio in 25 anni", value: nf(0).format(est.risparmio25), unit: "€" },
   ];
 
   return (
@@ -145,18 +204,25 @@ export default function SolarCalculator() {
       <Card className="mt-10 grid gap-8 p-6 md:grid-cols-2 md:p-8">
         {/* ----- Input ----- */}
         <div className="flex flex-col gap-6">
-          {/* Toggle spesa / consumo */}
+          {/* Toggle spesa / consumo (tablist accessibile) */}
           <div
             role="tablist"
             aria-label="Tipo di dato in ingresso"
             className="bg-surface-2 inline-flex w-full rounded-full p-1 text-sm"
           >
-            {(["spesa", "consumo"] as const).map((m) => (
+            {MODES.map((m) => (
               <button
                 key={m}
+                ref={(el) => {
+                  tabRefs.current[m] = el;
+                }}
+                id={tabId(m)}
                 role="tab"
                 aria-selected={mode === m}
+                aria-controls={panelId(m)}
+                tabIndex={mode === m ? 0 : -1}
                 onClick={() => setMode(m)}
+                onKeyDown={handleTabKey}
                 className={cn(
                   "ease-out-expo flex-1 rounded-full px-4 py-2 font-medium transition-colors duration-(--duration-fast)",
                   mode === m
@@ -169,7 +235,8 @@ export default function SolarCalculator() {
             ))}
           </div>
 
-          {mode === "spesa" ? (
+          {/* Un tabpanel per tab: il non attivo è rimosso dall'accessibility tree. */}
+          <div role="tabpanel" id={panelId("spesa")} aria-labelledby={tabId("spesa")} hidden={mode !== "spesa"}>
             <RangeField
               label="Spesa elettrica annua"
               unit="€"
@@ -179,7 +246,13 @@ export default function SolarCalculator() {
               step={50}
               onChange={setSpesa}
             />
-          ) : (
+          </div>
+          <div
+            role="tabpanel"
+            id={panelId("consumo")}
+            aria-labelledby={tabId("consumo")}
+            hidden={mode !== "consumo"}
+          >
             <RangeField
               label="Consumo annuo"
               unit="kWh"
@@ -189,7 +262,7 @@ export default function SolarCalculator() {
               step={100}
               onChange={setConsumo}
             />
-          )}
+          </div>
 
           <RangeField
             label="Superficie tetto disponibile"
@@ -202,8 +275,11 @@ export default function SolarCalculator() {
           />
 
           <p className="text-muted text-xs leading-relaxed">
-            Ipotesi: {nf(2).format(PRICE_PER_KWH)} €/kWh, {nf(0).format(YIELD_KWH_PER_KWP)} kWh/kWp
-            l&apos;anno, ~6 m² di tetto per kWp.
+            Ipotesi: {nf(2).format(PRICE_PER_KWH)} €/kWh in bolletta,{" "}
+            {nf(0).format(YIELD_KWH_PER_KWP)} kWh/kWp l&apos;anno, ~6 m² di tetto per kWp,
+            autoconsumo {nf(0).format(SELF_CONSUMPTION * 100)}% senza accumulo (il resto immesso in
+            rete a {nf(2).format(EXPORT_PRICE)} €/kWh), impianto ~{nf(0).format(COST_PER_KWP)} €/kWp
+            su una vita di {LIFETIME_YEARS} anni.
           </p>
         </div>
 

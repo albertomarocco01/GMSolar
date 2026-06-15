@@ -17,6 +17,24 @@ In questo modo il design system resta coerente e nessuna sezione rompe le altre.
 
 ## Richieste aperte
 
+### [MOBILITY] `OCM_API_KEY` nell'env condiviso (.env.example + Vercel)
+
+- **Chi chiede:** Mobility (mappa rete di ricarica).
+- **Cosa serve:** aggiungere `OCM_API_KEY=` all'`.env.example` e impostarla negli
+  env di Vercel (variabile **server-only**, niente prefisso `NEXT_PUBLIC_`).
+- **Perché:** dal 2024 l'endpoint pubblico di Open Charge Map **richiede una API
+  key** — senza, risponde **403** e la mappa resterebbe senza punti pubblici.
+  Verificato dal vivo (`403 "You must specify an API key"`). La key è gratuita
+  (registrazione su openchargemap.org). Il route la legge già da
+  `process.env.OCM_API_KEY` e la passa come header `X-API-Key`.
+- **Non bloccante:** in assenza di key la mappa **non resta vuota**: il route
+  (`app/api/charging-points/route.ts`) fa fallback a un set CURATO di punti in
+  comuni reali del Piemonte (`data/charging-fallback.ts`, `source: "curated"`) e
+  la UI lo segnala con una nota "punti indicativi". Con la key impostata si passa
+  automaticamente al feed reale in tempo reale (`source: "openchargemap"`).
+- **Io NON tocco** `.env.example` (zona condivisa): chiedo a chi la gestisce di
+  aggiungerla.
+
 ### [MOBILITY] `SplitTextReveal.tsx` va in errore di tipo quando il progetto include React Three Fiber
 
 - **Chi chiede:** Mobility (sezione 3D).
@@ -53,6 +71,40 @@ In questo modo il design system resta coerente e nessuna sezione rompe le altre.
   `tsc` non risolve `import * as THREE from "three"`. È **solo-tipi**, non cambia il runtime
   né le altre sezioni (three lo usa solo Mobility). Committato sul branch per far passare il
   typecheck; segnalato qui per trasparenza.
+
+### [SOLAR] Aggiungere `maplibre-gl` a `apps/solar/package.json` (mappa progetti)
+
+- **Chi chiede:** Solar (sezione fotovoltaico).
+- **Cosa serve:** `maplibre-gl@^5.24.0` come dependency di `apps/solar`, allineata
+  alla versione già usata da Mobility (così pnpm la deduplica nel lockfile).
+- **Perché:** la nuova sezione "mappa progetti" (`components/solar/SolarMap.tsx` +
+  `SolarMapInner.tsx`) riusa il pattern MapLibre di Mobility (dynamic `ssr:false`,
+  mount pigro, clustering GeoJSON nativo, popup con kWp/anno). MapLibre porta i
+  propri tipi: niente `@types`.
+- **Impatto zona condivisa:** il comando `pnpm --filter @gmgroup/solar add maplibre-gl@^5.24.0`
+  tocca **`apps/solar/package.json`** (mia ownership) e il **`pnpm-lock.yaml` di root**
+  (zona condivisa). Nessun altro file condiviso cambia; le altre sezioni non sono
+  toccate (maplibre è già nel monorepo via Mobility).
+- **Stato:** ⏳ DA AUTORIZZARE. Codice e dati già pronti; il typecheck di Solar
+  fallisce con "Cannot find module 'maplibre-gl'" finché non si installa.
+
+### [SOLAR] Coordinate dei progetti in mappa = PLACEHOLDER
+
+- `data/solar-projects.json → mappaProgetti` contiene 12 impianti showcase con
+  **coordinate a livello città** (nord-ovest Italia) e nomi/kWp/anno indicativi: da
+  sostituire con l'elenco reale degli impianti GM Solar. Strutturato per la
+  sostituzione (array di `{ nome, tipo, kWp, anno, lng, lat }`). Non bloccante.
+
+### [SOLAR] Foto case study + loghi/certificazioni trust band = PLACEHOLDER
+
+- **Foto progetti** (`SolarCaseStudy`): le immagini delle card sono SVG branded
+  generati da `components/solar/SolarProjectPhoto.tsx` (scena solare astratta), non
+  foto reali. Sostituibili 1:1 con vere immagini (rimpiazzare il componente con un
+  `<Image src={progetto.foto} … />` e aggiungere il campo `foto` ai progetti).
+  Le metriche per card (kWp, CO₂/anno calcolata, anno) usano kWp/anno indicativi.
+- **Trust band** (`SolarTrust`): nomi clienti/partner e certificazioni (ISO 9001/
+  14001/45001) sono **SEGNAPOSTO, non claim verificati**: sostituire con i loghi reali
+  e le certificazioni effettivamente possedute. Liste in cima al componente.
 
 ### [SOLAR] Centralizzare i path dei poster video in `lib/assets.ts` (opzionale)
 

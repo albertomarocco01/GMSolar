@@ -25,9 +25,21 @@ import { lookupEvModel } from "@/components/shop/ev-onboard";
    ============================================================ */
 export type ChatMessage = { role: "user" | "assistant"; content: string };
 
+/**
+ * Contesto del match mostrato in UI come "perché questo": rende tangibile cosa
+ * ha guidato il consiglio (uso, fase dedotta dall'auto, eventuale ripiego).
+ */
+export type MatchContext = {
+  use: string;
+  phase: Phase | null;
+  /** Auto riconosciuta da cui è stata dedotta la fase, es. "Tesla Model 3". */
+  car: string | null;
+  relaxed: boolean;
+};
+
 export type FinderEvent =
   | { type: "text"; text: string }
-  | { type: "products"; products: Product[] }
+  | { type: "products"; products: Product[]; context: MatchContext }
   | { type: "done" }
   | { type: "error"; message: string };
 
@@ -94,6 +106,8 @@ type ToolExecution = {
   forModel: Record<string, unknown>;
   /** Prodotti reali da inviare al client come schede cliccabili. */
   products: Product[];
+  /** Contesto sintetico del match, per il "perché questo" in UI. */
+  context: MatchContext;
 };
 
 function executeFindCable(rawInput: unknown): ToolExecution {
@@ -107,11 +121,13 @@ function executeFindCable(rawInput: unknown): ToolExecution {
   // Deduzione della fase dal modello auto (mini-knowledge EV).
   let phase: Phase | undefined;
   let phaseSource: string | null = null;
+  let car: string | null = null;
   if (input.car_model) {
     const ev = lookupEvModel(input.car_model);
     if (ev) {
       phase = ev.acPhase;
-      phaseSource = `${ev.brand} ${ev.model} (~${ev.acKw} kW ${ev.acPhase}, valore indicativo)`;
+      car = `${ev.brand} ${ev.model}`;
+      phaseSource = `${car} (~${ev.acKw} kW ${ev.acPhase}, valore indicativo)`;
     }
   }
 
@@ -140,6 +156,7 @@ function executeFindCable(rawInput: unknown): ToolExecution {
       })),
     },
     products: result.matches,
+    context: { use: result.use, phase: phase ?? null, car, relaxed: result.relaxed },
   };
 }
 
@@ -300,7 +317,8 @@ async function* runAnthropic(
     for (const b of assistantContent) {
       if (b.type === "tool_use" && b.name === "find_cable") {
         const exec = executeFindCable(b.input);
-        if (exec.products.length) yield { type: "products", products: exec.products };
+        if (exec.products.length)
+          yield { type: "products", products: exec.products, context: exec.context };
         toolResults.push({
           type: "tool_result",
           tool_use_id: b.id,
@@ -390,7 +408,8 @@ async function* runGemini(
     for (const call of calls) {
       if (call.name === "find_cable") {
         const exec = executeFindCable(call.args);
-        if (exec.products.length) yield { type: "products", products: exec.products };
+        if (exec.products.length)
+          yield { type: "products", products: exec.products, context: exec.context };
         responseParts.push({ functionResponse: { name: call.name, response: exec.forModel } });
       }
     }
