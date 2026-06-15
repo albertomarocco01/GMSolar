@@ -1,10 +1,11 @@
 /**
  * CABLE-FINDER — livello 2: layer conversazionale (AI) con FUNCTION CALLING.
  *
- * Struttura PROVIDER-AGNOSTICA: una sola interfaccia (`runProvider`) con due
- * implementazioni raw-`fetch` (Anthropic, Gemini), così non aggiungiamo SDK al
- * "fixed stack". Il provider attivo si sceglie da env (default: quello con la
- * chiave presente). La chiave vive SOLO qui, lato server (mai nel client).
+ * Struttura PROVIDER-AGNOSTICA: una sola interfaccia (`runProvider`) con tre
+ * implementazioni raw-`fetch` (Anthropic, Gemini, DeepSeek — quest'ultimo via
+ * API OpenAI-compatibile), così non aggiungiamo SDK al "fixed stack". Il
+ * provider attivo si sceglie da env (default: quello con la chiave presente).
+ * La chiave vive SOLO qui, lato server (mai nel client).
  *
  * Il modello fa domande naturali, deduce la fase dal modello auto via
  * `lookupEvModel` (o chiede), poi chiama il tool deterministico `find_cable`
@@ -420,17 +421,138 @@ async function* runGemini(
 }
 
 /* ============================================================
+   Provider DEEPSEEK (API OpenAI-compatibile, Bearer + streaming SSE)
+   ============================================================ */
+const DEEPSEEK_URL = "https://api.deepseek.com/chat/completions";
+
+type OpenAIToolCallDelta = {
+  index?: number;
+  id?: string;
+  function?: { name?: string; arguments?: string };
+};
+type OpenAISSE = {
+  choices?: Array<{
+    delta?: { content?: string; tool_calls?: OpenAIToolCallDelta[] };
+    finish_reason?: string | null;
+  }>;
+};
+
+async function* runDeepSeek(
+  messages: ChatMessage[],
+  apiKey: string,
+  model: string,
+): AsyncGenerator<FinderEvent> {
+  // Formato messaggi OpenAI: system + cronologia. I turni con tool aggiungono
+  // `tool_calls` (assistant) e messaggi `role: "tool"` (risultati).
+  const convo: Array<Record<string, unknown>> = [
+    { role: "system", content: SYSTEM_PROMPT },
+    ...messages.map((m) => ({ role: m.role, content: m.content })),
+  ];
+
+  const tools = [
+    {
+      type: "function",
+      function: {
+        name: FIND_CABLE.name,
+        description: FIND_CABLE.description,
+        parameters: FIND_CABLE.parameters,
+      },
+    },
+  ];
+
+  for (let turn = 0; turn < MAX_TURNS; turn++) {
+    const res = await fetch(DEEPSEEK_URL, {
+      method: "POST",
+      headers: {
+        authorization: `Bearer ${apiKey}`,
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({
+        model,
+        max_tokens: 1024,
+        messages: convo,
+        tools,
+        tool_choice: "auto",
+        stream: true,
+      }),
+    });
+
+    if (!res.ok || !res.body) {
+      yield { type: "error", message: `DeepSeek ${res.status}: ${await safeErrorText(res)}` };
+      return;
+    }
+
+    // Accumula testo e tool_calls (gli argomenti arrivano a frammenti, per indice).
+    let assistantText = "";
+    const calls = new Map<number, { id: string; name: string; args: string }>();
+
+    for await (const raw of parseSSE(res.body)) {
+      const choice = (raw as OpenAISSE).choices?.[0];
+      const delta = choice?.delta;
+      if (!delta) continue;
+      if (delta.content) {
+        assistantText += delta.content;
+        yield { type: "text", text: delta.content };
+      }
+      for (const tc of delta.tool_calls ?? []) {
+        const idx = tc.index ?? 0;
+        const cur = calls.get(idx) ?? { id: "", name: "", args: "" };
+        if (tc.id) cur.id = tc.id;
+        if (tc.function?.name) cur.name = tc.function.name;
+        if (tc.function?.arguments) cur.args += tc.function.arguments;
+        calls.set(idx, cur);
+      }
+    }
+
+    if (calls.size === 0) {
+      yield { type: "done" };
+      return;
+    }
+
+    // Registra il turno assistant con i tool_calls, esegui i tool e rispondi.
+    const ordered = [...calls.entries()].sort((a, b) => a[0] - b[0]).map(([, v]) => v);
+    convo.push({
+      role: "assistant",
+      content: assistantText,
+      tool_calls: ordered.map((t) => ({
+        id: t.id,
+        type: "function",
+        function: { name: t.name, arguments: t.args || "{}" },
+      })),
+    });
+    for (const t of ordered) {
+      const exec = t.name === "find_cable" ? executeFindCable(parseJsonObject(t.args)) : null;
+      if (exec?.products.length)
+        yield { type: "products", products: exec.products, context: exec.context };
+      convo.push({
+        role: "tool",
+        tool_call_id: t.id,
+        content: exec ? JSON.stringify(exec.forModel) : "{}",
+      });
+    }
+  }
+
+  yield { type: "done" };
+}
+
+/* ============================================================
    Selezione del provider (default: quello con la chiave)
    ============================================================ */
-export type ProviderName = "anthropic" | "gemini";
+export type ProviderName = "anthropic" | "gemini" | "deepseek";
+
+/** Modello di default per provider (sovrascrivibile con AI_MODEL). */
+const DEFAULT_MODEL: Record<ProviderName, string> = {
+  anthropic: "claude-opus-4-8",
+  gemini: "gemini-2.0-flash",
+  deepseek: "deepseek-chat",
+};
 
 export function resolveProvider(): { name: ProviderName; apiKey: string; model: string } | null {
   const apiKey = process.env.AI_API_KEY;
   if (!apiKey) return null;
-  const name: ProviderName =
-    process.env.AI_PROVIDER?.toLowerCase() === "gemini" ? "gemini" : "anthropic";
-  const model =
-    process.env.AI_MODEL ?? (name === "gemini" ? "gemini-2.0-flash" : "claude-opus-4-8");
+  const p = process.env.AI_PROVIDER?.toLowerCase();
+  const name: ProviderName = p === "gemini" ? "gemini" : p === "deepseek" ? "deepseek" : "anthropic";
+  const model = process.env.AI_MODEL ?? DEFAULT_MODEL[name];
   return { name, apiKey, model };
 }
 
@@ -440,7 +562,12 @@ export function runProvider(
   apiKey: string,
   model: string,
 ): AsyncGenerator<FinderEvent> {
-  return name === "gemini"
-    ? runGemini(messages, apiKey, model)
-    : runAnthropic(messages, apiKey, model);
+  switch (name) {
+    case "gemini":
+      return runGemini(messages, apiKey, model);
+    case "deepseek":
+      return runDeepSeek(messages, apiKey, model);
+    default:
+      return runAnthropic(messages, apiKey, model);
+  }
 }
