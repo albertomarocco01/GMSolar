@@ -259,7 +259,7 @@ function PartLabel({
     >
       <div
         style={{ opacity: show ? 1 : 0, transitionDelay: `${index * 70}ms` }}
-        className="pointer-events-none w-max max-w-[10rem] -translate-y-1/2 transition-opacity duration-500 select-none"
+        className="pointer-events-none w-max max-w-40 -translate-y-1/2 transition-opacity duration-500 select-none"
       >
         <div className="flex items-center gap-2 rounded-full border border-white/15 bg-black/70 px-3 py-1 backdrop-blur">
           <span className="bg-accent inline-block size-1.5 rounded-full" />
