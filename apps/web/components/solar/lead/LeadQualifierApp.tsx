@@ -744,7 +744,11 @@ export default function LeadQualifierApp() {
                         <span className="text-accent-ink font-bold">GM Assistente AI</span>
                       </>
                     )}
-                    <span>
+                    {/* L'orario del messaggio di benvenuto è creato a init con
+                        new Date(): server e client lo formattano in momenti/fuso
+                        diversi → mismatch di hydration. suppressHydrationWarning
+                        lascia vincere il valore client (cosmetico). */}
+                    <span suppressHydrationWarning>
                       • {m.timestamp.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                     </span>
                   </div>

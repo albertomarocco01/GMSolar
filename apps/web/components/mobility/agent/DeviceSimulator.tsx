@@ -116,7 +116,7 @@ export default function DeviceSimulator({
   return (
     <div className="mx-auto flex w-full max-w-sm flex-col items-center justify-center py-4">
       {/* Smartphone Outer Container */}
-      <div className="relative flex h-[750px] w-[370px] flex-col overflow-hidden rounded-[50px] border-[10px] border-zinc-900 bg-[#050505] shadow-[0_25px_60px_-15px_rgba(0,0,0,0.95)] ring-1 ring-white/10">
+      <div className="relative flex h-[750px] w-[370px] flex-col overflow-hidden rounded-[50px] border-10 border-zinc-900 bg-[#050505] shadow-[0_25px_60px_-15px_rgba(0,0,0,0.95)] ring-1 ring-white/10">
         {/* Notch / Dynamic Island */}
         <div className="absolute top-2 left-1/2 z-50 flex h-6 w-32 -translate-x-1/2 items-center justify-center rounded-full bg-zinc-900">
           <div className="absolute left-4 h-2.5 w-2.5 rounded-full bg-[#050505]" />

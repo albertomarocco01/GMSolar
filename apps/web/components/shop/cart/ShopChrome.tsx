@@ -20,7 +20,7 @@ export default function ShopChrome({ children }: { children: React.ReactNode }) 
       <div
         role="status"
         aria-live="polite"
-        className="pointer-events-none fixed inset-x-0 bottom-24 z-[55] flex justify-center px-4"
+        className="pointer-events-none fixed inset-x-0 bottom-24 z-55 flex justify-center px-4"
       >
         <div
           className={cn(

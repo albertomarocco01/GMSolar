@@ -49,7 +49,7 @@ export default function CartDrawer() {
         aria-hidden
         onClick={handleClose}
         className={cn(
-          "fixed inset-0 z-[60] bg-black/40 backdrop-blur-sm transition-opacity duration-300",
+          "fixed inset-0 z-60 bg-black/40 backdrop-blur-sm transition-opacity duration-300",
           isOpen ? "opacity-100" : "pointer-events-none opacity-0",
         )}
       />
@@ -60,7 +60,7 @@ export default function CartDrawer() {
         aria-modal="true"
         aria-label="Carrello"
         className={cn(
-          "bg-background border-border ease-out-expo shadow-lift fixed top-0 right-0 z-[61] flex h-full w-full max-w-md flex-col border-l transition-transform duration-(--duration-base)",
+          "bg-background border-border ease-out-expo shadow-lift fixed top-0 right-0 z-61 flex h-full w-full max-w-md flex-col border-l transition-transform duration-(--duration-base)",
           isOpen ? "translate-x-0" : "translate-x-full",
         )}
       >

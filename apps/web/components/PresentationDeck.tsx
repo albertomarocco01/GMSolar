@@ -120,7 +120,7 @@ export default function PresentationDeck() {
     <div
       role="region"
       aria-label="Regia della presentazione"
-      className="ease-out-expo fixed inset-x-0 bottom-4 z-[80] flex justify-center px-4 transition-transform duration-(--duration-base) motion-reduce:transition-none"
+      className="ease-out-expo fixed inset-x-0 bottom-4 z-80 flex justify-center px-4 transition-transform duration-(--duration-base) motion-reduce:transition-none"
     >
       <div className="bg-surface/95 border-border shadow-lift flex max-w-[min(46rem,100%)] items-center gap-3 rounded-full border px-3 py-2 backdrop-blur-md">
         {/* Indicatore tappa */}

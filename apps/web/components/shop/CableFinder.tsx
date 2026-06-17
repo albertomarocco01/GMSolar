@@ -306,7 +306,7 @@ export default function CableFinder({ aiEnabled }: { aiEnabled: boolean }) {
         </div>
 
         {/* Colonna destra: chat */}
-        <Card className="flex h-[34rem] flex-col overflow-hidden">
+        <Card className="flex h-136 flex-col overflow-hidden">
           {/* Trascrizione visiva: NON è una live region (annuncerebbe l'intera
               conversazione ad ogni token). L'annuncio screen-reader avviene su
               un nodo dedicato all'ultimo messaggio, qui sotto. */}
