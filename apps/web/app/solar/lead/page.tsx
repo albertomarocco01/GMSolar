@@ -33,11 +33,11 @@ export default function SolarLeadPage() {
             className="font-display text-display-sm mt-4 font-bold tracking-tight text-balance"
           />
           <p className="text-muted mt-4 text-lg">
-            Un agente <strong>Product-Selector</strong> capisce il bisogno e consiglia l&apos;impianto
-            giusto — <strong>Monofase</strong>, <strong>Trifase</strong> o <strong>Accumulo</strong> —
-            mentre un filtro di <strong>brand-safety</strong> blocca le richieste fuori tema. A
-            sinistra l&apos;interfaccia si trasforma in tempo reale; il pannello di ragionamento
-            mostra cosa pensa l&apos;agente.
+            Un agente <strong>Product-Selector</strong> capisce il bisogno e consiglia
+            l&apos;impianto giusto — <strong>Monofase</strong>, <strong>Trifase</strong> o{" "}
+            <strong>Accumulo</strong> — mentre un filtro di <strong>brand-safety</strong> blocca le
+            richieste fuori tema. A sinistra l&apos;interfaccia si trasforma in tempo reale; il
+            pannello di ragionamento mostra cosa pensa l&apos;agente.
           </p>
           <div className="mt-6 flex flex-wrap gap-3">
             <Button href="#configuratore" size="lg">

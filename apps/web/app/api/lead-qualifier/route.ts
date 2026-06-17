@@ -81,8 +81,23 @@ function prebaked(text: string): LeadResult | null {
 
 /* ---------------- 3) Fallback euristico (nessuna chiave) ---------------- */
 const SOLAR_KEYWORDS = [
-  "solare", "pannell", "fotovoltaic", "energ", "accumul", "batteri", "kw", "monofas",
-  "trifas", "corrent", "bollett", "gm solar", "casa", "villa", "azienda", "consum", "novara",
+  "solare",
+  "pannell",
+  "fotovoltaic",
+  "energ",
+  "accumul",
+  "batteri",
+  "kw",
+  "monofas",
+  "trifas",
+  "corrent",
+  "bollett",
+  "gm solar",
+  "casa",
+  "villa",
+  "azienda",
+  "consum",
+  "novara",
 ];
 
 function heuristic(text: string): LeadResult {
@@ -102,7 +117,12 @@ function heuristic(text: string): LeadResult {
     };
   }
 
-  if (t.includes("aziend") || t.includes("commerc") || t.includes("fabbric") || t.includes("trifas")) {
+  if (
+    t.includes("aziend") ||
+    t.includes("commerc") ||
+    t.includes("fabbric") ||
+    t.includes("trifas")
+  ) {
     return {
       isOutOfScope: false,
       thought:
@@ -129,7 +149,8 @@ function heuristic(text: string): LeadResult {
 
   return {
     isOutOfScope: false,
-    thought: "Richiesta inerente al solare. Attivato Context Tool e PS_Agent per guidare la qualificazione.",
+    thought:
+      "Richiesta inerente al solare. Attivato Context Tool e PS_Agent per guidare la qualificazione.",
     recommendedProduct: "Impianto Fotovoltaico Monofase / Accumulo",
     toolUsed: "Context Tool",
     replyContent:

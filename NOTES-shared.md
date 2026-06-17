@@ -222,3 +222,42 @@ Unione delle 4 app: `three` + `@react-three/{fiber,drei,postprocessing}` + `@typ
 (da mobility), `maplibre-gl` (solar+mobility). Aggiunte per le demo di fase 2:
 `lucide-react`, `motion`, `recharts`. **Niente `@google/genai`**: le demo AI passano dal nostro
 helper multi-provider raw-`fetch`.
+
+---
+
+## Fase 7 — integrazione delle 3 demo AI di Jacopo (route nel sito unico)
+
+Le tre demo standalone (Vite + Express + AI Studio) sono state **portate come route**
+dentro l'app unica, re-tematizzate sui token e con l'AI spostata server-side.
+
+- **/mobility/agent** — assistente di ricarica di bordo (client-only, nessuna chiave).
+- **/solar/lead** — lead-qualifier agentico → `app/api/lead-qualifier`.
+- **/solar/analytics** — analytics NL→SQL + security gatekeeper → `app/api/analytics`
+  (dep nuova: `recharts`).
+
+### Aggiunte alla ZONA CONDIVISA (recepite, "fai tutte le fasi")
+
+1. **`apps/web/lib/ai.ts`** — helper AI multi-provider per completamenti **JSON single-shot**
+   (Anthropic / Gemini / DeepSeek), che **generalizza** lo stesso contratto env del
+   cable-finder (`AI_API_KEY` / `AI_PROVIDER` / `AI_MODEL`). Il cable-finder resta sul suo
+   helper di streaming + function-calling (`app/api/cable-finder/providers.ts`); le due nuove
+   route usano `@/lib/ai`. Piccola duplicazione voluta di `resolveProvider` per non toccare
+   codice funzionante. **Chiavi sempre solo server-side.**
+2. **`app/globals.css`** — due utility riusabili per le demo: `.glass` (superficie vetro su
+   sfondi scuri) e `.animate-fade-in` (+ keyframe; la regola reduced-motion di `base.css` la
+   azzera). Niente nuovi token in `tokens.css`.
+
+### Note di re-theme (demo → brand)
+
+- **EV agent**: device scuro mantenuto (è uno schermo d'auto); accent neon-lime → accent del
+  mondo (verde GMobility); cyan tenuto come colore-convenzione del percorso GPS.
+- **Lead qualifier**: UI chiara; accent `#a3cf3c`→accent solare, `#80a42d`→`accent-ink`;
+  colori semantici (blu/smeraldo/rosso) tenuti per distinguere categorie/stati.
+- **Analytics**: ERP back-office (slate/white) tenuto; emerald _brand/primario_ → accent
+  solare (anche la serie primaria dei grafici, `#10b981`→`#a8d920`); indigo/amber/purple/rosso
+  restano come palette categoriale dei dati. `h-screen` → finestra incorniciata `h-[85vh]`.
+- Shade Tailwind inesistenti (es. `slate-550`, `emerald-150`, `text-3.5xl`) normalizzate;
+  classi anim custom mappate (`fade-in-up`→`fade-in`, `headshake`→`pulse`).
+- Le due route AI funzionano **senza chiave** (pre-baked + euristica/sandbox); con chiave
+  passano al modello. `react/no-unescaped-entities` disabilitato a livello di file solo nei
+  due grandi componenti di copy italiana (apostrofi), per leggibilità.

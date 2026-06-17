@@ -45,13 +45,15 @@ export default function SolarPage() {
             className="font-display text-display-sm mt-4 font-bold tracking-tight text-balance"
           />
           <p className="text-muted mt-4 text-lg">
-            Due prototipi agentici: un assistente che qualifica i lead in pre-vendita e un modulo
-            di analytics in linguaggio naturale per il back-office. Funzionano anche senza chiave AI.
+            Due prototipi agentici: un assistente che qualifica i lead in pre-vendita e un modulo di
+            analytics in linguaggio naturale per il back-office. Funzionano anche senza chiave AI.
           </p>
         </div>
         <div className="mt-10 grid gap-6 md:grid-cols-2">
           <Card className="flex flex-col p-6">
-            <h3 className="font-display text-lg font-bold tracking-tight">Lead Qualifier agentico</h3>
+            <h3 className="font-display text-lg font-bold tracking-tight">
+              Lead Qualifier agentico
+            </h3>
             <p className="text-muted mt-2 flex-1 text-sm leading-relaxed">
               Capisce il bisogno e consiglia Monofase, Trifase o Accumulo. Con filtro di
               brand-safety e pannello di ragionamento dell&apos;agente.
@@ -61,7 +63,9 @@ export default function SolarPage() {
             </Button>
           </Card>
           <Card className="flex flex-col p-6">
-            <h3 className="font-display text-lg font-bold tracking-tight">Analytics in linguaggio naturale</h3>
+            <h3 className="font-display text-lg font-bold tracking-tight">
+              Analytics in linguaggio naturale
+            </h3>
             <p className="text-muted mt-2 flex-1 text-sm leading-relaxed">
               Domande in italiano → SQL → grafici e sintesi, con un gatekeeper di sicurezza che
               blocca le richieste di dati sensibili (GDPR).
