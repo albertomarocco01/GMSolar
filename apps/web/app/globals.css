@@ -4,3 +4,14 @@
 
 /* Tailwind v4: include nello scan le classi usate dai componenti condivisi. */
 @source "../../../packages/ui/src";
+
+/* -------------------------------------------------------------------------
+   .glass — superficie "vetro" translucida usata dalle demo AI di fase 2
+   (mockup smartphone dell'agente di ricarica, pannelli scuri). Pensata per
+   sfondi scuri: bordo e fill bianchi a bassa opacità + blur. Riusabile.
+   ------------------------------------------------------------------------- */
+.glass {
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
