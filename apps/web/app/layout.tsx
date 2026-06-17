@@ -6,6 +6,7 @@ import Footer from "@gmgroup/ui/Footer";
 import PageTransition from "@gmgroup/ui/PageTransition";
 import ThemeProvider from "@gmgroup/ui/ThemeProvider";
 import LenisProvider from "@gmgroup/ui/LenisProvider";
+import PresentationDeck from "@/components/PresentationDeck";
 import { GROUP, SITE_URL, groupJsonLd } from "@gmgroup/lib/site";
 
 const inter = Inter({ variable: "--font-inter", subsets: ["latin"], display: "swap" });
@@ -62,6 +63,8 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
               <PageTransition>{children}</PageTransition>
             </main>
             <Footer />
+            {/* Regia presentazione (nascosta di default: Shift+D o ?deck=1). */}
+            <PresentationDeck />
           </LenisProvider>
         </ThemeProvider>
       </body>
