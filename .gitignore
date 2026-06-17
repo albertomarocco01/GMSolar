@@ -42,3 +42,6 @@ next-env.d.ts
 
 # Claude Code: config locale con path locali e bypass permessi — MAI su GitHub
 .claude/settings.local.json
+
+# Demo di Jacopo (zip non versionati): si estraggono in locale e si portano nelle route.
+aggiunteJaki/

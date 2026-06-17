@@ -177,3 +177,48 @@ LCP ~4.5s, CLS 0) e la pagina è interattiva.
 > (`always`), quindi il `NO_TTI` resta. Il fix vero per lo score (render solo durante lo
 > scroll: `frameloop="demand"` + `invalidate()` nell'`onUpdate`) resta consigliato ma va fatto
 > con QA visivo dedicato dalla sezione Mobility.
+
+---
+
+## Fase 6 — consolidamento in un'app unica + integrazione demo AI
+
+Il monorepo era **4 app Next separate** (`apps/{hub,solar,mobility,shop}`) — una scelta di
+_deploy_, non architetturale. Riportato tutto a **UN solo sito Next** (`apps/web`), servito da
+un unico server su `:3000`, come da visione di CLAUDE.md ("UN solo sito Next"). I `packages/*`
+restano librerie di workspace condivise (transpilate via `transpilePackages`).
+
+### Decisioni nella ZONA CONDIVISA (recepite con autorizzazione "fai tutte le fasi")
+
+1. **`ThemeProvider` senza prop `theme` fissa** (`app/layout.tsx`). Nel monorepo ogni app
+   passava `theme="hub|solar|…"`. Ora il tema **deriva dalla route** via `themeFromPath`
+   (già supportato dal provider). `themeFromPath("/")` → `hub`. Nessuna modifica al codice di
+   `ThemeProvider`/`theme.ts`: solo rimossa la prop nel layout.
+2. **Script no-flash pre-paint** nel root layout: imposta `data-theme` su `<html>` da
+   `location.pathname` PRIMA dell'hydration, così non si vede il flash dell'accent del gruppo
+   (lime) prima che il client imposti l'accent del mondo. Tenere in **sync** con
+   `themeFromPath` se cambiano i prefissi delle route.
+3. **Layout di sezione `app/shop/layout.tsx`**: il "chrome" del carrello (`CartProvider` +
+   `ShopChrome`) non sta più nel root layout (sarebbe visibile in tutti i mondi) ma in un
+   layout di segmento che avvolge solo `/shop/*`. Lo stato del carrello sopravvive a
+   `/shop ⇄ /shop/[id]` (store esterno + localStorage). _Nota:_ il `CartProvider` ora è sotto
+   `PageTransition`, quindi si rimonta a ogni navigazione — i **dati** del carrello persistono
+   (store esterno), ma il drawer si chiude al cambio route (comportamento accettabile).
+4. **Shop ribasato da `/` a `/shop`**: PDP a `/shop/[id]`; aggiornati i link interni
+   (`ProductCard`, `CableFinder`, `CartDrawer`), i canonical e gli URL JSON-LD.
+5. **Un solo `sitemap.ts`/`robots.ts`/`favicon`** a livello app; canonical per-route aggiunti
+   a `/solar`, `/mobility`, `/shop`.
+
+### Deduplica asset/dati (collisioni risolte)
+
+- `public/assets/gm-solar-hero.mp4` + `gm-solar-hero-poster.webp`: erano identici in hub+solar
+  → una sola copia. Aggiunti i due asset drone di solar.
+- `data/solar-projects.json`: la versione di solar è **superset** di quella di hub (hub legge
+  solo `.stats`, identico) → tenuta quella di solar.
+- `icon.svg`/`favicon.ico`/`robots.ts`: identici tra le app → una sola copia.
+
+### Dipendenze unificate in `apps/web/package.json`
+
+Unione delle 4 app: `three` + `@react-three/{fiber,drei,postprocessing}` + `@types/three`
+(da mobility), `maplibre-gl` (solar+mobility). Aggiunte per le demo di fase 2:
+`lucide-react`, `motion`, `recharts`. **Niente `@google/genai`**: le demo AI passano dal nostro
+helper multi-provider raw-`fetch`.

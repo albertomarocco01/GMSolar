@@ -1,6 +1,0 @@
-@import "tailwindcss";
-@import "../../../packages/tokens/tokens.css";
-@import "../../../packages/tokens/base.css";
-
-/* Tailwind v4: include nello scan le classi usate dai componenti condivisi. */
-@source "../../../packages/ui/src";
