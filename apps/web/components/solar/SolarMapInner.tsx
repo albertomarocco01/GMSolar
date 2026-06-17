@@ -221,5 +221,10 @@ export default function SolarMapInner() {
     };
   }, [reduced]);
 
-  return <div ref={containerRef} className="absolute inset-0" />;
+  // h-full/w-full e NON `absolute inset-0`: il CSS di MapLibre impone
+  // `.maplibregl-map{position:relative}` che vince sul nostro `absolute` (stessa
+  // specificità, conta l'ordine) → l'altezza collassava a 0 e la mappa restava
+  // invisibile. Con height/width 100% l'altezza si risolve sul box genitore
+  // (h-[60vh] min-h-[420px]) a prescindere dalla position.
+  return <div ref={containerRef} className="h-full w-full" />;
 }
