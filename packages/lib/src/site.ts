@@ -158,3 +158,39 @@ export function worldHref(world: World): string {
 
 /** URL dell'hub (landing del gruppo): override via env, default "/". */
 export const HUB_URL = process.env.NEXT_PUBLIC_URL_HUB ?? "/";
+
+/* =============================================================
+   Demo AI (prototipi agentici) — fonte unica per il menu "Demo AI"
+   dell'Header e per eventuali indici. Ogni voce è una route del sito.
+   L'ordine segue i mondi (Solar prima, poi Mobility).
+   ============================================================= */
+export type Demo = {
+  href: `/${string}`;
+  /** Etichetta breve per il menu. */
+  label: string;
+  /** Una riga di descrizione mostrata sotto l'etichetta. */
+  blurb: string;
+  /** Mondo di appartenenza (per il tag colorato nel menu). */
+  world: World["key"];
+};
+
+export const DEMOS: Demo[] = [
+  {
+    href: "/solar/lead",
+    label: "Lead Qualifier AI",
+    blurb: "Qualifica il lead e consiglia Monofase, Trifase o Accumulo.",
+    world: "solar",
+  },
+  {
+    href: "/solar/analytics",
+    label: "Analytics in linguaggio naturale",
+    blurb: "Domanda in italiano → SQL → grafici, con guardrail GDPR.",
+    world: "solar",
+  },
+  {
+    href: "/mobility/agent",
+    label: "Agente di ricarica di bordo",
+    blurb: "Trova la colonnina, prenota lo stallo, avvia la rotta.",
+    world: "mobility",
+  },
+];
