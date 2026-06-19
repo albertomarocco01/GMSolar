@@ -287,7 +287,10 @@ export default function AnalyticsApp() {
         {/* UPPER WINDOW CONTAINER HEADER */}
         <header className="flex h-16 shrink-0 items-center justify-between border-b border-slate-200 bg-white px-6 shadow-xs sm:px-8">
           <div className="flex items-center space-x-3">
-            <h1 className="flex items-center gap-2 text-base font-bold tracking-tight text-slate-900 sm:text-lg">
+            {/* Titolo della "finestra" ERP incorniciata: è chrome dell'UI, non
+               l'intestazione primaria della pagina (che è il titolo della
+               sezione). Usiamo un <div> per non avere due <h1> sulla route. */}
+            <div className="flex items-center gap-2 text-base font-bold tracking-tight text-slate-900 sm:text-lg">
               <Sun
                 className="text-accent-ink h-5 w-5 animate-spin"
                 style={{ animationDuration: "60s" }}
@@ -296,7 +299,7 @@ export default function AnalyticsApp() {
               <span className="text-accent-ink bg-accent/10 border-accent/30 rounded-full border px-2 py-0.5 font-mono text-[10px] font-bold">
                 v1.12-MVP
               </span>
-            </h1>
+            </div>
           </div>
 
           <div className="flex items-center gap-4">

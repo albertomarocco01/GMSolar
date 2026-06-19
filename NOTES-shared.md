@@ -106,6 +106,22 @@ In questo modo il design system resta coerente e nessuna sezione rompe le altre.
   14001/45001) sono **SEGNAPOSTO, non claim verificati**: sostituire con i loghi reali
   e le certificazioni effettivamente possedute. Liste in cima al componente.
 
+### [QA] Header: il cluster di destra sborda su telefoni stretti (≤390px)
+
+- **Chi chiede:** QA (passata di test del 2026-06-19).
+- **Cosa serve:** un fix responsive in `packages/ui/src/Header.tsx` (zona condivisa).
+- **Perché:** a viewport 390px (e più stretti) il cluster di destra dell'header (lo
+  switcher segmentato Solar/Mobility/Shop **+** il bottone "✨ Demo AI") è ~25px più
+  largo del viewport: il bottone **Demo AI viene tagliato sul bordo destro** (chevron e
+  bordo). Il cluster ha una larghezza minima fissa (succede anche a 360px). Verificato
+  con screenshot. **Non è uno scroll-trap:** non si crea barra di scorrimento orizzontale
+  (`scrollX` resta 0 su tutte le pagine); impatto limitato alla chip tagliata.
+- **Severità:** BASSA (cosmetico, controllo comunque utilizzabile).
+- **Fix proposto (per chi gestisce la zona condivisa):** sotto `sm` far restringere/andare
+  a capo lo switcher, oppure nascondere prima l'etichetta del bottone Demo, oppure ridurre
+  `gap`/`px`. Da decidere chi gestisce la shared zone.
+- **Stato:** ⏳ DA AUTORIZZARE — riportato, NON modificato (zona condivisa).
+
 ### [SOLAR] Centralizzare i path dei poster video in `lib/assets.ts` (opzionale)
 
 - Per il taglio cinematografico la sezione Solar usa due poster placeholder

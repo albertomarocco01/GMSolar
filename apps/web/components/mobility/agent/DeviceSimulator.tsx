@@ -367,9 +367,10 @@ export default function DeviceSimulator({
                   />
                   <button
                     type="submit"
+                    aria-label="Invia messaggio"
                     className="bg-accent hover:bg-accent-strong text-accent-contrast flex shrink-0 cursor-pointer items-center justify-center rounded-xl p-2.5 font-bold transition-colors"
                   >
-                    <Send className="h-3.5 w-3.5" />
+                    <Send className="h-3.5 w-3.5" aria-hidden />
                   </button>
                 </form>
               </motion.div>
