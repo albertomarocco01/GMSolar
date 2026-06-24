@@ -1,12 +1,9 @@
 "use client";
 
 import { useEffect, useId, useRef, useState } from "react";
-import Link from "next/link";
 import Section from "@gmgroup/ui/Section";
 import Badge from "@gmgroup/ui/Badge";
 import Card from "@gmgroup/ui/Card";
-import ProductImage from "./ProductImage";
-import AddToCartButton from "./cart/AddToCartButton";
 import { formatPrice } from "./format";
 import {
   findCable,
@@ -19,15 +16,7 @@ import {
 import { EV_MODELS, lookupEvModel } from "./ev-onboard";
 import { cn } from "@gmgroup/lib/utils";
 import type { Product } from "@gmgroup/lib/types";
-
-/** Contesto del match per il "perché questo" (mirror del tipo lato server). */
-type MatchContext = {
-  use: string;
-  phase?: Phase | null;
-  /** Auto riconosciuta da cui è stata dedotta la fase, es. "Tesla Model 3". */
-  car?: string | null;
-  relaxed: boolean;
-};
+import CableRecommendation, { type MatchContext } from "./CableRecommendation";
 
 /** Eventi NDJSON dalla route (definiti qui per non importare codice server nel client). */
 type FinderEvent =
@@ -408,59 +397,13 @@ function ChatBubble({ msg }: { msg: ChatMsg }) {
         </div>
       )}
       {msg.products && msg.products.length > 0 && (
-        <div className="grid w-full max-w-[85%] gap-2">
-          {msg.context && <MatchWhy context={msg.context} />}
-          {msg.products.slice(0, 2).map((p) => (
-            <ChatProductCard key={p.id} product={p} />
-          ))}
+        // Presentazione "ricca": card consigliata grande + tabella confronto.
+        // A piena larghezza della colonna chat (non vincolata come la bolla testo).
+        <div className="w-full">
+          <CableRecommendation products={msg.products} context={msg.context} />
         </div>
       )}
     </div>
-  );
-}
-
-/** "Perché questo": rende tangibile cosa ha guidato il consiglio del tool. */
-function MatchWhy({ context }: { context: MatchContext }) {
-  const chips: string[] = [`Per ${context.use}`];
-  if (context.phase) {
-    chips.push(context.car ? `${context.phase} · ${context.car}` : context.phase);
-  }
-  return (
-    <div className="flex flex-wrap items-center gap-1.5">
-      <span className="text-muted text-[0.65rem] font-semibold tracking-widest uppercase">
-        Perché
-      </span>
-      {chips.map((c) => (
-        <span
-          key={c}
-          className="bg-accent-soft text-accent-ink rounded-full px-2.5 py-0.5 text-xs font-medium"
-        >
-          {c}
-        </span>
-      ))}
-      {context.relaxed && (
-        <span className="bg-surface-2 text-muted rounded-full px-2.5 py-0.5 text-xs">
-          alternativa più vicina
-        </span>
-      )}
-    </div>
-  );
-}
-
-function ChatProductCard({ product }: { product: Product }) {
-  return (
-    <Card interactive className="flex items-center gap-3 overflow-hidden p-2">
-      <Link href={`/shop/${product.id}`} className="shrink-0" aria-label={product.name}>
-        <ProductImage product={product} className="h-16 w-20 rounded-md" />
-      </Link>
-      <div className="min-w-0 flex-1">
-        <Link href={`/shop/${product.id}`}>
-          <p className="truncate text-sm font-medium">{product.name}</p>
-        </Link>
-        <p className="text-muted text-sm">{formatPrice(product.price)}</p>
-      </div>
-      <AddToCartButton product={product} size="sm" variant="outline" label="Aggiungi" />
-    </Card>
   );
 }
 

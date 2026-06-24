@@ -4,6 +4,7 @@ import Badge from "@gmgroup/ui/Badge";
 import Button from "@gmgroup/ui/Button";
 import Card from "@gmgroup/ui/Card";
 import SplitTextReveal from "@gmgroup/ui/SplitTextReveal";
+import ScrollReveal from "@gmgroup/ui/ScrollReveal";
 import SolarHero from "@/components/solar/SolarHero";
 import SolarStats from "@/components/solar/SolarStats";
 import SolarTrust from "@/components/solar/SolarTrust";
@@ -49,7 +50,7 @@ export default function SolarPage() {
             analytics in linguaggio naturale per il back-office. Funzionano anche senza chiave AI.
           </p>
         </div>
-        <div className="mt-10 grid gap-6 md:grid-cols-2">
+        <ScrollReveal className="mt-10 grid gap-6 md:grid-cols-2" stagger={0.12} y={28}>
           <Card className="flex flex-col p-6">
             <h3 className="font-display text-lg font-bold tracking-tight">
               Lead Qualifier agentico
@@ -74,7 +75,7 @@ export default function SolarPage() {
               Apri l&apos;analytics →
             </Button>
           </Card>
-        </div>
+        </ScrollReveal>
       </Section>
 
       <SolarServizi />

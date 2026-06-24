@@ -10,6 +10,7 @@ import { VIDEOS, POSTERS } from "@gmgroup/lib/assets";
 import { useReducedMotion, useIsoLayoutEffect } from "@gmgroup/lib/motion";
 import solar from "@/data/solar-projects.json";
 import SolarProjectPhoto from "@/components/solar/SolarProjectPhoto";
+import SolarFilmGrade from "@/components/solar/SolarFilmGrade";
 
 const DRONE_POSTER = POSTERS.solarDrone;
 
@@ -83,6 +84,22 @@ export default function SolarCaseStudy() {
           },
         },
       );
+
+      // Parallax leggero dell'intro (profondità rispetto al video di sfondo).
+      gsap.fromTo(
+        ".case-heading",
+        { yPercent: 8 },
+        {
+          yPercent: -10,
+          ease: "none",
+          scrollTrigger: {
+            trigger: section,
+            start: "top bottom",
+            end: "bottom top",
+            scrub: true,
+          },
+        },
+      );
     }, section);
 
     return () => ctx.revert();
@@ -103,15 +120,17 @@ export default function SolarCaseStudy() {
         <source src={VIDEOS.solarDrone} type="video/mp4" />
       </video>
 
-      {/* Overlay per leggibilità. */}
+      {/* Velo di base + look "film" condiviso con l'hero (coerenza di regia) +
+          gradiente di leggibilità sopra. */}
       <div aria-hidden className="absolute inset-0 -z-10 bg-black/55" />
+      <SolarFilmGrade className="-z-10" gradeOpacity={0.3} vignetteOpacity={0.5} grainOpacity={0.1} />
       <div
         aria-hidden
-        className="absolute inset-0 -z-10 bg-linear-to-t from-black/85 via-black/30 to-black/60"
+        className="absolute inset-0 -z-10 bg-linear-to-t from-black/85 via-black/30 to-black/55"
       />
 
       <Container className="py-section">
-        <div className="max-w-2xl">
+        <div className="case-heading max-w-2xl">
           <Badge className="backdrop-blur">Progetti realizzati</Badge>
           <SplitTextReveal
             as="h2"

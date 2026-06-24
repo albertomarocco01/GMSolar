@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
 import Section from "@gmgroup/ui/Section";
-import Badge from "@gmgroup/ui/Badge";
 import SplitTextReveal from "@gmgroup/ui/SplitTextReveal";
 import ShopHero from "@/components/shop/ShopHero";
 import CableFinder from "@/components/shop/CableFinder";
+import ShopTrust from "@/components/shop/ShopTrust";
 import Catalog from "@/components/shop/Catalog";
 import { resolveProvider } from "@/app/api/cable-finder/providers";
 import productsData from "@/data/products.json";
@@ -27,15 +27,22 @@ export default function ShopPage() {
     <>
       <ShopHero />
 
+      {/* Cable Advisor — gestito da una chat parallela: non modificare. */}
       <CableFinder aiEnabled={aiEnabled} />
+
+      {/* Promesse del brand, una sola volta in pagina. */}
+      <ShopTrust />
 
       {/* Catalogo */}
       <Section id="catalogo">
         <div className="max-w-2xl">
-          <Badge>Catalogo</Badge>
+          <p className="text-accent-ink flex items-center gap-2 text-xs font-semibold tracking-[0.22em] uppercase">
+            <span className="bg-accent-ink/50 h-px w-5" aria-hidden />
+            02 — Catalogo
+          </p>
           <SplitTextReveal
             as="h2"
-            text="Tutti i cavi Cavo Perfetto"
+            text="Il catalogo completo"
             className="font-display text-display-sm mt-4 font-bold tracking-tight text-balance"
           />
           <p className="text-muted mt-4 text-lg">
