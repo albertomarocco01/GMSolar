@@ -2,7 +2,7 @@
   "name": "gmgroup-monorepo",
   "version": "0.0.0",
   "private": true,
-  "packageManager": "pnpm@11.6.0",
+  "packageManager": "pnpm@9.15.4",
   "scripts": {
     "dev": "turbo run dev",
     "build": "turbo run build",
