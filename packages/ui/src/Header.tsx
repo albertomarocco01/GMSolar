@@ -97,7 +97,7 @@ export default function Header() {
               )}
             >
               <span aria-hidden>✨</span>
-              <span className="hidden sm:inline">Demo AI</span>
+              <span className="hidden sm:inline">Demo IAchi</span>
               <span className="sm:hidden">Demo</span>
               <svg
                 width="14"
