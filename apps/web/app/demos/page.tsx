@@ -2,6 +2,7 @@ import Link from "next/link";
 import Container from "@gmgroup/ui/Container";
 import ScrollReveal from "@gmgroup/ui/ScrollReveal";
 import DemoCard from "@/components/demos/DemoCard";
+import TourEntryButton from "@/components/demos/TourEntryButton";
 import { DEMOS, SECTIONS, STATUS, demosBySection } from "@/components/demos/catalog";
 
 /**
@@ -57,6 +58,14 @@ export default function DemosPage() {
             Un solo posto da cui aprire ogni demo dell&apos;ecosistema GM Group durante la
             presentazione. Tutte le anteprime e gli asset sono placeholder.
           </p>
+
+          {/* Entry point del "Demo Wrapped": story-tour a schermo intero. */}
+          <div className="mt-6 flex flex-wrap items-center gap-x-4 gap-y-2">
+            <TourEntryButton />
+            <span className="text-muted text-sm">
+              Riproduzione automatica · swipe, tap o frecce per navigare
+            </span>
+          </div>
 
           {/* Legenda + conteggio. */}
           <div className="text-muted mt-6 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm">
