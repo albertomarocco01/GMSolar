@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Script from "next/script";
 import { Inter, Space_Grotesk } from "next/font/google";
 import "./globals.css";
 import Header from "@gmgroup/ui/Header";
@@ -50,12 +49,11 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
     >
       <body className="flex min-h-full flex-col">
         {/* No-flash: imposta l'accent del mondo da pathname prima del paint.
-            `next/script` con strategy beforeInteractive inietta lo script
-            nell'HTML iniziale ed evita il warning React sugli <script> inline
-            (che non verrebbero eseguiti nei render lato client). */}
-        <Script id="no-flash-theme" strategy="beforeInteractive">
-          {NO_FLASH_THEME}
-        </Script>
+            Script inline sincrono: viene eseguito durante il parsing dell'HTML,
+            prima del primo paint. (Il warning React "script tag while rendering"
+            compare solo se l'albero viene rigenerato lato client a causa di un
+            hydration mismatch: si previene tenendo l'output SSR === client.) */}
+        <script dangerouslySetInnerHTML={{ __html: NO_FLASH_THEME }} />
         {/* Dati strutturati del gruppo (Organization/LocalBusiness). */}
         <script
           type="application/ld+json"

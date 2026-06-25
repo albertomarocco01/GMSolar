@@ -8,10 +8,8 @@ import { VIDEOS, POSTERS } from "@gmgroup/lib/assets";
 import { useReducedMotion, useIsoLayoutEffect } from "@gmgroup/lib/motion";
 import SolarFilmGrade from "@/components/solar/SolarFilmGrade";
 import { IconArrowRight, IconSun } from "@/components/solar/SolarIcons";
+import { formatIt } from "@/components/solar/format";
 import solar from "@/data/solar-projects.json";
-
-/** Numeri formattati all'italiana, presi dal dato reale (niente claim inventati). */
-const nf = new Intl.NumberFormat("it-IT");
 
 /**
  * Posizioni DESKTOP (md+) dei quattro beat: un percorso a "zig-zag" attorno
@@ -231,7 +229,7 @@ export default function SolarHero() {
             Esperienza sul campo
           </span>
           <p className="font-display text-display-sm md:text-display-md mt-3 font-bold tabular-nums">
-            {nf.format(solar.stats.progettiRealizzati)}
+            {formatIt(solar.stats.progettiRealizzati)}
             <span className="text-accent">+</span>
           </p>
           <p className="mt-1 text-lg text-white/85">progetti realizzati</p>
@@ -244,7 +242,7 @@ export default function SolarHero() {
             Potenza a regime
           </span>
           <p className="font-display text-display-sm md:text-display-md mt-3 font-bold tabular-nums">
-            {nf.format(solar.stats.potenzaInstallataKWp)} <span className="text-accent">kWp</span>
+            {formatIt(solar.stats.potenzaInstallataKWp)} <span className="text-accent">kWp</span>
           </p>
           <p className="mt-1 text-lg text-white/85">installati e monitorati</p>
         </div>

@@ -7,6 +7,7 @@ import Card from "@gmgroup/ui/Card";
 import SplitTextReveal from "@gmgroup/ui/SplitTextReveal";
 import { cn } from "@gmgroup/lib/utils";
 import { IconSun } from "@/components/solar/SolarIcons";
+import { formatIt } from "@/components/solar/format";
 
 /* =============================================================
    Assunzioni della stima (dichiarate, semplici e modificabili).
@@ -66,11 +67,11 @@ function computeEstimate(mode: Mode, amount: number, superficieM2: number): Esti
   return { kwp, produzioneKwh, risparmioEur, co2T, coperturaPct, paybackAnni, risparmio25 };
 }
 
-const nf = (decimals = 0) =>
-  new Intl.NumberFormat("it-IT", {
-    minimumFractionDigits: decimals,
-    maximumFractionDigits: decimals,
-  });
+// Formattazione IT deterministica (server === client) a decimali fissi. Vedi
+// `formatIt`: evita gli hydration mismatch di `Intl.NumberFormat` legati all'ICU.
+const nf = (decimals = 0) => ({
+  format: (value: number) => formatIt(value, decimals, decimals),
+});
 
 /** Slider + input numerico legati allo stesso valore. */
 function RangeField({

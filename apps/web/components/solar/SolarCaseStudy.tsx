@@ -11,11 +11,9 @@ import { useReducedMotion, useIsoLayoutEffect } from "@gmgroup/lib/motion";
 import solar from "@/data/solar-projects.json";
 import SolarProjectPhoto from "@/components/solar/SolarProjectPhoto";
 import SolarFilmGrade from "@/components/solar/SolarFilmGrade";
+import { formatIt } from "@/components/solar/format";
 
 const DRONE_POSTER = POSTERS.solarDrone;
-
-const nf0 = new Intl.NumberFormat("it-IT", { maximumFractionDigits: 0 });
-const nf1 = new Intl.NumberFormat("it-IT", { maximumFractionDigits: 1 });
 
 /** CO₂/anno evitata (t) da kWp: 1200 kWh/kWp × 0,35 kg/kWh ÷ 1000 (stesse ipotesi del calcolatore). */
 const co2AnnoT = (kWp: number) => (kWp * 1200 * 0.35) / 1000;
@@ -23,8 +21,8 @@ const co2AnnoT = (kWp: number) => (kWp * 1200 * 0.35) / 1000;
 /** Potenza leggibile: ≥ 1 MW in MW, altrimenti in kWp. */
 function powerLabel(kWp: number) {
   return kWp >= 1000
-    ? { value: nf1.format(kWp / 1000), unit: "MW" }
-    : { value: nf0.format(kWp), unit: "kWp" };
+    ? { value: formatIt(kWp / 1000, 1), unit: "MW" }
+    : { value: formatIt(kWp), unit: "kWp" };
 }
 
 /**
@@ -188,7 +186,7 @@ export default function SolarCaseStudy() {
                           CO₂ evitata
                         </dt>
                         <dd className="font-display text-lg font-bold tabular-nums">
-                          {nf0.format(co2AnnoT(p.kWp))}
+                          {formatIt(co2AnnoT(p.kWp))}
                           <span className="ml-1 text-sm font-medium text-white/70">t/anno</span>
                         </dd>
                       </div>
