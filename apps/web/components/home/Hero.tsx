@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import Link from "next/link";
 import Container from "@gmgroup/ui/Container";
 import Button from "@gmgroup/ui/Button";
 import Badge from "@gmgroup/ui/Badge";
@@ -71,6 +72,13 @@ export default function Hero() {
               Entra in GM Solar
             </Button>
           </div>
+          {/* Rimando diretto allo story-tour delle demo (parte e va in sequenza). */}
+          <Link
+            href="/demos/tour"
+            className="mt-5 inline-flex items-center gap-2 text-sm font-medium text-white/80 underline-offset-4 transition-colors hover:text-white hover:underline"
+          >
+            <span aria-hidden>▶</span> Guarda il tour delle demo · 2 min
+          </Link>
         </div>
       </Container>
 

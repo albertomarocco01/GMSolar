@@ -101,6 +101,59 @@ export default function HomePage() {
         </div>
       </Section>
 
+      {/* === Rimando alle demo + story-tour === */}
+      <Section id="demo" className="bg-brand-950 text-white">
+        <div className="grid items-center gap-10 md:grid-cols-[1.15fr_0.85fr]">
+          <div className="max-w-2xl">
+            <Badge variant="outline" className="border-white/25 text-white">
+              Demo Wrapped
+            </Badge>
+            <SplitTextReveal
+              as="h2"
+              text="Tutta la demo in due minuti"
+              className="font-display text-display-sm mt-4 font-bold tracking-tight text-balance"
+            />
+            <p className="mt-4 max-w-xl text-lg text-white/75">
+              Uno story-tour a schermo intero che attraversa i tre mondi e i prototipi AI, in
+              sequenza e in automatico. Oppure apri il launcher e scegli tu da dove partire.
+            </p>
+            <div className="mt-8 flex flex-wrap items-center gap-3">
+              <Button href="/demos/tour" size="lg">
+                <span aria-hidden>▶</span> Avvia il tour
+              </Button>
+              <Button href="/demos" variant="outline" size="lg" className="border-white/30 text-white">
+                Apri il demo launcher
+              </Button>
+            </div>
+          </div>
+
+          {/* Anteprima "cosa c'è dentro": i tre mondi + le demo AI. */}
+          <ul className="grid gap-3 text-sm">
+            {WORLDS.map((world) => (
+              <li
+                key={world.key}
+                className="flex items-center gap-3 rounded-lg border border-white/10 bg-white/4 px-4 py-3"
+              >
+                <span
+                  aria-hidden
+                  className="h-2.5 w-2.5 shrink-0 rounded-full"
+                  style={{ backgroundColor: world.colorVar }}
+                />
+                <span className="font-semibold">{world.brand}</span>
+                <span className="text-white/55">{world.role}</span>
+              </li>
+            ))}
+            <li className="flex items-center gap-3 rounded-lg border border-white/10 bg-white/4 px-4 py-3">
+              <span aria-hidden className="text-base">
+                ✨
+              </span>
+              <span className="font-semibold">Prototipi AI</span>
+              <span className="text-white/55">lead, analytics, agente di ricarica</span>
+            </li>
+          </ul>
+        </div>
+      </Section>
+
       {/* === CTA finale === */}
       <Section className="bg-surface border-border border-t text-center">
         <SplitTextReveal

@@ -97,7 +97,7 @@ export default function Header() {
               )}
             >
               <span aria-hidden>✨</span>
-              <span className="hidden sm:inline">Demo IAchi</span>
+              <span className="hidden sm:inline">Demo AI</span>
               <span className="sm:hidden">Demo</span>
               <svg
                 width="14"
@@ -156,6 +156,34 @@ export default function Header() {
                     </li>
                   );
                 })}
+
+                {/* Rimando al launcher completo e allo story-tour. */}
+                <li className="border-border/70 my-1.5 border-t" aria-hidden />
+                <li>
+                  <Link
+                    href="/demos"
+                    onClick={() => setOpen(false)}
+                    aria-current={pathname === "/demos" ? "page" : undefined}
+                    className={cn(
+                      "flex items-center justify-between rounded-xl px-3 py-2.5 transition-colors motion-reduce:transition-none",
+                      pathname === "/demos" ? "bg-accent-soft" : "hover:bg-surface-2",
+                    )}
+                  >
+                    <span className="text-foreground text-sm font-semibold">Demo launcher</span>
+                    <span className="text-muted text-xs" aria-hidden>
+                      tutte le demo ↗
+                    </span>
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    href="/demos/tour"
+                    onClick={() => setOpen(false)}
+                    className="bg-accent text-accent-contrast hover:bg-accent-strong flex items-center gap-2 rounded-xl px-3 py-2.5 text-sm font-semibold transition-colors motion-reduce:transition-none"
+                  >
+                    <span aria-hidden>▶</span> Avvia il tour
+                  </Link>
+                </li>
               </ul>
             )}
           </div>
