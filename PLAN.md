@@ -47,44 +47,52 @@ glTF + Draco · Tailwind v4 (token in `packages/tokens`).
 
 ## 3. Backlog feature (priorità: 🌟 WOW · 🔧 Core · ➕ Bonus)
 
-Legenda stato: ✅ già c'è · ⬆️ da elevare · ✨ nuovo
+Legenda stato: ✅ già c'è · ⬆️ da elevare · ✨ nuovo · ✔️ FATTO (a codice su `main`) · ⬜ ANCORA DA FARE
 
 ### ☀️ GM Solar — mondo "cinematic" (video 4K + motion)
-- 🌟 ⬆️ Hero **scrollytelling cinematografico** (video drone 4K scrub + GSAP/Lenis, testi sync)
-- 🔧 ⬆️ Calcolatore risparmio/ROI con grafici **animati live**
-- 🔧 ⬆️ Lead-qualifier AI → genera una **"proposta impianto"** (generative UI)
-- ➕ ✅ Mappa progetti reali
+- 🌟 ✔️ Hero **scrollytelling cinematografico** (video drone scrub + GSAP/Lenis, testi sync) — `SolarHero`
+- 🔧 ✔️ Calcolatore risparmio/ROI con grafici **animati live** — `SolarCalculator`
+- 🔧 ✔️ Lead-qualifier AI → genera una **"proposta impianto"** — `/solar/lead` + `api/lead-qualifier`
+- ➕ ✔️ Mappa progetti (MapLibre) — `SolarMap` (coordinate placeholder)
+- ➕ ✔️ **Bonus oltre piano:** analytics NL→SQL — `/solar/analytics` + `api/analytics`
 
 ### 🔌 GMobility — mondo "3D scroll"
-- 🌟 ⬆️ **Wallbox 3D "esploso" pilotato dallo scroll** (R3F + Draco + shader/postprocessing)
-- 🔧 ✅ Mappa colonnine (MapLibre + Open Charge Map, fallback curato)
-- 🔧 ⬆️ Assistente di ricarica di bordo (costi/tempi live)
+- 🌟 ✔️ **Wallbox 3D configuratore** (R3F + glTF + postprocessing + poster fallback) — `three/WallboxScene`, `Configurator`
+- 🔧 ✔️ Mappa colonnine (MapLibre + Open Charge Map, fallback curato) — `ChargingMap`
+- 🔧 ✔️ Assistente di ricarica di bordo (costi/tempi live) — `/mobility/agent`
 - NB: il brand reale usa **viola + verde** (il nostro token mobility è solo verde) → decidere se introdurre il viola.
 
 ### 🛒 Cavo Perfetto — rebuild + AI
-- 🌟 ✨⬆️ **"Che cavo per la mia auto?" con generative UI** (card prodotto/confronto generati)
-- 🌟 ✨ **Chatbot RAG** su azienda/FAQ/catalogo (la "chat box interna")
-- 🔧 ⬆️ Catalogo + PDP + carrello **ridisegnati premium** (da zero)
+- 🌟 ✔️ **"Che cavo per la mia auto?"** (AI function-calling + fallback wizard) — `CableFinder` + `api/cable-finder`
+- 🌟 ⬜ **Chatbot RAG** su azienda/FAQ/catalogo (la "chat box interna") — **non ancora costruito** (KB mock da fare)
+- 🔧 ✔️ Catalogo + PDP `/shop/[id]` + carrello **premium** — `Catalog`, `ProductCard`, `cart/*`
 - Dati reali visti (da rispecchiare in `data/products.json`): cavi **Mennekes Modo 3 / Tipo 2**
   (liscio/spiralato) ~€219, **Modo 2 / Tipo 2 Schuko** ~€389; claim "Spedizioni gratuite / Reso facile".
 
 ### 🏢 Livello gruppo
-- 🌟 ✨ **Mock dashboard** "i contenuti li cambiate voi" (UI, no CMS reale)
-- 🔧 ✅ SEO tecnica (metadata/OG/JSON-LD/sitemap) + storia Google Business / local SEO
-- ➕ ✨ Analytics cookieless
-- 🔁 **Generative UI = filo conduttore** trasversale
+- 🌟 ⬜ **Mock dashboard** "i contenuti li cambiate voi" (UI, no CMS reale) — **non ancora costruito**
+- 🔧 ✔️ SEO tecnica (metadata/OG/JSON-LD/sitemap/robots/favicon) — sitewide in fase 5
+- ➕ ⬜ Analytics cookieless — **non ancora**
+- 🔁 ✔️ **Generative/AI UI = filo conduttore** (cable finder, lead, analytics, agent)
+- 🎬 ✔️ **Story-tour "Demo Wrapped"** per il colloquio — `/demos/tour` + `PresentationDeck`
 
 ## 4. Piano ~3 settimane (24 giu → 15 lug 2026)
 
-| Sett. | Date | Obiettivo |
-|---|---|---|
-| **1** | 24–30 giu | Fondamenta + deck · **Solar hero cinematic** (placeholder→AI Studio) · avvio rebuild Cavo Perfetto |
-| **2** | 1–7 lug | **GMobility scrollytelling 3D** · Cavo Perfetto premium (catalogo/PDP/carrello) · **generative-UI cable advisor** |
-| **3** | 8–14 lug | **Chatbot RAG** (KB mock) · proposta solare AI · **mock dashboard** · polish/perf/a11y · **prova generale col deck** |
-| 🎯 | **15 lug** | **COLLOQUIO** |
+| Sett. | Date | Obiettivo | Stato |
+|---|---|---|---|
+| **1** | 24–30 giu | Fondamenta + deck · **Solar hero cinematic** (placeholder→AI Studio) · avvio rebuild Cavo Perfetto | ✔️ fatto |
+| **2** | 1–7 lug | **GMobility scrollytelling 3D** · Cavo Perfetto premium (catalogo/PDP/carrello) · **generative-UI cable advisor** | ✔️ fatto (in anticipo) |
+| **3** | 8–14 lug | **Chatbot RAG** (KB mock) · proposta solare AI · **mock dashboard** · polish/perf/a11y · **prova generale col deck** | 🟡 parziale: proposta solare ✔️, polish/perf/a11y ✔️, tour ✔️; **RAG ⬜** e **mock dashboard ⬜** |
+| 🎯 | **15 lug** | **COLLOQUIO** | — |
 
 > ⚠️ 3 settimane, non 4: prioritizzazione spietata. Per ogni mondo **1 momento-wow** garantito;
-> il resto è bonus. Il repo è già al ~60%, quindi è fattibile, ma niente scope creep.
+> il resto è bonus.
+>
+> **Avanzamento (27 giu):** sezioni Solar/Mobility/Shop ✔️, app unificata ✔️, 3 demo AI integrate ✔️,
+> SEO/perf/a11y ✔️, story-tour ✔️. **Restano 2 feature di piano:** Chatbot RAG (KB mock) e Mock
+> dashboard "i contenuti li cambiate voi" — più, se c'è tempo, analytics cookieless e il glTF reale
+> del wallbox. Si è **avanti rispetto alla tabella**: la Sett. 3 può concentrarsi su questi 2 deliverable
+> + prova generale.
 
 ## 5. Modello di regìa / ownership
 
@@ -124,3 +132,36 @@ Legenda stato: ✅ già c'è · ⬆️ da elevare · ✨ nuovo
   visivamente.** **AI Studio round 1:** Cable Advisor = ✅ keeper (→ portare in Cavo Perfetto);
   shader "Organic Energy" = 🟡 buono ma da domare (sfondo); Wallbox 3D da primitive = 🔴 debole →
   serve **glTF reale** (il repo ha già `components/mobility/three/WallboxScene.tsx`).
+- **2026-06-25 — Fasi 2-4 (le 3 sezioni, in parallelo).** SOLAR, MOBILITY, SHOP costruite ognuna
+  nel proprio recinto e poi mergiate. Stato a codice oggi:
+  - **Solar** ✅ hero cinematic + stats + tipologie + servizi + case study + **mappa progetti**
+    (MapLibre) + **calcolatore ROI**. (`app/solar`, `components/solar`).
+  - **Mobility** ✅ stage 3D R3F + **configuratore wallbox 3D** (glTF + poster fallback) + market
+    stats + **mappa colonnine** (Open Charge Map + fallback curato Piemonte). (`app/mobility`,
+    `components/mobility`).
+  - **Shop** ✅ hero + **AI cable finder** (chat function-calling + fallback wizard) + catalogo +
+    PDP `/shop/[id]` + carrello + trust. (`app/shop`, `components/shop`).
+- **2026-06-25 — Fase 5 (merge + SEO + perf).** Tre sezioni mergiate su `main` (mobility → solar →
+  shop), build/typecheck verdi. Recepiti i 2 interventi shared di Mobility (`@types/three`, cast in
+  `SplitTextReveal`). Aggiunti SEO sitewide (metadata/OG per route, `sitemap.ts`, `robots.ts`,
+  JSON-LD Organization/LocalBusiness, favicon) + poster sul video hero home (LCP 4.8s→2.4s).
+  **Fase 5.1:** 2 rilievi a11y shared risolti (A11y Lighthouse 100 su home e solar); gating del
+  render loop 3D Mobility sul viewport; `/solar` con poster WebP come LCP + video lazy (Perf 50→72).
+- **2026-06-25 — Fase 6 (app unica).** Il monorepo era 4 app Next separate (`apps/{hub,solar,mobility,shop}`):
+  riportato tutto a **UN solo sito** (`apps/web`) su `:3000`. Tema derivato dalla route
+  (`themeFromPath`) + script no-flash pre-paint; carrello in `app/shop/layout.tsx`; shop ribasato a
+  `/shop`. `packages/*` restano librerie condivise (`transpilePackages`). Dipendenze unificate
+  (`three`, R3F, `maplibre-gl`, `lucide-react`, `motion`, `recharts`).
+- **2026-06-25 — Fase 7 (integrazione 3 demo AI di Jacopo).** Portate come route nel sito unico,
+  re-tematizzate, AI spostata server-side: **`/mobility/agent`** (assistente di bordo, client-only),
+  **`/solar/lead`** (lead-qualifier → `app/api/lead-qualifier`), **`/solar/analytics`** (NL→SQL +
+  gatekeeper → `app/api/analytics`, dep `recharts`). Helper AI multi-provider `apps/web/lib/ai.ts`
+  (Anthropic/Gemini/DeepSeek, JSON single-shot); il cable-finder resta sul suo helper di streaming.
+  Tutte le route AI funzionano **senza chiave** (pre-baked + euristica). **Chiavi sempre solo server-side.**
+- **2026-06-25 — Feature "Demo Wrapped" (story-tour).** Player di tour interattivo a slide con
+  navigazione + progress (`/demos`, `/demos/tour`; `components/demos/TourPlayer/TourSlide/TourProgress`),
+  più `PresentationDeck` per il colloquio. Ultimo commit su `main` (`ec5393d`).
+- **2026-06-27 — Stato corrente.** `main` = `origin/main` (`ec5393d`), working tree pulito.
+  **Typecheck verde** (5 package, 3 task ok). Restano aperti (non bloccanti) i placeholder e i
+  debiti in `NOTES-shared.md`: `OCM_API_KEY` da impostare su Vercel, coordinate/foto/loghi Solar
+  segnaposto, header che sborda ≤390px, asset video di stock da swappare.
