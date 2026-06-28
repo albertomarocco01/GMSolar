@@ -13,7 +13,6 @@ import Header from "@gmgroup/ui/Header";
 import Footer from "@gmgroup/ui/Footer";
 import PageTransition from "@gmgroup/ui/PageTransition";
 import GlobalAssistant from "@/components/assistente/GlobalAssistant";
-import PresentationDeck from "@/components/PresentationDeck";
 
 export default function SiteChrome({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -32,7 +31,6 @@ export default function SiteChrome({ children }: { children: React.ReactNode }) 
       </main>
       <Footer />
       <GlobalAssistant />
-      <PresentationDeck />
     </>
   );
 }

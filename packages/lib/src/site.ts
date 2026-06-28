@@ -210,7 +210,7 @@ export const SERVICES: Service[] = [
   {
     key: "vetrina",
     number: "01",
-    href: "/solar",
+    href: "/#vetrina",
     label: "Siti vetrina",
     title: "Siti vetrina che si guardano come un film",
     blurb:
@@ -250,7 +250,7 @@ export const SERVICES: Service[] = [
   {
     key: "ricarica",
     number: "05",
-    href: "/mobility/agent",
+    href: "/",
     label: "App ricarica EV",
     title: "Ricarica elettrica, assistita dall'AI",
     blurb:

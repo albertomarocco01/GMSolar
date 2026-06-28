@@ -32,6 +32,8 @@ export default function AutoScroll() {
   const autoRef = useRef(true);
   // L'utente ha bloccato manualmente dalla pill? Allora l'idle NON fa ripartire.
   const lockedRef = useRef(false);
+  // Pausa temporanea richiesta da un modulo (per far "recitare" la sua animazione).
+  const holdUntilRef = useRef(0);
 
   const setAutoState = (v: boolean) => {
     autoRef.current = v;
@@ -49,7 +51,12 @@ export default function AutoScroll() {
     let raf = 0;
     const tick = () => {
       const lenis = getLenis();
-      if (autoRef.current && lenis && document.visibilityState === "visible") {
+      if (
+        autoRef.current &&
+        lenis &&
+        document.visibilityState === "visible" &&
+        performance.now() >= holdUntilRef.current
+      ) {
         const max = lenis.limit || document.documentElement.scrollHeight - window.innerHeight;
         const next = lenis.scroll + SPEED;
         if (next >= max - 1) {
@@ -82,6 +89,13 @@ export default function AutoScroll() {
       if (e.movementX !== 0 || e.movementY !== 0) yield_();
     };
 
+    // Un modulo chiede una pausa per "recitare" la sua animazione (auto-scroll
+    // sospeso per `ms`, poi riprende da solo se l'utente non ha preso il controllo).
+    const onHold = (e: Event) => {
+      const ms = (e as CustomEvent<{ ms?: number }>).detail?.ms ?? 0;
+      if (ms > 0) holdUntilRef.current = performance.now() + ms;
+    };
+
     const opts: AddEventListenerOptions = { passive: true };
     window.addEventListener("mousemove", onMouseMove, opts);
     window.addEventListener("wheel", yield_, opts);
@@ -89,6 +103,7 @@ export default function AutoScroll() {
     window.addEventListener("touchmove", yield_, opts);
     window.addEventListener("pointerdown", yield_, opts);
     window.addEventListener("keydown", yield_);
+    window.addEventListener("autoscroll:hold", onHold);
 
     return () => {
       cancelAnimationFrame(raf);
@@ -99,6 +114,7 @@ export default function AutoScroll() {
       window.removeEventListener("touchmove", yield_);
       window.removeEventListener("pointerdown", yield_);
       window.removeEventListener("keydown", yield_);
+      window.removeEventListener("autoscroll:hold", onHold);
     };
   }, []);
 

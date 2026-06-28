@@ -3,28 +3,26 @@ import HeroScene from "@/components/home/scenes/HeroScene";
 import VetrinaScene from "@/components/home/scenes/VetrinaScene";
 import FadeToBlackScene from "@/components/home/scenes/FadeToBlackScene";
 import ServiceScene from "@/components/home/ServiceScene";
-import DeviceFrame from "@/components/home/DeviceFrame";
 import { SERVICES, type ServiceKey } from "@gmgroup/lib/site";
 
-// I demo REALI già costruiti, incorporati nella presentazione.
-import SiteAssistant from "@/components/assistente/SiteAssistant";
-import DashboardApp from "@/components/dashboard/DashboardApp";
-import GestionaleApp from "@/components/gestionale/GestionaleApp";
-import EvAgentApp from "@/components/mobility/agent/EvAgentApp";
-import SegnalazioniPanel from "@/components/segnalazioni/SegnalazioniPanel";
-import FlowDiagram from "@/components/integrazioni/FlowDiagram";
-import { SCENARIOS } from "@/components/integrazioni/data";
+// Moduli animati che "recitano" da soli (auto-play all'ingresso in vista).
+import AssistenteModule from "@/components/home/modules/AssistenteModule";
+import DashboardModule from "@/components/home/modules/DashboardModule";
+import GestionaleModule from "@/components/home/modules/GestionaleModule";
+import RicaricaModule from "@/components/home/modules/RicaricaModule";
+import IntegrazioniModule from "@/components/home/modules/IntegrazioniModule";
+import SegnalazioniModule from "@/components/home/modules/SegnalazioniModule";
 
 /** Meta del servizio dal registry (numero/label/titolo/claim/tema). */
 const svc = (key: ServiceKey) => SERVICES.find((s) => s.key === key)!;
 
 /**
- * Home = UNA pagina scrollytelling seamless, CHROMELESS (niente header/footer),
- * a tema chiaro. Racconta tutti i servizi INLINE incorporando i demo REALI:
- *   Hero → Vetrina (video scrubbato) → 6 scene-servizio con la demo vera a fianco
- *   (assistente, dashboard, gestionale, ricarica, integrazioni, segnalazioni) →
- *   chiusura. Lo scroll è AUTOMATICO (AutoScroll); muovendo il mouse si prende il
- *   controllo, all'inattività riparte. Tutto rispetta prefers-reduced-motion.
+ * Home = UNA pagina scrollytelling seamless, CHROMELESS, a tema chiaro. Racconta
+ * tutti i servizi INLINE: ogni modulo si FERMA all'ingresso e RECITA la sua
+ * interazione (l'auto-scroll si sospende, poi riparte). Ordine narrativo:
+ *   Hero → 01 Vetrina (finto-video: pannello solare + cavo) → 02 Assistente →
+ *   03 Dashboard → 04 Gestionale → 05 Ricarica EV → 06 Integrazioni →
+ *   07 Segnalazioni → fade to black. Tutto rispetta prefers-reduced-motion.
  */
 export default function HomePage() {
   const assistente = svc("assistente");
@@ -39,10 +37,10 @@ export default function HomePage() {
       <AutoScroll />
       <HeroScene />
 
-      {/* 01 — Sito vetrina: video scrollytelling (niente 3D) */}
+      {/* 01 — Sito vetrina: finto-video scrollytelling (pannello solare + cavo) */}
       <VetrinaScene />
 
-      {/* 02 — Assistente AI: il widget reale, interattivo */}
+      {/* 02 — Assistente AI di sito: domanda → risposta → UI generata */}
       <ServiceScene
         number={assistente.number}
         label={assistente.label}
@@ -50,10 +48,10 @@ export default function HomePage() {
         blurb={assistente.blurb}
         theme={assistente.theme}
       >
-        <SiteAssistant className="w-full" />
+        <AssistenteModule />
       </ServiceScene>
 
-      {/* 03 — Dashboard & telemetria: app reale in anteprima */}
+      {/* 03 — Dashboard & telemetria multi-sito */}
       <ServiceScene
         number={dashboard.number}
         label={dashboard.label}
@@ -62,12 +60,10 @@ export default function HomePage() {
         theme={dashboard.theme}
         reverse
       >
-        <DeviceFrame label="console.tuosito.it/dashboard">
-          <DashboardApp />
-        </DeviceFrame>
+        <DashboardModule />
       </ServiceScene>
 
-      {/* 04 — Gestionale con AI: app reale in anteprima */}
+      {/* 04 — Gestionale con assistente AI */}
       <ServiceScene
         number={gestionale.number}
         label={gestionale.label}
@@ -75,12 +71,10 @@ export default function HomePage() {
         blurb={gestionale.blurb}
         theme={gestionale.theme}
       >
-        <DeviceFrame label="gestionale.tuazienda.it">
-          <GestionaleApp />
-        </DeviceFrame>
+        <GestionaleModule />
       </ServiceScene>
 
-      {/* 05 — App ricarica EV: il simulatore reale in anteprima */}
+      {/* 05 — App di ricarica EV con assistente */}
       <ServiceScene
         number={ricarica.number}
         label={ricarica.label}
@@ -89,12 +83,10 @@ export default function HomePage() {
         theme={ricarica.theme}
         reverse
       >
-        <DeviceFrame label="app ricarica — simulatore di bordo">
-          <EvAgentApp />
-        </DeviceFrame>
+        <RicaricaModule />
       </ServiceScene>
 
-      {/* 06 — Integrazioni API: il diagramma di flusso reale, interattivo */}
+      {/* 06 — Integrazioni API */}
       <ServiceScene
         number={integrazioni.number}
         label={integrazioni.label}
@@ -102,12 +94,10 @@ export default function HomePage() {
         blurb={integrazioni.blurb}
         theme={integrazioni.theme}
       >
-        <div className="border-border bg-surface shadow-lift rounded-2xl border p-5">
-          <FlowDiagram scenarioId={SCENARIOS[0].id} />
-        </div>
+        <IntegrazioniModule />
       </ServiceScene>
 
-      {/* 07 — Segnalazioni: il pannello reale in anteprima */}
+      {/* 07 — Segnalazioni */}
       <ServiceScene
         number={segnalazioni.number}
         label={segnalazioni.label}
@@ -116,9 +106,7 @@ export default function HomePage() {
         theme={segnalazioni.theme}
         reverse
       >
-        <DeviceFrame label="segnalazioni — pannello richieste">
-          <SegnalazioniPanel />
-        </DeviceFrame>
+        <SegnalazioniModule />
       </ServiceScene>
 
       {/* Finale: fade to black (demo dal vivo, niente CTA). */}
