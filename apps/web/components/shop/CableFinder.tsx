@@ -286,9 +286,9 @@ export default function CableFinder({ aiEnabled }: { aiEnabled: boolean }) {
               </>
             ) : (
               <>
-                <span className="font-medium">● </span>
-                Modalità guidata (senza AI): scrivi la tua auto o usa i pulsanti — il motore di
-                matching deduce mono/trifase e trova lo SKU.
+                <span className="text-accent-ink font-medium">● </span>
+                Assistente guidato: scrivi la tua auto o usa i pulsanti — il motore di matching
+                deduce mono/trifase e trova lo SKU dal catalogo.
               </>
             )}
           </p>

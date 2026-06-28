@@ -1,25 +1,27 @@
 import type { MetadataRoute } from "next";
-import { SITE_URL, WORLDS } from "@gmgroup/lib/site";
+import { SITE_URL, WORLDS, SERVICES } from "@gmgroup/lib/site";
 import productsData from "@/data/products.json";
 import type { Product } from "@gmgroup/lib/types";
 
 const products = productsData as unknown as Product[];
 
 /**
- * Sitemap del SITO UNICO: hub + i tre mondi (con le loro sotto-pagine demo) +
- * una entry per ogni PDP dello shop (servita sotto /shop/<id>).
+ * Sitemap del SITO UNICO: landing + le pagine dei 7 servizi (registry) + i tre
+ * mondi-esempio con le loro sotto-route demo + una entry per ogni PDP dello shop.
  */
 export default function sitemap(): MetadataRoute.Sitemap {
   const now = new Date();
 
-  // Hub + i tre mondi (e le sotto-route demo aggiunte in fase 2).
-  const pages = [
-    "/",
-    ...WORLDS.map((w) => w.href), // /solar, /mobility, /shop
-    "/solar/lead",
-    "/solar/analytics",
-    "/mobility/agent",
-  ];
+  // Landing + servizi + mondi-esempio + sotto-route demo (deduplicati).
+  const pages = Array.from(
+    new Set<string>([
+      "/",
+      ...SERVICES.map((s) => s.href), // /solar, /assistente, /dashboard, /gestionale, /mobility/agent, /integrazioni, /segnalazioni
+      ...WORLDS.map((w) => w.href), // /solar, /mobility, /shop
+      "/solar/lead",
+      "/solar/analytics",
+    ]),
+  );
 
   return [
     ...pages.map((path) => ({

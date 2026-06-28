@@ -540,21 +540,14 @@ async function* runDeepSeek(
    ============================================================ */
 export type ProviderName = "anthropic" | "gemini" | "deepseek";
 
-/** Modello di default per provider (sovrascrivibile con AI_MODEL). */
-const DEFAULT_MODEL: Record<ProviderName, string> = {
-  anthropic: "claude-opus-4-8",
-  gemini: "gemini-2.0-flash",
-  deepseek: "deepseek-chat",
-};
-
+/**
+ * DEMO — AI reale DISATTIVATA: ritorna SEMPRE `null`, quindi il cable-finder usa
+ * il wizard deterministico a bottoni (matching locale del catalogo). Nessun
+ * provider esterno viene mai contattato. Per riattivare l'AI vera, ripristinare
+ * la risoluzione da env (vedi storico git).
+ */
 export function resolveProvider(): { name: ProviderName; apiKey: string; model: string } | null {
-  const apiKey = process.env.AI_API_KEY;
-  if (!apiKey) return null;
-  const p = process.env.AI_PROVIDER?.toLowerCase();
-  const name: ProviderName =
-    p === "gemini" ? "gemini" : p === "deepseek" ? "deepseek" : "anthropic";
-  const model = process.env.AI_MODEL ?? DEFAULT_MODEL[name];
-  return { name, apiKey, model };
+  return null;
 }
 
 export function runProvider(

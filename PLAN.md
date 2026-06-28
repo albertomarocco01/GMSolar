@@ -165,3 +165,17 @@ Legenda stato: ✅ già c'è · ⬆️ da elevare · ✨ nuovo · ✔️ FATTO (
   **Typecheck verde** (5 package, 3 task ok). Restano aperti (non bloccanti) i placeholder e i
   debiti in `NOTES-shared.md`: `OCM_API_KEY` da impostare su Vercel, coordinate/foto/loghi Solar
   segnaposto, header che sborda ≤390px, asset video di stock da swappare.
+- **2026-06-28 — PIVOT a "Vetrina Servizi".** Cambio di mandato (vedi `docs/PROGETTO.md`): da
+  "demo per vincere GM Group" a **presentazione interattiva di proposte-servizi noi → cliente,
+  senza branding**. Lavorato con la disciplina `/code-maniac` (6 doc in `docs/`). Eseguite tutte
+  le fasi della `docs/ROADMAP-MULTIAGENTE.md` in una sessione (1 fase fondazione serializzata + 6
+  demo in parallelo via subagent + integrazione):
+  - **F1 Fondazione:** font **Geist** (Inter/Space Grotesk rimossi), accent **viola `platform`**
+    per le aree admin (viola+verde ispirato GMobility), shell **de-brandizzata** (Header/Footer/
+    `site.ts` neutri, JSON-LD generico WebSite, niente loghi), registry unico **`SERVICES`** (7).
+  - **Nuove demo (mock):** `/dashboard` (telemetria+contenuti), `/segnalazioni`, `/assistente`
+    (+ FAB globale + `/api/assistant`), `/gestionale` (+ `/api/gestionale`), `/integrazioni`.
+    Landing rifatta a **scroll-narrativa** dei 7 servizi.
+  - **Gate finale:** `typecheck` VERDE, **build** VERDE (33 route). Debiti/descoping in
+    `docs/DEBITO-TECNICO.md` (mondi-esempio tengono i nomi come contenuto demo; hotspot complessità
+    non refattorizzati; warning recharts SSR cosmetico).

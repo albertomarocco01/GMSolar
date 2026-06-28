@@ -34,9 +34,14 @@ export default function LenisProvider({ children }: { children: React.ReactNode 
     gsap.ticker.add(onTick);
     gsap.ticker.lagSmoothing(0);
 
+    // Espone l'istanza per chi deve pilotare lo scroll (es. l'auto-scroll della
+    // home). Solo lettura/scrollTo: nessuno ridefinisce il comportamento di Lenis.
+    (window as unknown as { __lenis?: Lenis }).__lenis = lenis;
+
     return () => {
       gsap.ticker.remove(onTick);
       lenis.destroy();
+      delete (window as unknown as { __lenis?: Lenis }).__lenis;
     };
   }, []);
 

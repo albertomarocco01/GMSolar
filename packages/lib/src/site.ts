@@ -7,18 +7,18 @@ import { LOGOS } from "./assets";
 import type { ThemeKey } from "./theme";
 
 /* =============================================================
-   Anagrafica gruppo (dati REALI noti).
-   NB: email/telefono sono PLACEHOLDER da sostituire con i recapiti
-   ufficiali (vedi NOTES-shared.md). Non inventare dati non verificati.
+   Identità della PRESENTAZIONE (no branding: è una vetrina di proposte
+   di servizi noi → cliente). Niente nomi/loghi/anagrafiche reali.
+   Valori neutri, placeholder dichiarati per i contatti della demo.
    ============================================================= */
 export const GROUP = {
-  name: "GM Group",
-  legalName: "GM Solar S.R.L.",
-  city: "Settimo Torinese (TO)",
-  vat: "10086000014",
-  /** PLACEHOLDER — sostituire con l'email ufficiale. */
-  email: "info@gmgroup.it",
-  tagline: "Un gruppo, tre mondi: energia, mobilità, ricarica.",
+  name: "Vetrina Servizi",
+  legalName: "Vetrina Servizi",
+  city: "",
+  vat: "",
+  /** PLACEHOLDER demo — sostituire col recapito reale al deploy. */
+  email: "ciao@vetrina.demo",
+  tagline: "Proposte di servizi digitali, in una presentazione interattiva.",
 } as const;
 
 /* =============================================================
@@ -36,37 +36,18 @@ export const SITE_URL = (
 ).replace(/\/$/, "");
 
 /**
- * Dati strutturati schema.org per il gruppo (Organization + LocalBusiness).
- * Anagrafica REALE confermata (GM Solar S.R.L., Settimo Torinese, P.IVA);
- * l'email è ancora un PLACEHOLDER (vedi NOTES-shared.md). Iniettato site-wide
- * dal RootLayout per i rich result / knowledge panel di Google.
+ * Dati strutturati schema.org GENERICI (WebSite). È una presentazione senza
+ * branding: niente Organization/anagrafica/loghi reali. Iniettato dal RootLayout.
  */
 export function groupJsonLd() {
   return {
     "@context": "https://schema.org",
-    "@type": ["Organization", "LocalBusiness"],
-    "@id": `${SITE_URL}/#organization`,
+    "@type": "WebSite",
+    "@id": `${SITE_URL}/#website`,
     name: GROUP.name,
-    legalName: GROUP.legalName,
     url: SITE_URL,
-    email: GROUP.email,
-    vatID: `IT${GROUP.vat}`,
-    taxID: GROUP.vat,
-    slogan: GROUP.tagline,
-    logo: `${SITE_URL}${LOGOS.gmSolar}`,
-    address: {
-      "@type": "PostalAddress",
-      addressLocality: "Settimo Torinese",
-      addressRegion: "TO",
-      addressCountry: "IT",
-    },
-    areaServed: "IT",
-    // I tre brand operativi del gruppo.
-    brand: WORLDS.map((w) => ({
-      "@type": "Brand",
-      name: w.brand,
-      url: `${SITE_URL}${w.href}`,
-    })),
+    description: GROUP.tagline,
+    inLanguage: "it-IT",
   } as const;
 }
 
@@ -76,7 +57,7 @@ export function groupJsonLd() {
    `theme` collega ogni mondo all'accent runtime (vedi ThemeProvider).
    ============================================================= */
 export type World = {
-  key: Exclude<ThemeKey, "hub">;
+  key: "solar" | "mobility" | "shop";
   href: `/${string}`;
   /** Nome del brand (per UI/loghi). */
   brand: string;
@@ -192,5 +173,108 @@ export const DEMOS: Demo[] = [
     label: "Agente di ricarica di bordo",
     blurb: "Trova la colonnina, prenota lo stallo, avvia la rotta.",
     world: "mobility",
+  },
+];
+
+/* =============================================================
+   REGISTRY DEI SERVIZI — la spina dorsale della presentazione.
+   Fonte unica per: la nav dell'Header ("Servizi"), i capitoli della
+   scroll-narrativa (home) e i deep-link alle demo. L'ordine = ordine
+   di racconto. Ogni voce deep-linka alla sua demo interattiva.
+   ============================================================= */
+export type ServiceKey =
+  | "vetrina"
+  | "assistente"
+  | "dashboard"
+  | "gestionale"
+  | "ricarica"
+  | "integrazioni"
+  | "segnalazioni";
+
+export type Service = {
+  key: ServiceKey;
+  /** Numero del capitolo nella narrazione. */
+  number: string;
+  href: `/${string}`;
+  /** Etichetta breve (nav). */
+  label: string;
+  /** Titolo del capitolo (claim). */
+  title: string;
+  /** Una/due righe che spiegano il servizio. */
+  blurb: string;
+  /** Tema (accent) della pagina-demo del servizio. */
+  theme: ThemeKey;
+};
+
+export const SERVICES: Service[] = [
+  {
+    key: "vetrina",
+    number: "01",
+    href: "/solar",
+    label: "Siti vetrina",
+    title: "Siti vetrina che si guardano come un film",
+    blurb:
+      "Scrollytelling cinematografico, 3D in tempo reale e motion su misura. Tre esempi vivi: energia, mobilità, e-commerce.",
+    theme: "solar",
+  },
+  {
+    key: "assistente",
+    number: "02",
+    href: "/assistente",
+    label: "Assistente AI di sito",
+    title: "Un assistente che risponde e indirizza",
+    blurb:
+      "Chatbot AI nel sito vetrina: capisce la domanda, risponde sui contenuti e accompagna l'utente alla sezione o al prodotto giusto.",
+    theme: "platform",
+  },
+  {
+    key: "dashboard",
+    number: "03",
+    href: "/dashboard",
+    label: "Dashboard & telemetria",
+    title: "Una regìa unica per tutti i siti",
+    blurb:
+      "Pannello centralizzato: gestisci i contenuti e leggi la telemetria di ogni sito — utenti, interazioni, conversioni — in un colpo d'occhio.",
+    theme: "platform",
+  },
+  {
+    key: "gestionale",
+    number: "04",
+    href: "/gestionale",
+    label: "Gestionale con AI",
+    title: "Il gestionale che lavora con te",
+    blurb:
+      "Webapp gestionale con assistente AI integrato: chiedi in linguaggio naturale, ottieni risposte, report e azioni sui tuoi dati.",
+    theme: "platform",
+  },
+  {
+    key: "ricarica",
+    number: "05",
+    href: "/mobility/agent",
+    label: "App ricarica EV",
+    title: "Ricarica elettrica, assistita dall'AI",
+    blurb:
+      "App per colonnine di ricarica con assistente di bordo: trova la colonnina, stima costi e tempi, avvia la rotta.",
+    theme: "mobility",
+  },
+  {
+    key: "integrazioni",
+    number: "06",
+    href: "/integrazioni",
+    label: "Integrazioni API",
+    title: "Connessi a tutto ciò che usi già",
+    blurb:
+      "WhatsApp, email transazionali (Resend), CRM, pagamenti: orchestriamo qualunque sistema con API in flussi automatici.",
+    theme: "platform",
+  },
+  {
+    key: "segnalazioni",
+    number: "07",
+    href: "/segnalazioni",
+    label: "Segnalazioni",
+    title: "Un canale diretto per dirci tutto",
+    blurb:
+      "Pannello comodo per inviarci bug e richieste di modifica: con stato, priorità e storico. Niente più email perse.",
+    theme: "platform",
   },
 ];

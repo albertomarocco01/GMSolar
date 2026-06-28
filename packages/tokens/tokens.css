@@ -17,26 +17,18 @@
      dove vanno mostrati TUTTI insieme (es. le 3 "porte" della home).
    ============================================================= */
 
-/* ---------- Neutri runtime: light (default) ---------- */
+/* ---------- Neutri runtime: SEMPRE chiaro ----------
+   Per scelta di progetto la demo è a tema CHIARO (come i siti di riferimento):
+   niente dark-mode. `color-scheme: light` tiene chiari anche controlli e scrollbar
+   pure se l'OS è in dark. */
 :root {
+  color-scheme: light;
   --background: #ffffff;
   --foreground: #0b1020;
   --muted: #5b6472; /* testo secondario */
   --border: #e4e8ee; /* bordi / divisori */
   --surface: #f7f9fc; /* superficie card */
   --surface-2: #eef2f7; /* superficie alternativa */
-}
-
-/* ---------- Neutri runtime: dark ---------- */
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0c10;
-    --foreground: #eef1f6;
-    --muted: #9aa4b2;
-    --border: #1e2530;
-    --surface: #12151b;
-    --surface-2: #181c24;
-  }
 }
 
 /* ---------- Accent per "mondo" ----------
@@ -65,6 +57,14 @@
   --accent-strong: #a8b200;
   --accent-contrast: #0b1020;
 }
+/* "platform" = aree servizio/admin (dashboard, gestionale, integrazioni,
+   segnalazioni, assistente): viola elettrico (ispirato a GMobility viola+verde).
+   Differenzia le PIATTAFORME (viola) dai siti VETRINA d'esempio (verde/lime). */
+[data-theme="platform"] {
+  --accent: #7c5cff; /* viola elettrico */
+  --accent-strong: #6344e6;
+  --accent-contrast: #ffffff;
+}
 
 /* Derivati dell'accent corrente (validi per ogni mondo). */
 :root {
@@ -81,6 +81,7 @@
   --solar-ink: color-mix(in oklab, var(--color-solar), var(--foreground) 40%);
   --mobility-ink: color-mix(in oklab, var(--color-mobility), var(--foreground) 26%);
   --shop-ink: color-mix(in oklab, var(--color-shop), var(--foreground) 44%);
+  --violet-ink: color-mix(in oklab, var(--color-violet), var(--foreground) 22%);
 }
 
 /* ---------- Token statici → utility Tailwind ---------- */
@@ -106,11 +107,15 @@
   --color-mobility-strong: #2f7e2e;
   --color-shop: #c8d400; /* Cavo Perfetto — lime acido */
   --color-shop-strong: #a8b200;
+  --color-violet: #7c5cff; /* viola elettrico — aree piattaforma/admin */
+  --color-violet-strong: #6344e6;
 
-  /* === Tipografia: famiglie (next/font inietta le variabili) === */
-  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
-  --font-display: var(--font-space-grotesk), var(--font-inter), ui-sans-serif, sans-serif;
-  --font-mono: ui-monospace, "SF Mono", "Cascadia Code", "Fira Code", monospace;
+  /* === Tipografia: famiglie (next/font inietta le variabili) ===
+     Geist + Geist Mono (Vercel) via next/font/google: niente dipendenza extra.
+     Sans e display condividono la famiglia (display = pesi alti + tracking). */
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, "SF Mono", "Cascadia Code", monospace;
 
   /* === Tipografia: scala display (oltre la scala base di Tailwind) === */
   --text-display-sm: 2.5rem;

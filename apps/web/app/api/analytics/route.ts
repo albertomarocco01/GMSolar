@@ -71,7 +71,8 @@ L'analisi evidenzia un **trend di adozione in forte ascesa** per le colonnine **
       timestamp: "2026-06-08T10:21:40.320Z",
       tool: "SQL_Generator_Tool",
       status: "SUCCESS",
-      message: "Query SQL generata e ottimizzata. Aggregazione temporale mensile su sessioni e stazioni.",
+      message:
+        "Query SQL generata e ottimizzata. Aggregazione temporale mensile su sessioni e stazioni.",
       details: "charging_sessions INNER JOIN charging_stations",
     },
     {
@@ -79,7 +80,8 @@ L'analisi evidenzia un **trend di adozione in forte ascesa** per le colonnine **
       tool: "Chart_Renderer_Tool",
       status: "SUCCESS",
       message: "Configurato motore grafico per trend kWh a confronto.",
-      details: "Asse X: Mese | Serie: ['Pubbliche Fast (kWh)', 'Private Aziendali (kWh)'] | Tipo: Line",
+      details:
+        "Asse X: Mese | Serie: ['Pubbliche Fast (kWh)', 'Private Aziendali (kWh)'] | Tipo: Line",
     },
   ],
 };
@@ -119,16 +121,15 @@ Operazione in violazione degli standard GDPR, respinta dal Security Audit Gateke
 function sandbox(query: string): AgentSimulationState {
   return {
     authorized: true,
-    thought:
-      "Nessun provider AI configurato (AI_API_KEY mancante). Modalità di simulazione locale attiva.",
+    thought: "Modalità demo: analisi simulata in locale su dati dimostrativi (nessuna AI reale).",
     sqlQuery: `SELECT tipo, SUM(kwh_erogati) AS kwh_totali
 FROM charging_sessions_aggregate
 GROUP BY tipo;`,
-    responseMarkdown: `### Modalità Simulazione (nessuna chiave AI)
+    responseMarkdown: `### Demo analitica
 
 Hai chiesto: *"${query.slice(0, 200)}"*.
 
-Per l'analisi in tempo reale di qualsiasi domanda in linguaggio naturale (SQL + grafici generati dinamicamente) imposta **AI_API_KEY** lato server. Nel frattempo puoi provare i due scenari pre-impostati: **"Confronta consumi"** e **"Test sicurezza PIN"**.`,
+Questa è una **demo**: l'agente traduce il linguaggio naturale in query e grafici. Prova i due scenari dimostrativi: **"Confronta consumi"** e **"Test sicurezza PIN"**.`,
     chartType: "bar",
     chartTitle: "Energia Erogata Stimata per Tipo Colonnina (Area Milano)",
     chartKeys: ["Fatturato (€)", "Consumo (kWh)"],
@@ -143,8 +144,8 @@ Per l'analisi in tempo reale di qualsiasi domanda in linguaggio naturale (SQL + 
         timestamp: nowIso(),
         tool: "Security_Audit_Tool",
         status: "WARNING",
-        message: "Chiave AI mancante. Esecuzione simulata con dati statici di colonnine EV.",
-        details: "Imposta AI_API_KEY per sbloccare l'agente SQL generativo.",
+        message: "Esecuzione demo con dati dimostrativi di colonnine EV.",
+        details: "Scenario simulato in locale per la presentazione.",
       },
     ],
   };
@@ -229,7 +230,10 @@ export async function POST(req: Request) {
       });
       if (isAgentState(parsed)) {
         // Garantisce timestamp negli audit log.
-        parsed.auditTrail = parsed.auditTrail.map((e) => ({ ...e, timestamp: e.timestamp || nowIso() }));
+        parsed.auditTrail = parsed.auditTrail.map((e) => ({
+          ...e,
+          timestamp: e.timestamp || nowIso(),
+        }));
         return Response.json(parsed);
       }
     } catch {

@@ -15,22 +15,17 @@
  */
 export type AiProvider = "anthropic" | "gemini" | "deepseek";
 
-/** Modello di default per provider (sovrascrivibile con AI_MODEL). */
-const DEFAULT_MODEL: Record<AiProvider, string> = {
-  anthropic: "claude-opus-4-8",
-  gemini: "gemini-2.0-flash",
-  deepseek: "deepseek-chat",
-};
-
 export type ResolvedProvider = { name: AiProvider; apiKey: string; model: string };
 
-/** Provider attivo in base all'env, o `null` se manca la chiave. */
+/**
+ * DEMO — AI reale DISATTIVATA: ritorna SEMPRE `null`.
+ * Ogni route usa così il proprio fallback deterministico locale (risposte finte
+ * ma plausibili): nessun provider esterno viene mai contattato, neanche se
+ * `AI_API_KEY` è presente nell'ambiente. Per riattivare l'AI vera in produzione,
+ * ripristinare la risoluzione del provider da env (vedi storico git).
+ */
 export function resolveAiProvider(): ResolvedProvider | null {
-  const apiKey = process.env.AI_API_KEY;
-  if (!apiKey) return null;
-  const p = process.env.AI_PROVIDER?.toLowerCase();
-  const name: AiProvider = p === "gemini" ? "gemini" : p === "deepseek" ? "deepseek" : "anthropic";
-  return { name, apiKey, model: process.env.AI_MODEL ?? DEFAULT_MODEL[name] };
+  return null;
 }
 
 export type AiMessage = { role: "user" | "assistant"; content: string };

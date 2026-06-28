@@ -1,45 +1,40 @@
 import Link from "next/link";
 import Container from "./Container";
-import { GROUP, WORLDS, worldHref } from "@gmgroup/lib/site";
+import { GROUP, SERVICES } from "@gmgroup/lib/site";
 
-/** Footer con anagrafica reale del gruppo e navigazione ai tre mondi. */
+/** Footer neutro (no branding): tagline della presentazione + indice servizi + contatto demo. */
 export default function Footer() {
   const year = new Date().getFullYear();
 
   return (
     <footer className="border-border/70 text-muted mt-auto border-t py-12 text-sm">
       <Container className="grid gap-10 md:grid-cols-3">
-        {/* Gruppo + anagrafica societaria (dati reali). */}
+        {/* Presentazione (no anagrafica reale). */}
         <div className="space-y-3">
-          <p className="font-display text-foreground text-base font-bold tracking-tight">
-            GM<span className="text-accent-ink">Group</span>
+          <p className="font-display text-foreground flex items-center gap-2 text-base font-bold tracking-tight">
+            <span aria-hidden className="bg-accent inline-block h-4 w-4 rounded-[5px]" />
+            {GROUP.name}
           </p>
           <p className="max-w-xs">{GROUP.tagline}</p>
-          <address className="text-muted/90 space-y-0.5 not-italic">
-            <p className="text-foreground/80 font-medium">{GROUP.legalName}</p>
-            <p>{GROUP.city}</p>
-            <p>P.IVA {GROUP.vat}</p>
-          </address>
         </div>
 
-        {/* I tre mondi. */}
-        <nav aria-label="I mondi del gruppo" className="space-y-3">
-          <p className="text-foreground/80 font-medium">I nostri mondi</p>
-          <ul className="space-y-2">
-            {WORLDS.map((world) => (
-              <li key={world.key}>
-                <Link href={worldHref(world)} className="hover:text-foreground transition-colors">
-                  {world.brand}
-                  <span className="text-muted"> — {world.role}</span>
+        {/* Indice dei servizi. */}
+        <nav aria-label="I servizi" className="space-y-3">
+          <p className="text-foreground/80 font-medium">Servizi</p>
+          <ul className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+            {SERVICES.map((s) => (
+              <li key={s.key}>
+                <Link href={s.href} className="hover:text-foreground transition-colors">
+                  {s.label}
                 </Link>
               </li>
             ))}
           </ul>
         </nav>
 
-        {/* Contatti. */}
+        {/* Contatto demo. */}
         <div className="space-y-3">
-          <p className="text-foreground/80 font-medium">Contatti</p>
+          <p className="text-foreground/80 font-medium">Parla con noi</p>
           <a href={`mailto:${GROUP.email}`} className="hover:text-foreground transition-colors">
             {GROUP.email}
           </a>
@@ -47,10 +42,8 @@ export default function Footer() {
       </Container>
 
       <Container className="border-border/60 text-muted/80 mt-10 flex flex-col gap-2 border-t pt-6 text-xs sm:flex-row sm:items-center sm:justify-between">
-        <p>
-          © {year} {GROUP.legalName} — demo dimostrativa
-        </p>
-        <p>Energia solare · Mobilità elettrica · Accessori di ricarica</p>
+        <p>© {year} — presentazione dimostrativa</p>
+        <p>Siti vetrina · Assistenti AI · Dashboard · Gestionale · Integrazioni</p>
       </Container>
     </footer>
   );

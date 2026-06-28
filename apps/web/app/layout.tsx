@@ -1,23 +1,20 @@
 import type { Metadata } from "next";
-import { Inter, Space_Grotesk } from "next/font/google";
+import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import Header from "@gmgroup/ui/Header";
-import Footer from "@gmgroup/ui/Footer";
-import PageTransition from "@gmgroup/ui/PageTransition";
 import ThemeProvider from "@gmgroup/ui/ThemeProvider";
 import LenisProvider from "@gmgroup/ui/LenisProvider";
-import PresentationDeck from "@/components/PresentationDeck";
+import SiteChrome from "@/components/SiteChrome";
 import { GROUP, SITE_URL, groupJsonLd } from "@gmgroup/lib/site";
 
-const inter = Inter({ variable: "--font-inter", subsets: ["latin"], display: "swap" });
-const spaceGrotesk = Space_Grotesk({
-  variable: "--font-space-grotesk",
+const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"], display: "swap" });
+const geistMono = Geist_Mono({
+  variable: "--font-geist-mono",
   subsets: ["latin"],
   display: "swap",
 });
 
 const SITE_DESCRIPTION =
-  "Ecosistema GM Group: energia solare (GM Solar), mobilità elettrica (GMobility) e accessori di ricarica (Cavo Perfetto).";
+  "Presentazione interattiva di servizi digitali: siti vetrina, dashboard e telemetria, assistenti AI, gestionale, app di ricarica EV e integrazioni API.";
 
 /**
  * Sito unico multi-mondo: il tema NON è più fisso per app, ma deriva dalla
@@ -26,7 +23,7 @@ const SITE_DESCRIPTION =
  * del gruppo (lime) prima che il client imposti l'accent del mondo. Deve restare
  * in sync con `themeFromPath` (@gmgroup/lib/theme).
  */
-const NO_FLASH_THEME = `(function(){try{var p=location.pathname;var t=p.indexOf("/solar")===0?"solar":p.indexOf("/mobility")===0?"mobility":p.indexOf("/shop")===0?"shop":"hub";document.documentElement.dataset.theme=t;}catch(e){}})();`;
+const NO_FLASH_THEME = `(function(){try{var p=location.pathname;var plat=["/dashboard","/gestionale","/integrazioni","/segnalazioni","/assistente"];var t=p.indexOf("/solar")===0?"solar":p.indexOf("/mobility")===0?"mobility":p.indexOf("/shop")===0?"shop":plat.some(function(x){return p.indexOf(x)===0})?"platform":"hub";document.documentElement.dataset.theme=t;}catch(e){}})();`;
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
@@ -45,7 +42,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
       lang="it"
       data-theme="hub"
       suppressHydrationWarning
-      className={`${inter.variable} ${spaceGrotesk.variable} h-full`}
+      className={`${geistSans.variable} ${geistMono.variable} h-full`}
     >
       <body className="flex min-h-full flex-col">
         {/* No-flash: imposta l'accent del mondo da pathname prima del paint.
@@ -62,13 +59,9 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         {/* Tema dedotto dalla route (niente prop fissa: è un sito unico). */}
         <ThemeProvider>
           <LenisProvider>
-            <Header />
-            <main className="flex-1">
-              <PageTransition>{children}</PageTransition>
-            </main>
-            <Footer />
-            {/* Regia presentazione (nascosta di default: Shift+D o ?deck=1). */}
-            <PresentationDeck />
+            {/* La cornice (header/footer/FAB/deck) c'è ovunque TRANNE la home,
+                che è la presentazione chromeless a tutto schermo. */}
+            <SiteChrome>{children}</SiteChrome>
           </LenisProvider>
         </ThemeProvider>
       </body>
