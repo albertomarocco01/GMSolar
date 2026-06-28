@@ -63,7 +63,12 @@ export default function DeviceFrame({
 
       {/* Viewport: il demo reale, clippato e lazy. */}
       <div className="relative h-[58vh] overflow-hidden">
-        <div className={cn("absolute inset-0 overflow-hidden", interactive ? "" : "pointer-events-none")}>
+        <div
+          className={cn(
+            "absolute inset-0 overflow-hidden",
+            interactive ? "" : "pointer-events-none",
+          )}
+        >
           {mounted ? (
             children
           ) : (

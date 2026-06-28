@@ -1,8 +1,8 @@
 "use client";
 
 /**
- * @descrizione  Chiusura della home: invito al contatto. Bookend scuro coerente
- *   con l'hero. "Ricomincia" riporta dolcemente in cima (utile dopo l'auto-scroll).
+ * @descrizione  Chiusura della home (tema CHIARO): invito al contatto.
+ *   "Ricomincia" riporta in cima dopo l'auto-scroll.
  * @indice
  * - ClosingScene → ultima sezione della pagina
  */
@@ -13,9 +13,9 @@ import { GROUP } from "@gmgroup/lib/site";
 
 export default function ClosingScene() {
   return (
-    <section className="flex min-h-screen items-center bg-[#070809] text-center text-white">
+    <section className="bg-surface text-foreground flex min-h-screen items-center text-center">
       <Container>
-        <p className="text-accent text-sm font-semibold tracking-widest uppercase">
+        <p className="text-accent-ink text-sm font-semibold tracking-widest uppercase">
           Il prossimo passo
         </p>
         <SplitTextReveal
@@ -23,7 +23,7 @@ export default function ClosingScene() {
           text="Parliamo del tuo progetto."
           className="font-display mx-auto mt-4 max-w-3xl text-4xl font-bold tracking-tight text-balance sm:text-6xl"
         />
-        <p className="mx-auto mt-6 max-w-xl text-lg text-white/70">
+        <p className="text-muted mx-auto mt-6 max-w-xl text-lg">
           Hai visto cosa sappiamo costruire. Raccontaci cosa ti serve: ti rispondiamo con una
           proposta su misura.
         </p>
@@ -31,12 +31,7 @@ export default function ClosingScene() {
           <Button href={`mailto:${GROUP.email}`} size="lg">
             Parla con noi
           </Button>
-          <Button
-            href="#top"
-            variant="outline"
-            size="lg"
-            className="border-white/30 text-white hover:bg-white/10"
-          >
+          <Button href="#top" variant="outline" size="lg">
             ↑ Rivedi dall&apos;inizio
           </Button>
         </div>

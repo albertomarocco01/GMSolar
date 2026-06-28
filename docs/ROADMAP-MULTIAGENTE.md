@@ -132,6 +132,14 @@ racconti tutti i servizi **inline**, con **auto-scroll** (mouse → controllo, i
 - Le pagine `/dashboard …` restano come approfondimenti, ma la **demo è la home self-contained**.
 - Gate: typecheck VERDE + build VERDE (33 route).
 
+### Re-plan 2 — 2026-06-28 — causa: feedback utente (tema/chrome/integrazione demo)
+
+- **Tema CHIARO forzato** (rimosso il dark-mode in `tokens.css`): risolte le "sezioni nere" (erano OS dark + token scuri).
+- **Home CHROMELESS**: niente header/footer/FAB/deck su "/" (`SiteChrome` mostra la cornice solo fuori dalla home) → feel "motion design".
+- **Abbandonato il pin orizzontale** (rompeva i ScrollTrigger delle visual → elementi nello stato nascosto). Ora **scene verticali** full-screen (`ServiceScene`) con reveal motion: i trigger funzionano.
+- **Incorporati i DEMO REALI** nella home (`DeviceFrame` lazy-mount + clip): assistente (interattivo), dashboard, gestionale, app EV, integrazioni (flow interattivo), segnalazioni. Rimosse le 6 mini-visual e `HorizontalServices`.
+- Gate: typecheck VERDE + build VERDE.
+
 ---
 
 ## Taratura della costituzione (CONFERMATA — 2026-06-28)
