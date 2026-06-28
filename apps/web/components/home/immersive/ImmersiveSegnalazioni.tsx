@@ -282,7 +282,7 @@ export default function ImmersiveSegnalazioni() {
                   <label className="text-muted text-xs font-semibold tracking-widest uppercase">
                     La tua richiesta
                   </label>
-                  <div className="border-border bg-surface min-h-[5.5rem] overflow-hidden rounded-lg border px-3 py-2.5 text-sm">
+                  <div className="border-border bg-surface min-h-22 overflow-hidden rounded-lg border px-3 py-2.5 text-sm">
                     <span className="imm-req-text text-foreground block font-medium whitespace-nowrap">
                       Vorrei una 4ª funzione: &apos;Invia per email&apos;
                     </span>

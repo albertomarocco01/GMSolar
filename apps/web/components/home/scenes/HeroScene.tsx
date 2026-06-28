@@ -42,7 +42,7 @@ export default function HeroScene() {
       {/* Sfondo: aloni accent tenui su chiaro */}
       <div aria-hidden className="pointer-events-none absolute inset-0">
         <div className="bg-accent/20 absolute -top-32 -left-24 h-96 w-96 rounded-full blur-2xl motion-safe:animate-pulse" />
-        <div className="absolute top-1/3 -right-24 h-96 w-96 rounded-full bg-[#7c5cff]/12 blur-2xl motion-safe:animate-pulse" />
+        <div className="absolute top-1/3 -right-24 h-96 w-96 rounded-full bg-violet/12 blur-2xl motion-safe:animate-pulse" />
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_50%,var(--background)_100%)]" />
       </div>
 

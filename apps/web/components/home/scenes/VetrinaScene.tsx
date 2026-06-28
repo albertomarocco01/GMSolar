@@ -173,7 +173,7 @@ export default function VetrinaScene() {
             video non carica / non parte (resta comunque il poster sopra). */}
         <div
           aria-hidden
-          className="absolute inset-0 -z-20 bg-gradient-to-br from-[#0b1020] via-[#13210a] to-[#0b1020]"
+          className="absolute inset-0 -z-20 bg-linear-to-br from-[#0b1020] via-[#13210a] to-[#0b1020]"
         />
 
         {/* Video drone (placeholder). Poster = LCP leggero; play differito. */}
@@ -196,11 +196,11 @@ export default function VetrinaScene() {
         <div aria-hidden className="absolute inset-0 bg-black/35" />
         <div
           aria-hidden
-          className="absolute inset-x-0 top-0 h-1/3 bg-gradient-to-b from-black/55 to-transparent"
+          className="absolute inset-x-0 top-0 h-1/3 bg-linear-to-b from-black/55 to-transparent"
         />
         <div
           aria-hidden
-          className="absolute inset-x-0 bottom-0 h-2/5 bg-gradient-to-t from-black/70 to-transparent"
+          className="absolute inset-x-0 bottom-0 h-2/5 bg-linear-to-t from-black/70 to-transparent"
         />
 
         {/* I beat. Stesso DOM per la regia desktop e per il fallback statico: le
