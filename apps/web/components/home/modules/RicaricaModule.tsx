@@ -15,6 +15,12 @@
 import { gsap } from "@gmgroup/lib/gsap";
 import { useSelfPlay } from "@/components/home/useSelfPlay";
 
+/** Formattatore costo — costruito una volta sola per evitare alloc in onUpdate. */
+const FMT_COST = new Intl.NumberFormat("it-IT", {
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2,
+});
+
 // ─── timeline ────────────────────────────────────────────────────────────────
 
 /**
@@ -37,6 +43,8 @@ function build(root: HTMLDivElement): gsap.core.Timeline {
   // Imposta strokeDasharray per l'animazione "tratto-a-tratto"
   const pathLen = route.getTotalLength?.() ?? 120;
   gsap.set(route, { strokeDasharray: pathLen });
+  // Imposta transform-origin per la barra batteria (scaleX da sinistra)
+  gsap.set(batFill, { scaleX: 0.2, transformOrigin: "left center" });
 
   // Proxy numerici per i contatori (onUpdate aggiorna il DOM)
   const batProxy = { v: 20 };
@@ -65,7 +73,8 @@ function build(root: HTMLDivElement): gsap.core.Timeline {
   );
 
   // 4 – Barra batteria 20 → 80 % + contatore (2.1 → 4.1 s)
-  tl.fromTo(batFill, { width: "20%" }, { width: "80%", duration: 2.0, ease: "power1.inOut" }, 2.1);
+  // scaleX invece di width → niente reflow, solo compositing
+  tl.fromTo(batFill, { scaleX: 0.2 }, { scaleX: 0.8, duration: 2.0, ease: "power1.inOut" }, 2.1);
   tl.to(
     batProxy,
     {
@@ -73,7 +82,8 @@ function build(root: HTMLDivElement): gsap.core.Timeline {
       duration: 2.0,
       ease: "power1.inOut",
       onUpdate() {
-        batPct.textContent = `${Math.round(batProxy.v)}%`;
+        const next = `${Math.round(batProxy.v)}%`;
+        if (batPct.textContent !== next) batPct.textContent = next;
       },
     },
     2.1,
@@ -88,7 +98,8 @@ function build(root: HTMLDivElement): gsap.core.Timeline {
       duration: 2.0,
       ease: "power1.inOut",
       onUpdate() {
-        costEl.textContent = `${costProxy.v.toFixed(2).replace(".", ",")} €`;
+        const next = `${FMT_COST.format(costProxy.v)} €`;
+        if (costEl.textContent !== next) costEl.textContent = next;
       },
     },
     2.3,
@@ -100,7 +111,8 @@ function build(root: HTMLDivElement): gsap.core.Timeline {
       duration: 2.0,
       ease: "power1.inOut",
       onUpdate() {
-        timerEl.textContent = `${Math.round(minProxy.v)} min`;
+        const next = `${Math.round(minProxy.v)} min`;
+        if (timerEl.textContent !== next) timerEl.textContent = next;
       },
     },
     2.3,
@@ -191,7 +203,7 @@ export default function RicaricaModule() {
           <div
             data-pin
             className="bg-accent absolute flex h-6 w-6 -translate-x-1/2 -translate-y-full items-center justify-center rounded-full shadow-md"
-            style={{ top: "22%", left: "89%" }}
+            style={{ top: "22%", left: "89%", willChange: "transform" }}
           >
             <span className="text-accent-contrast text-[9px] leading-none font-bold">&#9889;</span>
           </div>
@@ -213,7 +225,7 @@ export default function RicaricaModule() {
               <div
                 data-bat-fill
                 className="bg-accent absolute inset-y-0 left-0 rounded-full"
-                style={{ width: "20%" }}
+                style={{ width: "100%", willChange: "transform" }}
               />
             </div>
             <span

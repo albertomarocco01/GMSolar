@@ -130,7 +130,10 @@ export default function AssistenteModule() {
       <div className="flex flex-col gap-3">
         {/* 1 — Bolla utente (allineata a destra) */}
         <div className="flex justify-end">
-          <div className="ac-user-bubble bg-accent text-accent-contrast max-w-[80%] rounded-2xl rounded-br-sm px-4 py-2.5 text-sm leading-snug">
+          <div
+            className="ac-user-bubble bg-accent text-accent-contrast max-w-[80%] rounded-2xl rounded-br-sm px-4 py-2.5 text-sm leading-snug"
+            style={{ willChange: "transform, opacity" }}
+          >
             Avete impianti per aziende?
           </div>
         </div>
@@ -145,23 +148,29 @@ export default function AssistenteModule() {
 
         {/* 3 — Bolla assistente (allineata a sinistra) */}
         <div className="flex justify-start">
-          <div className="ac-assistant-bubble bg-surface-2 max-w-[85%] rounded-2xl rounded-bl-sm px-4 py-2.5 text-sm leading-snug">
+          <div
+            className="ac-assistant-bubble bg-surface-2 max-w-[85%] rounded-2xl rounded-bl-sm px-4 py-2.5 text-sm leading-snug"
+            style={{ willChange: "transform, opacity" }}
+          >
             Sì, progettiamo impianti industriali su misura.
           </div>
         </div>
 
         {/* 4 — Generazione UI: skeleton → card reale */}
         <div className="relative">
-          {/* Skeleton (barre che pulsano = caricamento) */}
+          {/* Skeleton (layer GSAP gestisce già opacity — niente doppia animazione) */}
           <div className="ac-skeleton border-border rounded-xl border p-4">
-            <div className="bg-surface-2 mb-2.5 h-3.5 w-2/3 animate-pulse rounded-full" />
-            <div className="bg-surface-2 mb-2 h-2.5 w-full animate-pulse rounded-full" />
-            <div className="bg-surface-2 h-2.5 w-3/4 animate-pulse rounded-full" />
-            <div className="bg-surface-2 mt-3.5 h-8 w-24 animate-pulse rounded-lg" />
+            <div className="bg-surface-2 mb-2.5 h-3.5 w-2/3 rounded-full" />
+            <div className="bg-surface-2 mb-2 h-2.5 w-full rounded-full" />
+            <div className="bg-surface-2 h-2.5 w-3/4 rounded-full" />
+            <div className="bg-surface-2 mt-3.5 h-8 w-24 rounded-lg" />
           </div>
 
           {/* Card reale: sovrapposta allo skeleton, scala in ingresso */}
-          <div className="ac-card border-border bg-surface absolute inset-0 flex flex-col gap-2 rounded-xl border p-4">
+          <div
+            className="ac-card border-border bg-surface absolute inset-0 flex flex-col gap-2 rounded-xl border p-4"
+            style={{ willChange: "transform, opacity" }}
+          >
             <p className="text-sm font-semibold">Impianti industriali</p>
             <p className="text-muted text-xs leading-relaxed">
               Soluzioni scalabili per uso commerciale e industriale, chiavi in mano.

@@ -239,7 +239,7 @@ export const SERVICES: Service[] = [
   },
   {
     key: "gestionale",
-    number: "04",
+    number: "07",
     href: "/gestionale",
     label: "Gestionale con AI",
     title: "Il gestionale che lavora con te",
@@ -249,7 +249,7 @@ export const SERVICES: Service[] = [
   },
   {
     key: "ricarica",
-    number: "05",
+    number: "06",
     href: "/",
     label: "App ricarica EV",
     title: "Ricarica elettrica, assistita dall'AI",
@@ -259,7 +259,7 @@ export const SERVICES: Service[] = [
   },
   {
     key: "integrazioni",
-    number: "06",
+    number: "05",
     href: "/integrazioni",
     label: "Integrazioni API",
     title: "Connessi a tutto ciò che usi già",
@@ -269,7 +269,7 @@ export const SERVICES: Service[] = [
   },
   {
     key: "segnalazioni",
-    number: "07",
+    number: "04",
     href: "/segnalazioni",
     label: "Segnalazioni",
     title: "Un canale diretto per dirci tutto",

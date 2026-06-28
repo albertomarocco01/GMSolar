@@ -35,17 +35,17 @@ const SPARK_LEN = 240;
 
 // ── Helper ────────────────────────────────────────────────────────────────────
 
+/** Formattatori costruiti una volta sola — evita alloc di oggetti in onUpdate. */
+const FMT_INT = new Intl.NumberFormat("it-IT");
+const FMT_PCT = new Intl.NumberFormat("it-IT", {
+  minimumFractionDigits: 1,
+  maximumFractionDigits: 1,
+});
+
 /** Formatta un valore KPI con localizzazione italiana. */
 function fmtKpi(v: number, i: number): string {
-  if (i === 1) {
-    return (
-      v.toLocaleString("it-IT", {
-        minimumFractionDigits: 1,
-        maximumFractionDigits: 1,
-      }) + " %"
-    );
-  }
-  return Math.round(v).toLocaleString("it-IT");
+  if (i === 1) return FMT_PCT.format(v) + " %";
+  return FMT_INT.format(Math.round(v));
 }
 
 // ── Dati statici per il render ────────────────────────────────────────────────
@@ -86,7 +86,8 @@ export default function DashboardModule() {
             duration: 1.3,
             ease: "power2.out",
             onUpdate() {
-              span.textContent = fmtKpi(proxy.v, i);
+              const next = fmtKpi(proxy.v, i);
+              if (span.textContent !== next) span.textContent = next;
             },
           },
           t,
@@ -219,6 +220,7 @@ export default function DashboardModule() {
             style={{
               height: `${h}%`,
               opacity: i === ACCENT_BAR ? 1 : 0.35,
+              willChange: "transform",
             }}
           />
         ))}

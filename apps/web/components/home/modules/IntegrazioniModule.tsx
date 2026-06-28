@@ -181,7 +181,11 @@ export default function IntegrazioniModule() {
       {/* Activity log */}
       <div className="bg-surface-2 mt-3 space-y-1 rounded-xl px-3 py-2.5 font-mono text-[11px]">
         {NODES.map((n, i) => (
-          <p key={n.id + "-log"} className={`int-log-item int-log-${i} text-foreground opacity-0`}>
+          <p
+            key={n.id + "-log"}
+            className={`int-log-item int-log-${i} text-foreground opacity-0`}
+            style={{ willChange: "transform, opacity" }}
+          >
             <span className="font-bold text-green-600">✓</span> {n.log}
           </p>
         ))}

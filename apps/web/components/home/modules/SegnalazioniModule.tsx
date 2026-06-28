@@ -136,6 +136,7 @@ export default function SegnalazioniModule() {
         <button
           type="button"
           className="seg-invia bg-accent text-accent-contrast w-full origin-center rounded-lg py-2 text-sm font-semibold"
+          style={{ willChange: "transform" }}
         >
           Invia segnalazione
         </button>
@@ -148,7 +149,10 @@ export default function SegnalazioniModule() {
         </p>
 
         {/* Riga ticket — appare dopo l'invio */}
-        <div className="seg-ticket border-border bg-surface-2 flex items-center justify-between gap-3 rounded-lg border px-3 py-2 opacity-0">
+        <div
+          className="seg-ticket border-border bg-surface-2 flex items-center justify-between gap-3 rounded-lg border px-3 py-2 opacity-0"
+          style={{ willChange: "transform, opacity" }}
+        >
           <div className="min-w-0">
             <p className="text-muted font-mono text-[10px] font-bold">SEG-2026-0042</p>
             <p className="text-foreground truncate text-xs font-medium">
@@ -174,7 +178,10 @@ export default function SegnalazioniModule() {
       </div>
 
       {/* ── Toast di conferma ──────────────────────────────────────────── */}
-      <div className="seg-toast border-border bg-foreground text-background absolute right-5 bottom-5 left-5 flex items-center gap-3 rounded-xl border px-4 py-3 opacity-0 shadow-lg">
+      <div
+        className="seg-toast border-border bg-foreground text-background absolute right-5 bottom-5 left-5 flex items-center gap-3 rounded-xl border px-4 py-3 opacity-0 shadow-lg"
+        style={{ willChange: "transform, opacity" }}
+      >
         <span className="text-base leading-none text-emerald-400" aria-hidden>
           ✓
         </span>
