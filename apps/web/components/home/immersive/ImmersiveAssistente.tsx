@@ -2,276 +2,303 @@
 
 /**
  * @descrizione  Scena immersiva ASSISTENTE AI (servizio 02). Full-screen, alta
- *   fedeltà: lo scroll scrubba un walkthrough — il visitatore apre la chat,
- *   pone una domanda in linguaggio naturale e l'assistente risponde indirizzando
- *   alla sezione giusta con una card-suggerimento. Il "sito vetrina" dietro fa
- *   un leggero pan verticale quando si naviga alla sezione suggerita.
- *   Frasi-intermezzo DESCRITTIVE (tono esplicativo, non promozionale).
- *   Usa il kit condiviso `./shared`. Reduced-motion: stato finale leggibile.
+ *   fedeltà: lo scroll scrubba un walkthrough che riprende il legacy
+ *   `CableFinder` — una PAGINA PRODOTTI (cavi di ricarica) con in basso una
+ *   BARRA ASSISTENTE. Il cursore tocca la barra, il visitatore digita una
+ *   richiesta in linguaggio naturale, l'AI "ragiona" un istante e poi GENERA
+ *   l'interfaccia del risultato: una card-raccomandazione (look di
+ *   `CableRecommendation`) col prodotto giusto evidenziato nella griglia +
+ *   motivazione breve. Frasi-intermezzo DESCRITTIVE (tono esplicativo).
+ *   Usa il kit condiviso `./shared`; selettori a classe scoped a gsap.context.
+ *   Reduced-motion: stato finale (card generata visibile) leggibile.
  */
 import { gsap } from "@gmgroup/lib/gsap";
 import { ImmersiveStage, Say, say, cursorTo, useImmersiveScene } from "./shared";
+import { PRODUCTS, RECOMMENDATION, QUERY } from "./_assistente-data";
 
-const SITE_NAV = ["Home", "Soluzioni", "Prodotti", "Chi siamo", "Contatti"];
-
-const SITE_CARDS = [
-  {
-    t: "Fotovoltaico B2B",
-    d: "Impianti chiavi in mano per capannoni e stabilimenti industriali.",
-  },
-  {
-    t: "Wallbox flotte",
-    d: "Gestione centralizzata della ricarica per flotte aziendali.",
-  },
-  {
-    t: "Manutenzione",
-    d: "Contratti di assistenza e monitoraggio remoto H24.",
-  },
-];
+const SHOP_NAV = ["Cavi", "Wallbox", "Adattatori", "Supporto"];
 
 export default function ImmersiveAssistente() {
-  const ref = useImmersiveScene((tl, _section) => {
-    // ── Stato iniziale ────────────────────────────────────────────────────────
-    // (gsap.context è già scoped alla section — i selettori sono isolati)
-    gsap.set(".imm-panel", { autoAlpha: 0, scale: 0.82, transformOrigin: "100% 100%" });
-    gsap.set(".imm-bubble-user", { autoAlpha: 0, x: 28 });
-    gsap.set(".imm-typing", { autoAlpha: 0 });
-    gsap.set(".imm-bubble-ai", { autoAlpha: 0, x: -28 });
-    gsap.set(".imm-card-suggest", { autoAlpha: 0, y: 20 });
-    gsap.set(".imm-chip", { autoAlpha: 0, scale: 0.78 });
-    gsap.set(".imm-site-highlight", { opacity: 0 });
-    tl.set(".imm-cursor", { left: "38%", top: "48%" });
+  const ref = useImmersiveScene((tl) => {
+    // ── Stato iniziale (selettori scoped alla section da gsap.context) ─────────
+    gsap.set(".imm-placeholder", { autoAlpha: 1 });
+    gsap.set(".imm-typed", { clipPath: "inset(0 100% 0 0)" });
+    gsap.set(".imm-bar-ring", { autoAlpha: 0 });
+    gsap.set(".imm-typing", { autoAlpha: 0, y: 8 });
+    gsap.set(".imm-reco", { autoAlpha: 0, y: 44, scale: 0.92, transformOrigin: "50% 100%" });
+    gsap.set(".imm-reco-item", { autoAlpha: 0, y: 14 });
+    gsap.set(".imm-match-ring", { autoAlpha: 0, scale: 1.06 });
+    tl.set(".imm-cursor", { left: "50%", top: "52%" });
 
-    // ① Frase — presenta la scena: assistente integrato nel sito
+    // ① Presenta la scena: un assistente dentro la pagina prodotti
     say(tl, 0);
 
-    // ② Cursore va sul bottone chat → pannello si apre dall'angolo
-    cursorTo(tl, "87%", "87%");
-    tl.to(".imm-chat-btn", { scale: 0.9, duration: 0.14, ease: "power2.in" }, ">-0.05");
-    tl.to(".imm-chat-btn", { scale: 1, duration: 0.22, ease: "back.out(2.5)" }, ">");
-    tl.to(".imm-panel", {
-      autoAlpha: 1,
-      scale: 1,
-      duration: 0.7,
-      ease: "expo.out",
-    });
+    // ② Il cursore tocca la barra → focus (anello accent)
+    cursorTo(tl, "30%", "90%");
+    tl.to(".imm-bar-ring", { autoAlpha: 1, duration: 0.35, ease: "power2.out" }, "<0.45");
 
-    // ③ Bolla utente entra da destra + frase — comprende la domanda
-    tl.to(".imm-bubble-user", {
-      autoAlpha: 1,
-      x: 0,
-      duration: 0.5,
-      ease: "back.out(1.7)",
-    });
+    // ③ Digitazione della richiesta (placeholder esce, testo rivelato a "steps")
+    tl.to(".imm-placeholder", { autoAlpha: 0, duration: 0.2, ease: "power2.in" });
+    tl.to(".imm-typed", { clipPath: "inset(0 0% 0 0)", duration: 1.2, ease: "steps(30)" });
     say(tl, 1);
 
-    // ④ Indicatore "sta scrivendo…" → sparisce → bolla AI + frase — indirizza
-    tl.to(".imm-typing", { autoAlpha: 1, duration: 0.35, ease: "power2.out" });
-    say(tl, 2);
-    tl.to(".imm-typing", { autoAlpha: 0, duration: 0.22, ease: "power2.in" });
-    tl.to(".imm-bubble-ai", {
-      autoAlpha: 1,
-      x: 0,
-      duration: 0.55,
-      ease: "back.out(1.6)",
-    });
+    // ④ Invio → l'AI "ragiona" (cursore sul tasto, press, typing dots)
+    cursorTo(tl, "93%", "90%");
+    tl.to(".imm-send", { scale: 0.86, duration: 0.12, ease: "power2.in" }, ">-0.05");
+    tl.to(".imm-send", { scale: 1, duration: 0.22, ease: "back.out(2.4)" }, ">");
+    tl.to(".imm-typing", { autoAlpha: 1, y: 0, duration: 0.35, ease: "power2.out" }, ">0.1");
+    tl.to({}, { duration: 0.55 }); // pausa: "sta ragionando"
 
-    // ⑤ Card-suggerimento + chip si costruiscono sotto la risposta
-    tl.to(".imm-card-suggest", { autoAlpha: 1, y: 0, duration: 0.55, ease: "expo.out" }, ">0.18");
+    // ⑤ Genera l'interfaccia del risultato
+    say(tl, 2);
+    tl.to(".imm-typing", { autoAlpha: 0, y: 8, duration: 0.25, ease: "power2.in" });
+
+    // ⑥ Card-raccomandazione che entra + highlight del prodotto giusto in griglia
+    tl.to(".imm-reco", { autoAlpha: 1, y: 0, scale: 1, duration: 0.75, ease: "expo.out" });
+    tl.to(".imm-prod-rest", { opacity: 0.4, duration: 0.55, ease: "power2.out" }, "<");
     tl.to(
-      ".imm-chip",
-      { autoAlpha: 1, scale: 1, duration: 0.4, stagger: 0.13, ease: "back.out(1.9)" },
-      ">0.1",
+      ".imm-match-ring",
+      { autoAlpha: 1, scale: 1, duration: 0.55, ease: "back.out(1.8)" },
+      "<0.1",
+    );
+    tl.to(
+      ".imm-reco-item",
+      { autoAlpha: 1, y: 0, duration: 0.5, stagger: 0.1, ease: "back.out(1.5)" },
+      "<0.1",
     );
 
-    // ⑥ Cursore clicca il primo chip
-    cursorTo(tl, "36%", "83%");
-    tl.to(".imm-chip-1", { scale: 0.92, duration: 0.13, ease: "power2.in" }, ">-0.05");
-    tl.to(".imm-chip-1", { scale: 1, duration: 0.2, ease: "back.out(2.2)" }, ">");
-
-    // ⑦ Il sito dietro fa un pan verticale alla sezione suggerita + highlight
-    tl.to(".imm-site-track", { yPercent: -38, duration: 1.3, ease: "expo.inOut" }, ">0.18");
-    tl.to(".imm-site-highlight", { opacity: 1, duration: 0.5, ease: "power2.out" }, "<0.55");
-
-    // Pausa finale
-    tl.to({}, { duration: 0.6 });
+    // ⑦ Pausa finale
+    tl.to({}, { duration: 0.7 });
   });
 
   return (
     <ImmersiveStage
       ref={ref}
-      heightVh={420}
+      heightVh={440}
       theme="platform"
       label="Assistente"
-      eyebrow="02 · Assistente AI di sito"
+      eyebrow="02 · Assistente AI di prodotto"
     >
       <div className="relative flex h-full flex-col overflow-hidden">
-        {/* ── Finto header del sito vetrina ──────────────────────────────── */}
+        {/* ── Header della pagina prodotti (sito vetrina / e-commerce) ────── */}
         <header className="border-border bg-surface/90 relative z-10 flex h-14 shrink-0 items-center justify-between border-b px-6 backdrop-blur">
-          <span className="font-display text-foreground text-base font-bold tracking-tight">
-            GM Group
-          </span>
+          <div className="flex items-center gap-2">
+            <span className="bg-accent h-4 w-4 rounded-[5px]" aria-hidden />
+            <span className="font-display text-foreground text-base font-bold tracking-tight">
+              Cavo Perfetto
+            </span>
+          </div>
           <nav className="hidden items-center gap-5 sm:flex" aria-hidden>
-            {SITE_NAV.map((l) => (
+            {SHOP_NAV.map((l) => (
               <span key={l} className="text-muted cursor-default text-sm">
                 {l}
               </span>
             ))}
           </nav>
-          <span className="bg-accent text-accent-contrast rounded-full px-4 py-1.5 text-xs font-semibold">
-            Scopri di più
+          <span className="bg-surface-2 text-muted rounded-full px-3 py-1 text-xs font-semibold">
+            Carrello · 0
           </span>
         </header>
 
-        {/* ── Corpo scrollabile del sito (pan via imm-site-track) ──────── */}
-        <div className="relative min-h-0 flex-1 overflow-hidden">
-          {/* Track animato: trasla verso l'alto per simulare lo scroll */}
-          <div className="imm-site-track">
-            {/* Hero del sito */}
-            <div className="from-surface to-surface-2 flex min-h-[52vh] flex-col items-center justify-center bg-gradient-to-b px-6 py-20 text-center">
-              <p className="text-muted mb-3 text-xs font-semibold tracking-widest uppercase">
-                Energia · Mobilità · E-commerce
-              </p>
-              <h2 className="font-display text-foreground max-w-xl text-4xl font-bold tracking-tight text-balance sm:text-5xl">
-                L&apos;ecosistema digitale di GM&nbsp;Group
-              </h2>
-              <p className="text-muted mt-4 max-w-lg text-lg">
-                Tre servizi integrati. Una sola piattaforma per gestirli.
-              </p>
-            </div>
+        {/* ── Corpo: titolo + griglia prodotti ───────────────────────────── */}
+        <div className="px-6 pt-4">
+          <h2 className="font-display text-foreground text-lg font-bold tracking-tight">
+            Cavi di ricarica
+          </h2>
+          <p className="text-muted mt-0.5 text-xs">Trova il cavo giusto per la tua auto.</p>
+        </div>
 
-            {/* Sezione "Soluzioni Aziende" — target del click sul chip */}
-            <div className="border-border relative border-t px-8 py-14">
-              {/* Highlight che si attiva quando il cursore clicca il chip */}
-              <span
-                className="imm-site-highlight border-accent bg-accent-soft pointer-events-none absolute inset-0 border-l-[3px]"
-                aria-hidden
-              />
-              <p className="text-accent-ink mb-2 text-xs font-semibold tracking-widest uppercase">
-                Soluzioni Aziende
-              </p>
-              <h3 className="text-foreground mb-6 text-2xl font-bold">
-                Servizi su misura per le imprese
-              </h3>
-              <div className="grid gap-4 sm:grid-cols-3">
-                {SITE_CARDS.map((c) => (
-                  <div
-                    key={c.t}
-                    className="border-border bg-surface relative rounded-xl border p-5"
-                  >
-                    <p className="text-foreground font-semibold">{c.t}</p>
-                    <p className="text-muted mt-1.5 text-sm leading-relaxed">{c.d}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Piè di sezione — spazio sufficiente per il pan */}
-            <div className="border-border border-t px-8 py-20 text-center">
-              <p className="text-muted text-sm">Prodotti · Contatti · Documentazione</p>
-            </div>
-          </div>
-
-          {/* ── Bottone chat (toggle) ────────────────────────────────────── */}
-          <button
-            className="imm-chat-btn bg-accent text-accent-contrast absolute right-5 bottom-5 z-20 flex h-14 w-14 items-center justify-center rounded-full shadow-lg"
-            tabIndex={-1}
-            aria-hidden
-          >
-            {/* Icona messaggio */}
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden>
-              <path
-                d="M20 2H4a2 2 0 0 0-2 2v18l4-4h14a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2Z"
-                fill="currentColor"
-              />
-            </svg>
-          </button>
-
-          {/* ── Pannello chat ─────────────────────────────────────────────── */}
-          <div
-            className="imm-panel border-border bg-background absolute right-5 bottom-24 z-20 flex w-[18.5rem] flex-col overflow-hidden rounded-2xl border shadow-2xl"
-            style={{ maxHeight: "27rem" }}
-            aria-hidden
-          >
-            {/* Testata pannello */}
-            <div className="border-border flex shrink-0 items-center gap-3 border-b px-4 py-3">
-              <span className="bg-accent text-accent-contrast flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-bold">
-                AI
-              </span>
-              <div className="min-w-0">
-                <p className="text-foreground text-sm leading-tight font-semibold">Assistente GM</p>
-                <p className="text-muted text-xs">Online</p>
-              </div>
-            </div>
-
-            {/* Area messaggi */}
-            <div className="flex flex-1 flex-col gap-2.5 overflow-y-auto p-3.5">
-              {/* Messaggio di benvenuto (sempre visibile) */}
-              <div className="max-w-[88%] self-start">
-                <div className="bg-surface-2 text-foreground rounded-2xl rounded-tl-sm px-3.5 py-2 text-sm leading-relaxed">
-                  Ciao! Come posso aiutarti oggi?
-                </div>
-              </div>
-
-              {/* Bolla utente — entra da destra */}
-              <div className="imm-bubble-user max-w-[88%] self-end">
-                <div className="bg-accent text-accent-contrast rounded-2xl rounded-tr-sm px-3.5 py-2 text-sm leading-relaxed">
-                  Avete soluzioni per le aziende?
-                </div>
-              </div>
-
-              {/* Indicatore "sta scrivendo…" */}
-              <div className="imm-typing max-w-[88%] self-start">
-                <div className="bg-surface-2 flex items-center gap-1 rounded-2xl rounded-tl-sm px-3.5 py-3">
-                  {[0, 1, 2].map((d) => (
-                    <span
-                      key={d}
-                      className="bg-muted h-1.5 w-1.5 animate-bounce rounded-full"
-                      style={{ animationDelay: `${d * 0.16}s` }}
-                    />
-                  ))}
-                </div>
-              </div>
-
-              {/* Bolla AI — entra da sinistra */}
-              <div className="imm-bubble-ai max-w-[92%] self-start">
-                <div className="bg-surface-2 text-foreground rounded-2xl rounded-tl-sm px-3.5 py-2 text-sm leading-relaxed">
-                  Sì. GM Group offre impianti fotovoltaici B2B, wallbox per flotte aziendali e
-                  contratti di manutenzione continuativa.
-                </div>
-              </div>
-
-              {/* Card-suggerimento generata dall'AI */}
-              <div className="imm-card-suggest self-start">
-                <div className="border-border bg-background rounded-xl border p-3 text-sm">
-                  <p className="text-foreground font-semibold">Soluzioni Aziende</p>
-                  <p className="text-muted mt-0.5 text-xs leading-relaxed">
-                    Impianti, flotte e manutenzione su misura.
-                  </p>
-                  <span className="bg-accent-soft text-accent-ink mt-2 block w-full rounded-lg py-1.5 text-center text-xs font-semibold">
-                    Vai alla sezione
+        <div className="imm-grid grid grid-cols-2 content-start gap-3 overflow-hidden px-6 pt-3 pb-44 sm:grid-cols-3">
+          {PRODUCTS.map((p) => (
+            <article
+              key={p.id}
+              className={`border-border bg-surface relative flex flex-col overflow-hidden rounded-xl border ${
+                p.recommended ? "imm-prod-match" : "imm-prod-rest"
+              }`}
+            >
+              {/* Anello highlight: si accende quando l'AI sceglie questo prodotto */}
+              {p.recommended && (
+                <span
+                  className="imm-match-ring border-accent pointer-events-none absolute -inset-px z-10 rounded-xl border-2"
+                  aria-hidden
+                />
+              )}
+              <div className="bg-surface-2 relative flex h-16 items-center justify-center">
+                <PlugIcon className="text-muted h-7 w-7" />
+                {p.bestSeller && (
+                  <span className="bg-accent text-accent-contrast absolute top-2 left-2 rounded-full px-2 py-0.5 text-[0.6rem] font-bold">
+                    Best seller
                   </span>
-                </div>
+                )}
               </div>
+              <div className="flex flex-1 flex-col p-3">
+                <p className="text-foreground line-clamp-2 text-xs leading-snug font-semibold">
+                  {p.name}
+                </p>
+                <p className="text-muted mt-1 text-[0.65rem]">{p.use}</p>
+                <div className="mt-2 flex flex-wrap gap-1">
+                  <Chip>{p.phase}</Chip>
+                  <Chip>{p.shape}</Chip>
+                </div>
+                <p className="text-foreground mt-auto pt-2 text-sm font-bold">{p.price}</p>
+              </div>
+            </article>
+          ))}
+        </div>
 
-              {/* Chip di navigazione rapida */}
-              <div className="flex flex-wrap gap-1.5 self-start pb-1">
-                <span className="imm-chip imm-chip-1 border-accent bg-accent-soft text-accent-ink cursor-default rounded-full border px-3 py-1 text-xs font-semibold">
-                  Fotovoltaico B2B
-                </span>
-                <span className="imm-chip border-border bg-surface text-muted cursor-default rounded-full border px-3 py-1 text-xs font-semibold">
-                  Manutenzione
-                </span>
+        {/* ── Indicatore "sta ragionando…" (sopra la barra, dove apparirà la card) ── */}
+        <div className="imm-typing absolute bottom-28 left-1/2 z-10 -translate-x-1/2" aria-hidden>
+          <div className="bg-surface-2 border-border flex items-center gap-1 rounded-full border px-4 py-3 shadow-lg">
+            {[0, 1, 2].map((d) => (
+              <span
+                key={d}
+                className="bg-muted h-1.5 w-1.5 animate-bounce rounded-full"
+                style={{ animationDelay: `${d * 0.16}s` }}
+              />
+            ))}
+          </div>
+        </div>
+
+        {/* ── Card-raccomandazione GENERATA dall'AI (look di CableRecommendation) ── */}
+        <div className="imm-reco absolute inset-x-0 bottom-24 z-10 px-5" aria-hidden>
+          <div className="mx-auto max-w-md">
+            <p className="imm-reco-item text-muted mb-2 px-1 text-center text-xs">
+              {RECOMMENDATION.lead}
+            </p>
+            <div className="border-border bg-background overflow-hidden rounded-2xl border shadow-2xl">
+              <div className="grid grid-cols-[6rem_1fr]">
+                {/* Immagine prodotto (placeholder tematizzato) */}
+                <div className="bg-accent-soft flex items-center justify-center">
+                  <PlugIcon className="text-accent-ink h-9 w-9" />
+                </div>
+                <div className="min-w-0 p-4">
+                  <p className="imm-reco-item text-accent-ink text-[0.65rem] font-semibold tracking-widest uppercase">
+                    Consigliato · generato dall&apos;AI
+                  </p>
+                  <h4 className="imm-reco-item font-display text-foreground mt-1 text-sm leading-snug font-semibold text-balance">
+                    {RECOMMENDATION.name}
+                  </h4>
+                  <div className="imm-reco-item mt-2 flex flex-wrap gap-1.5">
+                    {RECOMMENDATION.badges.map((b, i) => (
+                      <span
+                        key={b}
+                        className={
+                          i === 0
+                            ? "bg-accent text-accent-contrast rounded-full px-2 py-0.5 text-[0.65rem] font-semibold"
+                            : "bg-surface-2 text-muted rounded-full px-2 py-0.5 text-[0.65rem] font-medium"
+                        }
+                      >
+                        {b}
+                      </span>
+                    ))}
+                  </div>
+                  <ul className="mt-3 space-y-1.5">
+                    {RECOMMENDATION.reasons.map((r) => (
+                      <li
+                        key={r}
+                        className="imm-reco-item text-foreground/90 flex items-start gap-2 text-xs"
+                      >
+                        <CheckIcon className="text-accent-ink mt-0.5 h-3.5 w-3.5 shrink-0" />
+                        <span className="leading-snug">{r}</span>
+                      </li>
+                    ))}
+                  </ul>
+                  <div className="imm-reco-item mt-3 flex items-center justify-between">
+                    <span className="text-foreground text-base font-bold tracking-tight">
+                      {RECOMMENDATION.price}
+                    </span>
+                    <span className="bg-accent text-accent-contrast rounded-full px-3 py-1.5 text-xs font-semibold">
+                      Vai al prodotto
+                    </span>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
         </div>
+
+        {/* ── Barra assistente AI (in basso) ─────────────────────────────── */}
+        <div className="absolute inset-x-0 bottom-0 z-20 px-5 pb-5" aria-hidden>
+          <div className="imm-bar border-border bg-background/95 relative mx-auto flex max-w-2xl items-center gap-3 rounded-full border px-4 py-2.5 shadow-lg backdrop-blur">
+            <span className="imm-bar-ring border-accent pointer-events-none absolute -inset-px rounded-full border-2" />
+            <span className="bg-accent text-accent-contrast flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-bold">
+              AI
+            </span>
+            <div className="relative flex h-7 min-w-0 flex-1 items-center overflow-hidden text-sm">
+              <span className="imm-placeholder text-muted absolute left-0 whitespace-nowrap">
+                Chiedi all&apos;assistente…
+              </span>
+              <span className="imm-typed text-foreground absolute left-0 whitespace-nowrap">
+                {QUERY}
+              </span>
+            </div>
+            <span className="imm-send bg-accent text-accent-contrast flex h-9 w-9 shrink-0 items-center justify-center rounded-full">
+              <SendIcon className="h-4 w-4" />
+            </span>
+          </div>
+        </div>
       </div>
 
-      {/* ── Frasi-intermezzo DESCRITTIVE (tono esplicativo, non promozionale) ── */}
-      <Say i={0}>Un assistente integrato nel sito risponde ai visitatori.</Say>
-      <Say i={1}>Capisce la domanda in linguaggio naturale.</Say>
-      <Say i={2}>Indirizza alla sezione o al prodotto giusto.</Say>
+      {/* ── Frasi-intermezzo DESCRITTIVE (spiegano, non vendono) ──────────── */}
+      <Say i={0}>Un assistente AI dentro il sito vetrina.</Say>
+      <Say i={1}>Capisce la richiesta in linguaggio naturale.</Say>
+      <Say i={2}>Genera al volo l&apos;interfaccia con il prodotto giusto.</Say>
     </ImmersiveStage>
+  );
+}
+
+/* ── Sotto-componenti / icone ─────────────────────────────────────────────── */
+
+function Chip({ children }: { children: React.ReactNode }) {
+  return (
+    <span className="bg-surface-2 text-muted rounded-full px-2 py-0.5 text-[0.6rem] font-medium">
+      {children}
+    </span>
+  );
+}
+
+function PlugIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.7"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      aria-hidden
+    >
+      <path d="M9 2v4M15 2v4" />
+      <path d="M6 6h12v4a6 6 0 0 1-12 0V6Z" />
+      <path d="M12 16v6" />
+    </svg>
+  );
+}
+
+function SendIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden>
+      <path
+        d="M4 12l16-8-6 16-2.5-6.5L4 12Z"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+function CheckIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden>
+      <path
+        d="m5 13 4 4L19 7"
+        stroke="currentColor"
+        strokeWidth="2.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
   );
 }

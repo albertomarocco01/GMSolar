@@ -2,184 +2,136 @@
 
 /**
  * @descrizione  Scena immersiva SEGNALAZIONI (servizio 04). Full-screen, alta
- *   fedeltà: lo scroll scrubba un walkthrough — il cursore compila il form
- *   (tipo, titolo, priorità), preme Invia, vede il ticket comparire nella lista
- *   con cambio di stato e mini-timeline (creata → presa in carico → risolta).
- *   Usa il kit condiviso `./shared`. Reduced-motion: stato finale leggibile
- *   (tl.progress(1) gestito dal kit).
+ *   fedeltà, tema CHIARO, tono DESCRITTIVO. Lo scroll scrubba un walkthrough a
+ *   DUE schermate affiancate con PAN ORIZZONTALE tra loro:
+ *
+ *   • Schermata A — un GESTIONALE con toolbar a 3 funzioni («Esporta», «Filtra»,
+ *     «Stampa») e una pagina dati sotto. Il cursore preme «Copia link» → toast
+ *     «Link pagina copiato».
+ *   • PAN → Schermata B — il MODULO DI SEGNALAZIONE: il cursore incolla il link
+ *     (il campo si riempie), scrive la richiesta (clip-path steps) e preme INVIA
+ *     → «Segnalazione ricevuta ✓».
+ *   • PAN → ritorno alla Schermata A: il 4° bottone «Invia per email» APPARE
+ *     (back.out), si illumina e "funziona" (pulse + mini toast «Email inviata»).
+ *
+ *   Usa il kit condiviso `./shared`. Camera/skew ereditati dallo stage.
+ *   Reduced-motion (kit → tl.progress(1)): stato finale leggibile = 4° bottone
+ *   presente sulla Schermata A + «Segnalazione ricevuta ✓» visibile.
  */
 import { gsap } from "@gmgroup/lib/gsap";
 import { ImmersiveStage, Say, say, cursorTo, useImmersiveScene } from "./shared";
 
-// ── Dati ─────────────────────────────────────────────────────────────────────
+// ── Dati Schermata A (pagina del gestionale) ─────────────────────────────────
 
-const TIPO_PILLS = ["Bug", "Richiesta", "Miglioramento"] as const;
-const PRIO_PILLS = ["Bassa", "Media", "Alta"] as const;
+const TOOLBAR = ["Esporta", "Filtra", "Stampa"] as const;
 
-type TipoPill = (typeof TIPO_PILLS)[number];
-type PrioPill = (typeof PRIO_PILLS)[number];
-type TicketStatus = "Aperta" | "In lavorazione" | "Risolta";
+const RIGHE = [
+  { c: "Rossi S.r.l.", v: "62.000 €", s: "Attivo" },
+  { c: "Bianchi S.p.A.", v: "12.500 €", s: "Attivo" },
+  { c: "Ferrari Group", v: "87.000 €", s: "In trattativa" },
+  { c: "Conti S.r.l.", v: "34.200 €", s: "Attivo" },
+] as const;
 
-interface Ticket {
-  id: string;
-  title: string;
-  type: TipoPill;
-  prio: PrioPill;
-  status: TicketStatus;
+// Link "incollato" nel modulo e testo della richiesta digitato carattere/carattere.
+const LINK_PAGINA = "gestionale.gmgroup.it/clienti";
+
+// ── Icona check (riusata nei toast) ──────────────────────────────────────────
+
+function Check({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 16 16" fill="currentColor" className={className} aria-hidden>
+      <path d="M13.78 4.22a.75.75 0 0 1 0 1.06l-7.25 7.25a.75.75 0 0 1-1.06 0L2.22 9.28a.75.75 0 1 1 1.06-1.06L6 10.94l6.72-6.72a.75.75 0 0 1 1.06 0z" />
+    </svg>
+  );
 }
-
-const TICKETS: Ticket[] = [
-  {
-    id: "SEG-2026-0039",
-    title: "Errore nel PDF fattura",
-    type: "Bug",
-    prio: "Alta",
-    status: "Risolta",
-  },
-  {
-    id: "SEG-2026-0040",
-    title: "Aggiungere filtro per data",
-    type: "Richiesta",
-    prio: "Media",
-    status: "In lavorazione",
-  },
-  {
-    id: "SEG-2026-0041",
-    title: "Logo non centrato nel footer",
-    type: "Miglioramento",
-    prio: "Bassa",
-    status: "Aperta",
-  },
-];
-
-// ── Token colore badge (sky / amber / emerald ammessi per i badge di stato) ──
-
-const STATUS_CLS: Record<TicketStatus, string> = {
-  Aperta: "bg-sky-100 text-sky-800 border border-sky-200",
-  "In lavorazione": "bg-amber-100 text-amber-800 border border-amber-200",
-  Risolta: "bg-emerald-100 text-emerald-800 border border-emerald-200",
-};
-
-const PRIO_CLS: Record<PrioPill, string> = {
-  Alta: "bg-amber-100 text-amber-800 border border-amber-200",
-  Media: "bg-surface-2 text-muted border border-border",
-  Bassa: "bg-surface-2 text-muted border border-border",
-};
-
-const TYPE_CLS: Record<TipoPill, string> = {
-  Bug: "bg-sky-100 text-sky-800 border border-sky-200",
-  Richiesta: "bg-surface-2 text-muted border border-border",
-  Miglioramento: "bg-emerald-100 text-emerald-800 border border-emerald-200",
-};
 
 // ── Componente ────────────────────────────────────────────────────────────────
 
 export default function ImmersiveSegnalazioni() {
-  const ref = useImmersiveScene((tl, _section) => {
+  const ref = useImmersiveScene((tl) => {
     // ── Stato iniziale ───────────────────────────────────────────────────────
-    // Il testo del titolo parte nascosto (clip-path); i pill di tipo/priorità
-    // partono neutrali e vengono colorati dalla timeline quando il cursore li
-    // "clicca". Toast, nuovo ticket, badge-stato e mini-timeline sono nascosti.
-    gsap.set(".imm-title-text", { clipPath: "inset(0 100% 0 0)" });
-    gsap.set(".imm-toast", { autoAlpha: 0, y: 48 });
-    gsap.set(".imm-new-ticket", { autoAlpha: 0, y: 14 });
-    gsap.set(".imm-badge-lavorazione", { autoAlpha: 0, scale: 0.8 });
-    gsap.set(".imm-tl-step", { opacity: 0, scale: 0.5 });
-    gsap.set(".imm-tl-label", { opacity: 0 });
-    gsap.set(".imm-tl-line", { scaleX: 0, transformOrigin: "left center" });
+    // Il track parte sulla Schermata A. Link e richiesta del modulo partono
+    // "vuoti" (clip-path). Toast, conferma e 4° bottone partono nascosti.
+    gsap.set(".imm-track", { xPercent: 0 });
+    gsap.set(".imm-link-text", { clipPath: "inset(0 100% 0 0)" });
+    gsap.set(".imm-req-text", { clipPath: "inset(0 100% 0 0)" });
+    gsap.set(".imm-copy-toast", { autoAlpha: 0, y: 48 });
+    gsap.set(".imm-received-toast", { autoAlpha: 0, y: 48 });
+    gsap.set(".imm-email-toast", { autoAlpha: 0, y: -28 });
+    gsap.set(".imm-new-btn", { autoAlpha: 0, scale: 0.8 });
+    gsap.set(".imm-new-btn-ring", { autoAlpha: 0, scale: 0.85 });
     tl.set(".imm-cursor", { left: "50%", top: "55%" });
 
-    // ① Frase: canale unico per segnalazioni
+    // ① Frase: si segnala in un attimo
     say(tl, 0);
 
-    // ② Cursore → pill «Bug», selezione col click
-    cursorTo(tl, "22%", "37%");
-    tl.to(
-      ".imm-tipo-bug",
-      {
-        backgroundColor: "rgb(224 242 254)", // sky-100
-        color: "rgb(12 74 110)", // sky-900
-        duration: 0.35,
-        ease: "power2.out",
-      },
-      ">0.25",
-    );
+    // ② Schermata A → il cursore preme «Copia link»
+    cursorTo(tl, "80%", "26%");
+    tl.to(".imm-copy-link", { scale: 0.94, duration: 0.1, ease: "power2.in" }, ">0.25");
+    tl.to(".imm-copy-link", { scale: 1, duration: 0.4, ease: "back.out(3)" }, ">");
+    // Toast «Link pagina copiato» (entra dal basso)
+    tl.to(".imm-copy-toast", { autoAlpha: 1, y: 0, duration: 0.5, ease: "expo.out" }, ">0.05");
 
-    // ③ Cursore → campo Titolo; il testo «digita» con clip-path steps
-    cursorTo(tl, "30%", "49%");
-    tl.to(
-      ".imm-title-text",
-      { clipPath: "inset(0 0% 0 0)", duration: 1.3, ease: "steps(28)" },
-      ">0.2",
-    );
-
-    // ④ Cursore → pill «Alta» priorità, selezione
-    cursorTo(tl, "22%", "61%");
-    tl.to(
-      ".imm-prio-alta",
-      {
-        backgroundColor: "rgb(254 243 199)", // amber-100
-        color: "rgb(120 53 15)", // amber-900
-        duration: 0.35,
-        ease: "power2.out",
-      },
-      ">0.25",
-    );
-
-    // ⑤ Frase: ogni invio genera un ticket
+    // ③ Frase: copi il link, scrivi cosa serve, invii
     say(tl, 1);
 
-    // ⑥ Cursore → pulsante Invia; pulse di conferma
-    cursorTo(tl, "19%", "74%");
-    tl.to(".imm-send-btn", { scale: 0.94, duration: 0.1, ease: "power2.in" }, ">0.3");
-    tl.to(".imm-send-btn", { scale: 1, duration: 0.45, ease: "back.out(3.5)" }, ">");
+    // ── PAN ORIZZONTALE → Schermata B (modulo di segnalazione) ───────────────
+    tl.to(".imm-copy-toast", { autoAlpha: 0, y: 48, duration: 0.4, ease: "power2.in" });
+    tl.to(".imm-track", { xPercent: -50, duration: 1.1, ease: "expo.inOut" }, "<0.1");
 
-    // ⑦ Toast di conferma: entra dal basso
-    tl.to(".imm-toast", { autoAlpha: 1, y: 0, duration: 0.55, ease: "expo.out" }, ">0.1");
-
-    // ⑧ Nuovo ticket: appare nella lista a destra
+    // ④ Il cursore incolla il link → il campo si riempie (reveal rapido = "paste")
+    cursorTo(tl, "30%", "40%");
     tl.to(
-      ".imm-new-ticket",
-      { autoAlpha: 1, y: 0, duration: 0.55, ease: "back.out(1.6)" },
-      ">0.35",
-    );
-
-    // ⑨ Badge stato: cross-fade «Aperta» → «In lavorazione»
-    tl.to(
-      ".imm-badge-aperta",
-      { autoAlpha: 0, scale: 0.8, duration: 0.3, ease: "back.in(1.6)" },
-      ">0.55",
-    );
-    tl.to(
-      ".imm-badge-lavorazione",
-      { autoAlpha: 1, scale: 1, duration: 0.4, ease: "back.out(1.8)" },
+      ".imm-link-text",
+      { clipPath: "inset(0 0% 0 0)", duration: 0.4, ease: "steps(10)" },
       ">0.1",
     );
 
-    // ⑩ Mini-timeline: dot e linee rivelati in cascata (creata → presa → risolta)
+    // ⑤ Il cursore scrive la richiesta → digitazione carattere per carattere
+    cursorTo(tl, "32%", "55%");
     tl.to(
-      ".imm-tl-step-0",
-      { opacity: 1, scale: 1, duration: 0.35, ease: "back.out(2.5)" },
-      ">0.2",
+      ".imm-req-text",
+      { clipPath: "inset(0 0% 0 0)", duration: 1.4, ease: "steps(36)" },
+      ">0.15",
     );
-    tl.to(".imm-tl-label-0", { opacity: 1, duration: 0.25, ease: "power2.out" }, "<0.05");
-    tl.to(".imm-tl-line-0", { scaleX: 1, duration: 0.45, ease: "power2.inOut" }, ">0.1");
-    tl.to(
-      ".imm-tl-step-1",
-      { opacity: 1, scale: 1, duration: 0.35, ease: "back.out(2.5)" },
-      ">0.05",
-    );
-    tl.to(".imm-tl-label-1", { opacity: 1, duration: 0.25, ease: "power2.out" }, "<0.05");
-    tl.to(".imm-tl-line-1", { scaleX: 1, duration: 0.45, ease: "power2.inOut" }, ">0.1");
-    tl.to(
-      ".imm-tl-step-2",
-      { opacity: 0.4, scale: 1, duration: 0.35, ease: "back.out(2.5)" },
-      ">0.05",
-    );
-    tl.to(".imm-tl-label-2", { opacity: 0.4, duration: 0.25, ease: "power2.out" }, "<0.05");
 
-    // ⑪ Frase: storico sempre sotto controllo
+    // ⑥ Il cursore preme INVIA → pulse di conferma
+    cursorTo(tl, "28%", "76%");
+    tl.to(".imm-send-btn", { scale: 0.94, duration: 0.1, ease: "power2.in" }, ">0.25");
+    tl.to(".imm-send-btn", { scale: 1, duration: 0.45, ease: "back.out(3.5)" }, ">");
+
+    // ⑦ «Segnalazione ricevuta ✓» (toast globale, resta visibile)
+    tl.to(".imm-received-toast", { autoAlpha: 1, y: 0, duration: 0.55, ease: "expo.out" }, ">0.1");
+
+    // ⑧ Frase: la richiesta arriva e prende vita
     say(tl, 2);
+
+    // ── PAN ORIZZONTALE → ritorno alla Schermata A ───────────────────────────
+    cursorTo(tl, "55%", "34%");
+    tl.to(".imm-track", { xPercent: 0, duration: 1.1, ease: "expo.inOut" }, "<");
+
+    // ⑨ Il 4° bottone «Invia per email» APPARE (ease espressivo back.out)
+    tl.to(
+      ".imm-new-btn",
+      { autoAlpha: 1, scale: 1, duration: 0.65, ease: "back.out(2.4)" },
+      ">-0.15",
+    );
+    // Highlight: un anello pulsa e svanisce attorno al nuovo bottone
+    tl.fromTo(
+      ".imm-new-btn-ring",
+      { autoAlpha: 0.9, scale: 0.85 },
+      { autoAlpha: 0, scale: 1.35, duration: 0.7, ease: "power2.out" },
+      ">0.02",
+    );
+
+    // ⑩ Il bottone "funziona": pressione + mini toast «Email inviata»
+    tl.to(".imm-new-btn", { scale: 0.94, duration: 0.1, ease: "power2.in" }, ">0.05");
+    tl.to(".imm-new-btn", { scale: 1, duration: 0.4, ease: "back.out(3)" }, ">");
+    tl.to(
+      ".imm-email-toast",
+      { autoAlpha: 1, y: 0, duration: 0.45, ease: "back.out(1.7)" },
+      ">0.05",
+    );
 
     tl.to({}, { duration: 0.6 });
   });
@@ -187,221 +139,221 @@ export default function ImmersiveSegnalazioni() {
   return (
     <ImmersiveStage
       ref={ref}
-      heightVh={420}
+      heightVh={480}
       theme="platform"
       label="Segnalazioni"
       eyebrow="04 · Segnalazioni"
     >
-      <div className="flex h-full pt-12">
-        {/* ── Colonna sinistra: form nuova segnalazione ────────────────────── */}
-        <div className="border-border bg-surface/40 flex w-1/2 shrink-0 flex-col gap-5 overflow-hidden border-r p-6 backdrop-blur-sm">
-          <h2 className="text-foreground font-semibold tracking-tight">Nuova segnalazione</h2>
-
-          {/* Tipo */}
-          <fieldset className="space-y-2">
-            <legend className="text-muted text-xs font-semibold tracking-widest uppercase">
-              Tipo
-            </legend>
-            <div className="flex flex-wrap gap-2">
-              {TIPO_PILLS.map((p) => (
-                <span
-                  key={p}
-                  className={[
-                    "border-border bg-surface-2 text-muted cursor-default rounded-full border px-3 py-1 text-sm font-medium select-none",
-                    p === "Bug" ? "imm-tipo-bug" : "",
-                  ]
-                    .join(" ")
-                    .trim()}
-                >
-                  {p}
-                </span>
-              ))}
-            </div>
-          </fieldset>
-
-          {/* Titolo */}
-          <div className="space-y-2">
-            <label className="text-muted text-xs font-semibold tracking-widest uppercase">
-              Titolo
-            </label>
-            <div className="border-border bg-surface flex h-9 items-center overflow-hidden rounded-lg border px-3 text-sm">
-              {/* Il clip-path steps simula la digitazione carattere per carattere */}
-              <span className="imm-title-text text-foreground block font-medium whitespace-nowrap">
-                Checkout non risponde su mobile
-              </span>
-            </div>
-          </div>
-
-          {/* Priorità */}
-          <fieldset className="space-y-2">
-            <legend className="text-muted text-xs font-semibold tracking-widest uppercase">
-              Priorità
-            </legend>
-            <div className="flex flex-wrap gap-2">
-              {PRIO_PILLS.map((p) => (
-                <span
-                  key={p}
-                  className={[
-                    "border-border bg-surface-2 text-muted cursor-default rounded-full border px-3 py-1 text-sm font-medium select-none",
-                    p === "Alta" ? "imm-prio-alta" : "",
-                  ]
-                    .join(" ")
-                    .trim()}
-                >
-                  {p}
-                </span>
-              ))}
-            </div>
-          </fieldset>
-
-          {/* Descrizione (placeholder statico, non animata) */}
-          <div className="space-y-2">
-            <label className="text-muted text-xs font-semibold tracking-widest uppercase">
-              Descrizione
-            </label>
-            <div className="border-border bg-surface text-muted h-20 rounded-lg border px-3 py-2 text-sm italic">
-              Riproducibile su Safari iOS 17, solo al checkout…
-            </div>
-          </div>
-
-          {/* Pulsante Invia */}
-          <button
-            type="button"
-            className="imm-send-btn bg-accent text-accent-contrast mt-auto self-start rounded-lg px-5 py-2 text-sm font-semibold"
-            aria-label="Invia segnalazione"
-          >
-            Invia segnalazione
-          </button>
-        </div>
-
-        {/* ── Colonna destra: lista ticket ──────────────────────────────────── */}
-        <div className="flex w-1/2 shrink-0 flex-col gap-3 overflow-hidden p-6">
-          <div className="flex items-center justify-between">
-            <h2 className="text-foreground font-semibold tracking-tight">Ticket recenti</h2>
-            <span className="bg-surface-2 text-muted rounded-full px-2.5 py-0.5 text-xs font-semibold">
-              {TICKETS.length} aperti
-            </span>
-          </div>
-
-          {/* Ticket esistenti */}
-          <div className="border-border divide-border divide-y overflow-hidden rounded-xl border">
-            {TICKETS.map((t) => (
-              <div key={t.id} className="bg-surface px-4 py-3">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <p className="text-foreground truncate text-sm font-medium">{t.title}</p>
-                    <p className="text-muted mt-0.5 text-xs">{t.id}</p>
-                  </div>
-                  <div className="flex shrink-0 flex-wrap gap-1.5">
-                    <span
-                      className={`rounded-full px-2 py-0.5 text-xs font-semibold ${TYPE_CLS[t.type]}`}
-                    >
-                      {t.type}
-                    </span>
-                    <span
-                      className={`rounded-full px-2 py-0.5 text-xs font-semibold ${PRIO_CLS[t.prio]}`}
-                    >
-                      {t.prio}
-                    </span>
-                    <span
-                      className={`rounded-full px-2 py-0.5 text-xs font-semibold ${STATUS_CLS[t.status]}`}
-                    >
-                      {t.status}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* Nuovo ticket (nascosto inizialmente; compare dopo «Invia») */}
-          <div className="imm-new-ticket border-accent bg-surface overflow-hidden rounded-xl border-2">
-            <div className="px-4 py-3">
-              <div className="flex items-start justify-between gap-3">
+      {/* Viewport del pan: clippa la schermata fuori campo */}
+      <div className="h-full overflow-hidden pt-12">
+        <div className="imm-track flex h-[calc(100%-3rem)]" style={{ width: "200%" }}>
+          {/* ════════════ SCHERMATA A · Gestionale ════════════ */}
+          <div className="w-1/2 shrink-0 overflow-hidden p-6 sm:p-8">
+            <div className="border-border bg-surface flex h-full flex-col overflow-hidden rounded-2xl border shadow-sm">
+              {/* Header pagina + bottone «Copia link» */}
+              <div className="border-border flex items-center justify-between gap-4 border-b px-6 py-4">
                 <div className="min-w-0">
-                  <p className="text-foreground text-sm font-medium">
-                    Checkout non risponde su mobile
-                  </p>
-                  <p className="text-muted mt-0.5 text-xs">SEG-2026-0042</p>
+                  <div className="text-foreground flex items-center gap-2 font-semibold">
+                    <span className="bg-accent h-4 w-4 rounded-[5px]" />
+                    Anagrafica clienti
+                  </div>
+                  <p className="text-muted mt-0.5 text-sm">148 record · aggiornata oggi</p>
                 </div>
+                <button
+                  type="button"
+                  className="imm-copy-link border-border bg-surface-2 text-foreground inline-flex shrink-0 items-center gap-1.5 rounded-lg border px-3 py-1.5 text-sm font-medium"
+                  aria-label="Copia link della pagina"
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden>
+                    <path
+                      d="M10 13a5 5 0 0 0 7 0l2-2a5 5 0 0 0-7-7l-1 1m-1 8a5 5 0 0 1-7 0 5 5 0 0 1 0-7l2-2a5 5 0 0 1 7 0"
+                      stroke="currentColor"
+                      strokeWidth="1.7"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                  Copia link
+                </button>
+              </div>
 
-                {/* Badge tipo + priorità fissi, badge stato con transizione */}
-                <div className="flex shrink-0 flex-wrap items-center gap-1.5">
+              {/* Toolbar: 3 funzioni + (a fine animazione) la 4ª */}
+              <div className="border-border bg-surface/60 flex items-center gap-2 border-b px-6 py-3">
+                <span className="text-muted mr-1 text-xs font-semibold tracking-widest uppercase">
+                  Azioni
+                </span>
+                {TOOLBAR.map((t) => (
                   <span
-                    className={`rounded-full px-2 py-0.5 text-xs font-semibold ${TYPE_CLS["Bug"]}`}
+                    key={t}
+                    className="border-border bg-surface text-foreground rounded-lg border px-3 py-1.5 text-sm font-medium select-none"
                   >
-                    Bug
+                    {t}
                   </span>
-                  <span
-                    className={`rounded-full px-2 py-0.5 text-xs font-semibold ${PRIO_CLS["Alta"]}`}
-                  >
-                    Alta
-                  </span>
+                ))}
 
-                  {/* Slot badge stato: i due badge si sovrappongono, cross-fade via GSAP */}
-                  <div className="relative h-5 min-w-[7.5rem]">
-                    <span className="imm-badge-aperta absolute top-0 left-0 rounded-full border border-sky-200 bg-sky-100 px-2 py-0.5 text-xs font-semibold whitespace-nowrap text-sky-800">
-                      Aperta
-                    </span>
-                    <span className="imm-badge-lavorazione absolute top-0 left-0 rounded-full border border-amber-200 bg-amber-100 px-2 py-0.5 text-xs font-semibold whitespace-nowrap text-amber-800">
-                      In lavorazione
-                    </span>
+                {/* 4° bottone — nascosto finché la segnalazione non lo "crea" */}
+                <span className="relative ml-1 inline-flex">
+                  <span
+                    className="imm-new-btn-ring border-accent pointer-events-none absolute -inset-1 rounded-xl border-2"
+                    style={{ opacity: 0 }}
+                    aria-hidden
+                  />
+                  <span
+                    className="imm-new-btn bg-accent text-accent-contrast inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-semibold"
+                    style={{ opacity: 0 }}
+                  >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden>
+                      <path
+                        d="M3 7l9 6 9-6M4 5h16a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1z"
+                        stroke="currentColor"
+                        strokeWidth="1.7"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                    Invia per email
+                  </span>
+                </span>
+              </div>
+
+              {/* Contenuto: tabella record */}
+              <div className="flex-1 overflow-hidden p-6">
+                <div className="border-border overflow-hidden rounded-xl border">
+                  <div className="bg-surface-2 text-muted grid grid-cols-3 gap-2 px-4 py-2.5 text-xs font-semibold tracking-wider uppercase">
+                    <span>Cliente</span>
+                    <span>Valore</span>
+                    <span>Stato</span>
+                  </div>
+                  <div className="divide-border divide-y">
+                    {RIGHE.map((r) => (
+                      <div key={r.c} className="grid grid-cols-3 gap-2 px-4 py-3 text-sm">
+                        <span className="text-foreground font-medium">{r.c}</span>
+                        <span className="text-foreground font-mono">{r.v}</span>
+                        <span className="text-muted text-xs font-semibold">{r.s}</span>
+                      </div>
+                    ))}
                   </div>
                 </div>
               </div>
+            </div>
+          </div>
 
-              {/* Mini-timeline: creata → presa in carico → risolta */}
-              <div className="mt-4 w-52">
-                {/* Dot e linee in una riga flex */}
-                <div className="flex items-center">
-                  <span className="imm-tl-step imm-tl-step-0 bg-accent block h-2.5 w-2.5 shrink-0 rounded-full" />
-                  <div className="imm-tl-line imm-tl-line-0 bg-accent h-px flex-1" />
-                  <span className="imm-tl-step imm-tl-step-1 bg-accent block h-2.5 w-2.5 shrink-0 rounded-full" />
-                  <div className="imm-tl-line imm-tl-line-1 bg-border h-px flex-1" />
-                  <span className="imm-tl-step imm-tl-step-2 bg-border block h-2.5 w-2.5 shrink-0 rounded-full" />
+          {/* ════════════ SCHERMATA B · Modulo di segnalazione ════════════ */}
+          <div className="w-1/2 shrink-0 overflow-hidden p-6 sm:p-8">
+            <div className="border-border bg-surface mx-auto flex h-full max-w-2xl flex-col overflow-hidden rounded-2xl border shadow-sm">
+              <div className="border-border border-b px-6 py-4">
+                <h2 className="text-foreground font-semibold tracking-tight">
+                  Modulo di segnalazione
+                </h2>
+                <p className="text-muted mt-0.5 text-sm">Invia una richiesta al team prodotto</p>
+              </div>
+
+              <div className="flex flex-1 flex-col gap-5 p-6">
+                {/* Campo Link — si riempie quando il cursore "incolla" */}
+                <div className="space-y-2">
+                  <label className="text-muted text-xs font-semibold tracking-widest uppercase">
+                    Link della pagina
+                  </label>
+                  <div className="border-border bg-surface flex h-10 items-center overflow-hidden rounded-lg border px-3 text-sm">
+                    <svg
+                      width="14"
+                      height="14"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      className="text-muted mr-2 shrink-0"
+                      aria-hidden
+                    >
+                      <path
+                        d="M10 13a5 5 0 0 0 7 0l2-2a5 5 0 0 0-7-7l-1 1m-1 8a5 5 0 0 1-7 0 5 5 0 0 1 0-7l2-2a5 5 0 0 1 7 0"
+                        stroke="currentColor"
+                        strokeWidth="1.7"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                    <span className="imm-link-text text-accent-ink block font-mono whitespace-nowrap">
+                      {LINK_PAGINA}
+                    </span>
+                  </div>
                 </div>
-                {/* Etichette allineate ai dot via justify-between */}
-                <div className="mt-1.5 flex justify-between">
-                  <span className="imm-tl-label imm-tl-label-0 text-foreground text-xs font-medium">
-                    Creata
-                  </span>
-                  <span className="imm-tl-label imm-tl-label-1 text-foreground text-xs font-medium">
-                    Presa in carico
-                  </span>
-                  <span className="imm-tl-label imm-tl-label-2 text-muted text-xs">Risolta</span>
+
+                {/* Campo Richiesta — testo digitato carattere per carattere */}
+                <div className="space-y-2">
+                  <label className="text-muted text-xs font-semibold tracking-widest uppercase">
+                    La tua richiesta
+                  </label>
+                  <div className="border-border bg-surface min-h-[5.5rem] overflow-hidden rounded-lg border px-3 py-2.5 text-sm">
+                    <span className="imm-req-text text-foreground block font-medium whitespace-nowrap">
+                      Vorrei una 4ª funzione: &apos;Invia per email&apos;
+                    </span>
+                  </div>
                 </div>
+
+                {/* Pulsante Invia */}
+                <button
+                  type="button"
+                  className="imm-send-btn bg-accent text-accent-contrast mt-auto self-start rounded-lg px-5 py-2 text-sm font-semibold"
+                  aria-label="Invia segnalazione"
+                >
+                  Invia segnalazione
+                </button>
               </div>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Toast conferma creazione ticket (entra dal basso, rimane visibile) */}
+      {/* ── Toast globali (fuori dal track: non vengono clippati né spostati) ── */}
+
+      {/* «Link pagina copiato» (Schermata A, poi svanisce prima del pan) */}
       <div
-        className="imm-toast border-border bg-surface pointer-events-none absolute bottom-8 left-1/2 z-50 flex -translate-x-1/2 items-center gap-3 rounded-xl border px-5 py-3 shadow-lg"
+        className="imm-copy-toast border-border bg-surface pointer-events-none absolute bottom-8 left-1/2 z-50 flex -translate-x-1/2 items-center gap-3 rounded-xl border px-5 py-3 shadow-lg"
+        aria-live="polite"
+        style={{ opacity: 0 }}
+      >
+        <span className="bg-surface-2 text-accent-ink flex h-7 w-7 shrink-0 items-center justify-center rounded-full">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden>
+            <path
+              d="M10 13a5 5 0 0 0 7 0l2-2a5 5 0 0 0-7-7l-1 1m-1 8a5 5 0 0 1-7 0 5 5 0 0 1 0-7l2-2a5 5 0 0 1 7 0"
+              stroke="currentColor"
+              strokeWidth="1.8"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
+        </span>
+        <p className="text-foreground text-sm font-semibold">Link pagina copiato</p>
+      </div>
+
+      {/* «Segnalazione ricevuta ✓» (resta visibile fino allo stato finale) */}
+      <div
+        className="imm-received-toast border-border bg-surface pointer-events-none absolute bottom-8 left-1/2 z-50 flex -translate-x-1/2 items-center gap-3 rounded-xl border px-5 py-3 shadow-lg"
         aria-live="polite"
         style={{ opacity: 0 }}
       >
         <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-emerald-100">
-          <svg
-            className="h-4 w-4 text-emerald-600"
-            viewBox="0 0 16 16"
-            fill="currentColor"
-            aria-hidden
-          >
-            <path d="M13.78 4.22a.75.75 0 0 1 0 1.06l-7.25 7.25a.75.75 0 0 1-1.06 0L2.22 9.28a.75.75 0 1 1 1.06-1.06L6 10.94l6.72-6.72a.75.75 0 0 1 1.06 0z" />
-          </svg>
+          <Check className="h-4 w-4 text-emerald-600" />
         </span>
         <div>
-          <p className="text-foreground text-sm font-semibold">Ticket SEG-2026-0042 creato</p>
-          <p className="text-muted text-xs">Assegnato automaticamente al team prodotto</p>
+          <p className="text-foreground text-sm font-semibold">Segnalazione ricevuta ✓</p>
+          <p className="text-muted text-xs">Inoltrata al team prodotto</p>
         </div>
       </div>
 
-      {/* Frasi-intermezzo DESCRITTIVE (tono descrittivo, non promozionale) */}
-      <Say i={0}>Un canale unico per bug e richieste di modifica.</Say>
-      <Say i={1}>Ogni invio diventa un ticket tracciato.</Say>
-      <Say i={2}>Stato, priorità e storico sempre sotto controllo.</Say>
+      {/* Mini toast «Email inviata» (Schermata A, conferma che il 4° bottone funziona) */}
+      <div
+        className="imm-email-toast border-border bg-surface pointer-events-none absolute top-8 left-1/2 z-50 flex -translate-x-1/2 items-center gap-2 rounded-full border px-4 py-2 shadow-lg"
+        aria-live="polite"
+        style={{ opacity: 0 }}
+      >
+        <Check className="h-4 w-4 text-emerald-600" />
+        <p className="text-foreground text-sm font-semibold">Email inviata</p>
+      </div>
+
+      {/* Frasi-intermezzo DESCRITTIVE (spiegano, non vendono) */}
+      <Say i={0}>Segnali un problema o una richiesta in un attimo.</Say>
+      <Say i={1}>Copi il link, scrivi cosa serve, invii.</Say>
+      <Say i={2}>La richiesta arriva e prende vita.</Say>
     </ImmersiveStage>
   );
 }

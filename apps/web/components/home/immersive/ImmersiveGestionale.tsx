@@ -4,13 +4,14 @@
  * @descrizione  Scena immersiva GESTIONALE (servizio 07). Full-screen, alta
  *   fedeltà: lo scroll scrubba un walkthrough — frasi-intermezzo DESCRITTIVE,
  *   cursore che naviga, pan orizzontale tra le funzioni (Panoramica → Ordini →
- *   Clienti → Report), query in linguaggio naturale che filtra. Usa il kit
- *   condiviso `./shared`. Reduced-motion: stato finale leggibile.
+ *   Clienti → Agente AI), query in linguaggio naturale che filtra e un agente
+ *   AI che ESEGUE operazioni nel gestionale (step + dati che si aggiornano).
+ *   Usa il kit condiviso `./shared`. Reduced-motion: stato finale leggibile.
  */
 import { gsap } from "@gmgroup/lib/gsap";
 import { ImmersiveStage, Say, say, cursorTo, useImmersiveScene } from "./shared";
 
-const NAV = ["Panoramica", "Ordini", "Clienti", "Report"];
+const NAV = ["Panoramica", "Ordini", "Clienti", "Agente AI"];
 
 const ORDINI = [
   { c: "Rossi S.r.l.", v: "62.000 €", s: "Aperto", m: true },
@@ -18,6 +19,22 @@ const ORDINI = [
   { c: "Ferrari Group", v: "87.000 €", s: "Aperto", m: true },
   { c: "Conti S.r.l.", v: "34.200 €", s: "Chiuso", m: false },
   { c: "Masi & Figli", v: "9.800 €", s: "Inviato", m: false },
+];
+
+// Ordini di Marzo su cui l'agente AI opera (cambiano stato durante la demo).
+const MARZO = [
+  { c: "Rossi S.r.l.", v: "62.000 €" },
+  { c: "Verdi & Co.", v: "18.400 €" },
+  { c: "Neri S.p.A.", v: "9.100 €" },
+  { c: "Gallo S.r.l.", v: "27.500 €" },
+];
+
+// Passi che l'agente AI mostra mentre esegue la richiesta in linguaggio naturale.
+const AGENT_STEPS = [
+  "Analizzo gli ordini di Marzo…",
+  "Trovati 4 ordini da evadere…",
+  "Aggiorno 4 record nel gestionale…",
+  "Fatto ✓",
 ];
 
 export default function ImmersiveGestionale() {
@@ -28,14 +45,21 @@ export default function ImmersiveGestionale() {
     gsap.set(".imm-query", { clipPath: "inset(0 100% 0 0)" });
     gsap.set(".imm-match", { opacity: 0 });
     gsap.set(".imm-badge", { autoAlpha: 0, scale: 0.8 });
-    gsap.set(".imm-report-bar", { scaleY: 0, transformOrigin: "bottom" });
     gsap.set(".imm-kpi", { autoAlpha: 0, y: 18 });
+    // Agente AI: richiesta da "digitare", step da rivelare, righe che cambiano stato.
+    gsap.set(".imm-ag-req", { clipPath: "inset(0 100% 0 0)" });
+    gsap.set(".imm-ag-step", { autoAlpha: 0, y: 8 });
+    gsap.set(".imm-ag-new", { autoAlpha: 0, scale: 0.8 });
     tl.set(".imm-cursor", { left: "50%", top: "55%" });
     tl.set(".imm-nav-ind", { top: navTop(0) });
 
     // ① Panoramica
     say(tl, 0);
-    tl.to(".imm-kpi", { autoAlpha: 1, y: 0, duration: 0.5, stagger: 0.1, ease: "back.out(1.6)" }, "<0.2");
+    tl.to(
+      ".imm-kpi",
+      { autoAlpha: 1, y: 0, duration: 0.5, stagger: 0.1, ease: "back.out(1.6)" },
+      "<0.2",
+    );
 
     // ② Ordini + query in linguaggio naturale
     say(tl, 1);
@@ -54,12 +78,27 @@ export default function ImmersiveGestionale() {
     tl.to(".imm-nav-ind", { top: navTop(2), duration: 0.45, ease: "power3.inOut" }, "<0.3");
     tl.to(".imm-track", { xPercent: -50, duration: 1.1, ease: "expo.inOut" }, "<0.1");
 
-    // ④ Report
+    // ④ Agente AI — riceve una richiesta in italiano ed ESEGUE l'operazione
     say(tl, 3);
     cursorTo(tl, "7%", "55%");
     tl.to(".imm-nav-ind", { top: navTop(3), duration: 0.45, ease: "power3.inOut" }, "<0.3");
     tl.to(".imm-track", { xPercent: -75, duration: 1.1, ease: "expo.inOut" }, "<0.1");
-    tl.to(".imm-report-bar", { scaleY: 1, duration: 0.7, stagger: 0.08, ease: "back.out(1.7)" }, ">-0.2");
+    // 1. la richiesta in linguaggio naturale si "scrive"
+    cursorTo(tl, "50%", "30%");
+    tl.to(".imm-ag-req", { clipPath: "inset(0 0% 0 0)", duration: 0.9, ease: "steps(20)" }, "<0.2");
+    // 2. l'agente esegue: gli step compaiono uno dopo l'altro
+    tl.to(
+      ".imm-ag-step",
+      { autoAlpha: 1, y: 0, duration: 0.35, stagger: 0.3, ease: "power2.out" },
+      ">0.1",
+    );
+    // 3. i dati nel gestionale si aggiornano: lo stato delle righe cambia
+    tl.to(".imm-ag-old", { autoAlpha: 0, duration: 0.3, stagger: 0.08 }, ">-0.05");
+    tl.to(
+      ".imm-ag-new",
+      { autoAlpha: 1, scale: 1, duration: 0.4, stagger: 0.08, ease: "back.out(1.8)" },
+      "<0.05",
+    );
     tl.to({}, { duration: 0.6 });
   });
 
@@ -122,7 +161,9 @@ export default function ImmersiveGestionale() {
                 {[45, 62, 50, 80, 68, 92, 74].map((h, i) => (
                   <span
                     key={i}
-                    className={i === 5 ? "bg-accent flex-1 rounded-t" : "bg-accent/30 flex-1 rounded-t"}
+                    className={
+                      i === 5 ? "bg-accent flex-1 rounded-t" : "bg-accent/30 flex-1 rounded-t"
+                    }
                     style={{ height: `${h}%` }}
                   />
                 ))}
@@ -191,18 +232,67 @@ export default function ImmersiveGestionale() {
               </div>
             </div>
 
-            {/* 4 · Report */}
+            {/* 4 · Agente AI — riceve una richiesta in italiano ed ESEGUE l'azione */}
             <div className="w-1/4 shrink-0 overflow-hidden p-6">
-              <div className="border-border bg-surface h-full rounded-xl border p-6">
-                <p className="text-foreground font-semibold">Previsione fatturato · AI</p>
-                <div className="mt-6 flex h-[60%] items-end gap-4">
-                  {[40, 55, 50, 68, 75, 88, 96].map((h, i) => (
-                    <span
-                      key={i}
-                      className="imm-report-bar from-accent to-accent/40 flex-1 rounded-t bg-gradient-to-t"
-                      style={{ height: `${h}%` }}
-                    />
-                  ))}
+              <div className="border-border bg-surface flex h-full flex-col rounded-xl border p-5">
+                {/* Richiesta dell'utente in linguaggio naturale */}
+                <div className="flex items-start gap-3">
+                  <span className="bg-surface-2 text-muted flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[10px] font-bold">
+                    TU
+                  </span>
+                  <div className="bg-surface-2 text-foreground max-w-full rounded-2xl rounded-tl-none px-4 py-2.5 text-sm">
+                    <span className="imm-ag-req block whitespace-nowrap">
+                      «segna come evasi gli ordini di Marzo»
+                    </span>
+                  </div>
+                </div>
+
+                {/* L'agente esegue: sequenza di step operativi */}
+                <div className="mt-4 flex items-start gap-3">
+                  <span className="bg-accent-soft text-accent-ink flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[10px] font-bold">
+                    AI
+                  </span>
+                  <ul className="space-y-1.5">
+                    {AGENT_STEPS.map((s, i) => (
+                      <li
+                        key={i}
+                        className="imm-ag-step text-foreground flex items-center gap-2 text-sm"
+                      >
+                        <span className="bg-accent h-1.5 w-1.5 shrink-0 rounded-full" />
+                        {s}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+
+                {/* I dati nel gestionale si aggiornano di conseguenza */}
+                <div className="border-border mt-5 overflow-hidden rounded-xl border">
+                  <div className="bg-surface-2 text-muted grid grid-cols-[1fr_auto_7rem] gap-3 px-4 py-2 text-xs font-semibold tracking-wider uppercase">
+                    <span>Ordine · Marzo</span>
+                    <span>Importo</span>
+                    <span className="text-right">Stato</span>
+                  </div>
+                  <div className="divide-border divide-y">
+                    {MARZO.map((o, i) => (
+                      <div
+                        key={i}
+                        className="grid grid-cols-[1fr_auto_7rem] items-center gap-3 px-4 py-2.5 text-sm"
+                      >
+                        <span className="text-foreground font-medium">{o.c}</span>
+                        <span className="text-foreground font-mono">{o.v}</span>
+                        <span className="relative flex h-6 items-center justify-end">
+                          {/* stato iniziale */}
+                          <span className="imm-ag-old text-muted text-xs font-semibold">
+                            In lavorazione
+                          </span>
+                          {/* stato dopo l'azione dell'agente */}
+                          <span className="imm-ag-new bg-accent-soft text-accent-ink absolute right-0 rounded-full px-2.5 py-0.5 text-xs font-semibold">
+                            Evaso ✓
+                          </span>
+                        </span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
             </div>
@@ -214,7 +304,7 @@ export default function ImmersiveGestionale() {
       <Say i={0}>Clienti, ordini e progetti in un&apos;unica interfaccia.</Say>
       <Say i={1}>Scrivi una richiesta in italiano: i dati si filtrano da soli.</Say>
       <Say i={2}>Ogni scheda cliente: anagrafica, valore e storico in un colpo d&apos;occhio.</Say>
-      <Say i={3}>Report e previsioni di fatturato, calcolati dall&apos;AI.</Say>
+      <Say i={3}>Un agente AI che esegue operazioni nel gestionale.</Say>
     </ImmersiveStage>
   );
 }

@@ -60,6 +60,39 @@ export function useImmersiveScene(build: (tl: gsap.core.Timeline, section: HTMLE
         scrub: 0.8, // smoothing → lo scrub "insegue" lo scroll (curva, non lineare)
         animation: tl,
       });
+
+      // CAMERA: la scena entra in ZOOM-IN (da rimpicciolita+velata) e esce in
+      // ZOOM-OUT → tra due servizi consecutivi si legge "zoom-out · pan · zoom-in".
+      const stage = section.querySelector<HTMLElement>(".imm-stage");
+      if (stage) {
+        gsap.set(stage, { transformOrigin: "center center" });
+        gsap.fromTo(
+          stage,
+          { scale: 0.9, autoAlpha: 0.35 },
+          {
+            scale: 1,
+            autoAlpha: 1,
+            ease: "none",
+            scrollTrigger: { trigger: section, start: "top bottom", end: "top top", scrub: 0.8 },
+          },
+        );
+        gsap.fromTo(
+          stage,
+          { scale: 1, autoAlpha: 1 },
+          {
+            scale: 0.92,
+            autoAlpha: 0.3,
+            ease: "none",
+            immediateRender: false,
+            scrollTrigger: {
+              trigger: section,
+              start: "bottom bottom",
+              end: "bottom top",
+              scrub: 0.8,
+            },
+          },
+        );
+      }
       ScrollTrigger.refresh();
     }, section);
     return () => ctx.revert();
@@ -138,8 +171,11 @@ export const ImmersiveStage = forwardRef<
       style={{ ...accentVars(theme), height: `${heightVh}vh` }}
     >
       <div className="bg-background sticky top-0 h-screen overflow-hidden">
-        {children}
-        <Cursor />
+        {/* .imm-stage = camera (scale/opacity da scroll); .imm-skew = velocity skew */}
+        <div className="imm-stage h-full w-full">
+          <div className="imm-skew h-full w-full">{children}</div>
+          <Cursor />
+        </div>
       </div>
     </section>
   );

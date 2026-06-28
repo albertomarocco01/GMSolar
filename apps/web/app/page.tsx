@@ -1,5 +1,7 @@
 import IntroOverlay from "@/components/home/IntroOverlay";
 import AutoScroll from "@/components/home/AutoScroll";
+import CinematicGrain from "@/components/home/CinematicGrain";
+import VelocitySkew from "@/components/home/VelocitySkew";
 import VetrinaScene from "@/components/home/scenes/VetrinaScene";
 import FadeToBlackScene from "@/components/home/scenes/FadeToBlackScene";
 
@@ -25,6 +27,8 @@ export default function HomePage() {
     <div id="top">
       <IntroOverlay />
       <AutoScroll />
+      <CinematicGrain />
+      <VelocitySkew />
 
       <VetrinaScene />
       <ImmersiveAssistente />
