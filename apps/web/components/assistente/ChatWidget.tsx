@@ -48,7 +48,7 @@ export default function ChatWidget({
   return (
     <div
       className={cn(
-        "bg-background border-border shadow-card flex h-[34rem] flex-col overflow-hidden rounded-xl border",
+        "bg-background border-border shadow-card flex h-136 flex-col overflow-hidden rounded-xl border",
         className,
       )}
     >

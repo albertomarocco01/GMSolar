@@ -105,7 +105,7 @@ export default function ContentEditorPanel({ block, onClose, onSave }: Props) {
             role="switch"
             aria-checked={stato === "pubblicato"}
             onClick={() => setStato((s) => (s === "pubblicato" ? "bozza" : "pubblicato"))}
-            className={`focus:ring-accent relative inline-flex h-5 w-9 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus:ring-2 focus:ring-offset-1 focus:outline-none ${stato === "pubblicato" ? "bg-accent" : "bg-surface-2 border-border"}`}
+            className={`focus:ring-accent relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus:ring-2 focus:ring-offset-1 focus:outline-none ${stato === "pubblicato" ? "bg-accent" : "bg-surface-2 border-border"}`}
             aria-label="Stato pubblicazione"
           >
             <span

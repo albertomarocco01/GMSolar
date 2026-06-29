@@ -57,7 +57,7 @@ export default function DashboardSidebar({ open, onClose, activeTab, onTabChange
           // Mobile: drawer fisso che parte dall'alto (copre il site header su mobile)
           "fixed inset-y-0 left-0 z-50 w-64",
           // Transizione apertura/chiusura (ridotta con prefers-reduced-motion via base.css)
-          "ease-out-expo transition-transform duration-[var(--duration-base)]",
+          "ease-out-expo transition-transform duration-(--duration-base)",
           open ? "translate-x-0" : "-translate-x-full",
           // Desktop: statico nel flex layout, sempre visibile
           "lg:static lg:z-auto lg:translate-x-0",

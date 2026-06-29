@@ -67,7 +67,7 @@ function Toast({ ticketId, onDismiss }: { ticketId: string; onDismiss: () => voi
         type="button"
         onClick={onDismiss}
         aria-label="Chiudi notifica"
-        className="focus-visible:outline-background rounded p-1 opacity-60 hover:opacity-100 focus-visible:outline focus-visible:outline-2"
+        className="focus-visible:outline-background rounded p-1 opacity-60 hover:opacity-100 focus-visible:outline-2"
       >
         <svg
           className="h-4 w-4"

@@ -39,7 +39,7 @@ export default function IntroOverlay() {
     <div
       ref={ref}
       aria-hidden
-      className="pointer-events-none fixed inset-0 z-[100] bg-[#070809]"
+      className="pointer-events-none fixed inset-0 z-100 bg-[#070809]"
       style={{ opacity: 1 }}
     />
   );
