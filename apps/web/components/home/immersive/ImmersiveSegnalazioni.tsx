@@ -33,7 +33,7 @@ const RIGHE = [
 ] as const;
 
 // Link "incollato" nel modulo e testo della richiesta digitato carattere/carattere.
-const LINK_PAGINA = "gestionale.gmgroup.it/clienti";
+const LINK_PAGINA = "gestionale.demo/clienti";
 
 // ── Icona check (riusata nei toast) ──────────────────────────────────────────
 

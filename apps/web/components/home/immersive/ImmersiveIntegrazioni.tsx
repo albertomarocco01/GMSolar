@@ -88,7 +88,7 @@ export default function ImmersiveIntegrazioni() {
     gsap.set(tiles, { scale: 0.6, autoAlpha: 0 });
 
     // ── ① Frase d'apertura (generica, descrittiva) ─────────────────────────
-    say(tl, 0); // «Ci colleghiamo ai sistemi che usi già.»
+    say(tl, 0); // «Ci integriamo con molti sistemi, su richiesta.»
 
     // ── ② Il muro di loghi entra in cascata (scale + autoAlpha, rimbalzo) ───
     tl.to(tiles, {
@@ -157,7 +157,7 @@ export default function ImmersiveIntegrazioni() {
       </div>
 
       {/* ── Frasi-intermezzo DESCRITTIVE (niente "perché/come") ───────────── */}
-      <Say i={0}>Ci colleghiamo ai sistemi che usi già.</Say>
+      <Say i={0}>Ci integriamo con molti sistemi, su richiesta.</Say>
       <Say i={1}>WhatsApp, email, CRM, pagamenti e molto altro.</Say>
     </ImmersiveStage>
   );

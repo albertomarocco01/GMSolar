@@ -5,16 +5,25 @@
  *   fedeltà: lo scroll scrubba un walkthrough che riprende il legacy
  *   `CableFinder` — una PAGINA PRODOTTI (cavi di ricarica) con in basso una
  *   BARRA ASSISTENTE. Il cursore tocca la barra, il visitatore digita una
- *   richiesta in linguaggio naturale, l'AI "ragiona" un istante e poi GENERA
- *   l'interfaccia del risultato: una card-raccomandazione (look di
- *   `CableRecommendation`) col prodotto giusto evidenziato nella griglia +
- *   motivazione breve. Frasi-intermezzo DESCRITTIVE (tono esplicativo).
+ *   richiesta in linguaggio naturale, l'AI "ragiona" un istante e poi
+ *   GENERA L'INTERA INTERFACCIA: la griglia prodotti VOLA VIA (stagger) e al suo
+ *   posto entra una VISTA DETTAGLIO/CONFIGURATORE su misura del prodotto giusto —
+ *   non un semplice riassunto. Frasi-intermezzo DESCRITTIVE (tono esplicativo).
+ *
+ *   Una sola sorgente di verità: la fase (griglia → uscita → generata) è derivata
+ *   dalla timeline scrubbata (niente stato React che litiga con lo scroll). La
+ *   griglia esce via `autoAlpha` → `visibility:hidden`: sparisce dall'albero di
+ *   accessibilità MA conserva il suo box → l'altezza della scena non cambia e lo
+ *   sticky-scrub non si desincronizza. L'interfaccia generata è un overlay assoluto.
+ *
  *   Usa il kit condiviso `./shared`; selettori a classe scoped a gsap.context.
- *   Reduced-motion: stato finale (card generata visibile) leggibile.
+ *   Reduced-motion: stato finale (interfaccia generata visibile, griglia nascosta)
+ *   leggibile — il kit porta la timeline a progress(1).
  */
+import { cn } from "@gmgroup/lib/utils";
 import { gsap } from "@gmgroup/lib/gsap";
 import { ImmersiveStage, Say, say, cursorTo, clickZoom, useImmersiveScene } from "./shared";
-import { PRODUCTS, RECOMMENDATION, QUERY } from "./_assistente-data";
+import { PRODUCTS, GENERATED, QUERY } from "./_assistente-data";
 
 const SHOP_NAV = ["Cavi", "Wallbox", "Adattatori", "Supporto"];
 
@@ -25,9 +34,9 @@ export default function ImmersiveAssistente() {
     gsap.set(".imm-typed", { clipPath: "inset(0 100% 0 0)" });
     gsap.set(".imm-bar-ring", { autoAlpha: 0 });
     gsap.set(".imm-typing", { autoAlpha: 0, y: 8 });
-    gsap.set(".imm-reco", { autoAlpha: 0, y: 44, scale: 0.92, transformOrigin: "50% 100%" });
-    gsap.set(".imm-reco-item", { autoAlpha: 0, y: 14 });
-    gsap.set(".imm-match-ring", { autoAlpha: 0, scale: 1.06 });
+    // L'interfaccia generata parte nascosta e leggermente sotto/rimpicciolita.
+    gsap.set(".imm-genui", { autoAlpha: 0, y: 30, scale: 0.96, transformOrigin: "50% 60%" });
+    gsap.set(".imm-genui-item", { autoAlpha: 0, y: 14 });
     tl.set(".imm-cursor", { left: "50%", top: "52%" });
 
     // ① Presenta la scena: un assistente dentro la pagina prodotti
@@ -50,32 +59,35 @@ export default function ImmersiveAssistente() {
     tl.to(".imm-typing", { autoAlpha: 1, y: 0, duration: 0.35, ease: "power2.out" }, ">0.1");
     tl.to({}, { duration: 0.55 }); // pausa: "sta ragionando"
 
-    // ⑤ Genera l'interfaccia del risultato
+    // ⑤ GENERA l'interfaccia: la griglia prodotti vola via e lascia il posto
     say(tl, 2);
     tl.to(".imm-typing", { autoAlpha: 0, y: 8, duration: 0.25, ease: "power2.in" });
-
-    // ⑥ Card-raccomandazione che entra + highlight del prodotto giusto in griglia
-    tl.to(".imm-reco", { autoAlpha: 1, y: 0, scale: 1, duration: 0.75, ease: "expo.out" });
-    tl.to(".imm-prod-rest", { opacity: 0.4, duration: 0.55, ease: "power2.out" }, "<");
+    // Griglia OUT: stagger che si dissolve verso l'alto. autoAlpha:0 →
+    // visibility:hidden = fuori dall'albero a11y, ma il box resta (height lock).
+    tl.to(".imm-prod", {
+      autoAlpha: 0,
+      y: -26,
+      scale: 0.9,
+      duration: 0.5,
+      stagger: { each: 0.05, from: "end" },
+      ease: "power2.in",
+    });
+    // Interfaccia generata IN (overlay assoluto) + contenuti in cascata.
+    tl.to(".imm-genui", { autoAlpha: 1, y: 0, scale: 1, duration: 0.75, ease: "expo.out" }, ">-0.15");
     tl.to(
-      ".imm-match-ring",
-      { autoAlpha: 1, scale: 1, duration: 0.55, ease: "back.out(1.8)" },
-      "<0.1",
-    );
-    tl.to(
-      ".imm-reco-item",
-      { autoAlpha: 1, y: 0, duration: 0.5, stagger: 0.1, ease: "back.out(1.5)" },
-      "<0.1",
+      ".imm-genui-item",
+      { autoAlpha: 1, y: 0, duration: 0.5, stagger: 0.08, ease: "back.out(1.4)" },
+      "<0.18",
     );
 
-    // ⑦ Pausa finale
+    // ⑥ Pausa finale
     tl.to({}, { duration: 0.7 });
   });
 
   return (
     <ImmersiveStage
       ref={ref}
-      heightVh={440}
+      heightVh={460}
       theme="platform"
       label="Assistente"
       eyebrow="02 · Assistente AI di prodotto"
@@ -113,17 +125,8 @@ export default function ImmersiveAssistente() {
           {PRODUCTS.map((p) => (
             <article
               key={p.id}
-              className={`border-border bg-surface relative flex flex-col overflow-hidden rounded-xl border ${
-                p.recommended ? "imm-prod-match" : "imm-prod-rest"
-              }`}
+              className="imm-prod border-border bg-surface relative flex flex-col overflow-hidden rounded-xl border"
             >
-              {/* Anello highlight: si accende quando l'AI sceglie questo prodotto */}
-              {p.recommended && (
-                <span
-                  className="imm-match-ring border-accent pointer-events-none absolute -inset-px z-10 rounded-xl border-2"
-                  aria-hidden
-                />
-              )}
               <div className="bg-surface-2 relative flex h-16 items-center justify-center">
                 <PlugIcon className="text-muted h-7 w-7" />
                 {p.bestSeller && (
@@ -147,7 +150,7 @@ export default function ImmersiveAssistente() {
           ))}
         </div>
 
-        {/* ── Indicatore "sta ragionando…" (sopra la barra, dove apparirà la card) ── */}
+        {/* ── Indicatore "sta ragionando…" (sopra la barra) ──────────────── */}
         <div className="imm-typing absolute bottom-28 left-1/2 z-10 -translate-x-1/2" aria-hidden>
           <div className="bg-surface-2 border-border flex items-center gap-1 rounded-full border px-4 py-3 shadow-lg">
             {[0, 1, 2].map((d) => (
@@ -160,58 +163,109 @@ export default function ImmersiveAssistente() {
           </div>
         </div>
 
-        {/* ── Card-raccomandazione GENERATA dall'AI (look di CableRecommendation) ── */}
-        <div className="imm-reco absolute inset-x-0 bottom-24 z-10 px-5" aria-hidden>
-          <div className="mx-auto max-w-md">
-            <p className="imm-reco-item text-muted mb-2 px-1 text-center text-xs">
-              {RECOMMENDATION.lead}
-            </p>
-            <div className="border-border bg-background overflow-hidden rounded-2xl border shadow-2xl">
-              <div className="grid grid-cols-[6rem_1fr]">
-                {/* Immagine prodotto (placeholder tematizzato) */}
-                <div className="bg-accent-soft flex items-center justify-center">
-                  <PlugIcon className="text-accent-ink h-9 w-9" />
+        {/* ── INTERFACCIA GENERATA dall'AI: vista dettaglio + configuratore ──
+            Overlay assoluto (la griglia sotto conserva il box → altezza scena
+            stabile). Parte nascosta; entra quando l'assistente "genera". */}
+        <div
+          className="imm-genui absolute inset-x-0 top-30 bottom-23 z-10 px-5 sm:top-21"
+          style={{ opacity: 0 }}
+        >
+          <div className="mx-auto flex h-full max-w-3xl flex-col">
+            {/* Etichetta "generato dall'AI" */}
+            <div className="imm-genui-item mb-2.5 flex items-center gap-2">
+              <SparkIcon className="text-accent-ink h-4 w-4" />
+              <p className="text-accent-ink text-xs font-semibold tracking-widest uppercase">
+                {GENERATED.eyebrow}
+              </p>
+            </div>
+
+            {/* Corpo della vista generata */}
+            <div className="border-border bg-background grid min-h-0 flex-1 grid-cols-1 gap-4 overflow-hidden rounded-2xl border p-4 shadow-2xl sm:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)] sm:p-5">
+              {/* Colonna visiva: immagine prodotto + gallery (decorativa) */}
+              <div className="imm-genui-item flex min-h-0 flex-col gap-2.5" aria-hidden>
+                <div className="bg-accent-soft flex h-24 items-center justify-center rounded-xl sm:h-auto sm:flex-1">
+                  <PlugIcon className="text-accent-ink h-14 w-14" />
                 </div>
-                <div className="min-w-0 p-4">
-                  <p className="imm-reco-item text-accent-ink text-[0.65rem] font-semibold tracking-widest uppercase">
-                    Consigliato · generato dall&apos;AI
-                  </p>
-                  <h4 className="imm-reco-item font-display text-foreground mt-1 text-sm leading-snug font-semibold text-balance">
-                    {RECOMMENDATION.name}
-                  </h4>
-                  <div className="imm-reco-item mt-2 flex flex-wrap gap-1.5">
-                    {RECOMMENDATION.badges.map((b, i) => (
-                      <span
-                        key={b}
-                        className={
-                          i === 0
-                            ? "bg-accent text-accent-contrast rounded-full px-2 py-0.5 text-[0.65rem] font-semibold"
-                            : "bg-surface-2 text-muted rounded-full px-2 py-0.5 text-[0.65rem] font-medium"
-                        }
-                      >
-                        {b}
-                      </span>
-                    ))}
-                  </div>
-                  <ul className="mt-3 space-y-1.5">
-                    {RECOMMENDATION.reasons.map((r) => (
-                      <li
-                        key={r}
-                        className="imm-reco-item text-foreground/90 flex items-start gap-2 text-xs"
-                      >
-                        <CheckIcon className="text-accent-ink mt-0.5 h-3.5 w-3.5 shrink-0" />
-                        <span className="leading-snug">{r}</span>
-                      </li>
-                    ))}
-                  </ul>
-                  <div className="imm-reco-item mt-3 flex items-center justify-between">
-                    <span className="text-foreground text-base font-bold tracking-tight">
-                      {RECOMMENDATION.price}
+                <div className="hidden grid-cols-4 gap-2 sm:grid">
+                  {[0, 1, 2, 3].map((i) => (
+                    <div
+                      key={i}
+                      className={cn(
+                        "flex h-11 items-center justify-center rounded-lg border",
+                        i === 0 ? "border-accent bg-accent-soft" : "border-border bg-surface-2",
+                      )}
+                    >
+                      <PlugIcon className="text-muted h-4 w-4" />
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Colonna dettaglio: titolo, badge, configuratore, motivi, prezzo */}
+              <div className="flex min-w-0 flex-col">
+                <h3 className="imm-genui-item font-display text-foreground text-base leading-snug font-bold tracking-tight text-balance sm:text-lg">
+                  {GENERATED.title}
+                </h3>
+                <div className="imm-genui-item mt-2 flex flex-wrap gap-1.5">
+                  {GENERATED.badges.map((b, i) => (
+                    <span
+                      key={b}
+                      className={
+                        i === 0
+                          ? "bg-accent text-accent-contrast rounded-full px-2 py-0.5 text-[0.65rem] font-semibold"
+                          : "bg-surface-2 text-muted rounded-full px-2 py-0.5 text-[0.65rem] font-medium"
+                      }
+                    >
+                      {b}
                     </span>
-                    <span className="bg-accent text-accent-contrast rounded-full px-3 py-1.5 text-xs font-semibold">
-                      Vai al prodotto
-                    </span>
-                  </div>
+                  ))}
+                </div>
+
+                {/* Configuratore (mock): l'AI ha pre-selezionato la combinazione */}
+                <div className="mt-3 space-y-2">
+                  {GENERATED.options.map((opt) => (
+                    <div key={opt.label} className="imm-genui-item">
+                      <p className="text-muted text-[0.65rem] font-medium">{opt.label}</p>
+                      <div className="mt-1 flex flex-wrap gap-1.5" aria-hidden>
+                        {opt.values.map((v, i) => (
+                          <span
+                            key={v}
+                            className={cn(
+                              "rounded-lg border px-2.5 py-1 text-xs",
+                              i === opt.selected
+                                ? "border-accent bg-accent-soft text-accent-ink font-semibold"
+                                : "border-border text-muted",
+                            )}
+                          >
+                            {v}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Motivi «perché questo» */}
+                <ul className="mt-3 hidden space-y-1.5 sm:block">
+                  {GENERATED.reasons.map((r) => (
+                    <li
+                      key={r}
+                      className="imm-genui-item text-foreground/90 flex items-start gap-2 text-xs"
+                    >
+                      <CheckIcon className="text-accent-ink mt-0.5 h-3.5 w-3.5 shrink-0" />
+                      <span className="leading-snug">{r}</span>
+                    </li>
+                  ))}
+                </ul>
+
+                {/* Prezzo + CTA */}
+                <div className="imm-genui-item mt-auto flex items-center justify-between pt-3">
+                  <span className="text-foreground text-xl font-bold tracking-tight">
+                    {GENERATED.price}
+                  </span>
+                  <span className="bg-accent text-accent-contrast rounded-full px-4 py-2 text-sm font-semibold">
+                    {GENERATED.cta}
+                  </span>
                 </div>
               </div>
             </div>
@@ -243,7 +297,7 @@ export default function ImmersiveAssistente() {
       {/* ── Frasi-intermezzo DESCRITTIVE (spiegano, non vendono) ──────────── */}
       <Say i={0}>Un assistente AI dentro il sito vetrina.</Say>
       <Say i={1}>Capisce la richiesta in linguaggio naturale.</Say>
-      <Say i={2}>Genera al volo l&apos;interfaccia con il prodotto giusto.</Say>
+      <Say i={2}>E genera al volo l&apos;interfaccia su misura.</Say>
     </ImmersiveStage>
   );
 }
@@ -299,6 +353,21 @@ function CheckIcon({ className }: { className?: string }) {
         strokeWidth="2.5"
         strokeLinecap="round"
         strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+function SparkIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden>
+      <path
+        d="M12 3l1.8 4.9L18.7 9.7l-4.9 1.8L12 16.4l-1.8-4.9L5.3 9.7l4.9-1.8L12 3Z"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinejoin="round"
+        fill="currentColor"
+        fillOpacity="0.15"
       />
     </svg>
   );

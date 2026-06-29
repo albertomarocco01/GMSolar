@@ -110,3 +110,33 @@ export const RECOMMENDATION: ImmReco = {
 
 /** La richiesta che il visitatore digita nella barra dell'assistente. */
 export const QUERY = "Cerco un cavo per ricaricare a casa la mia auto";
+
+/**
+ * Contenuto dell'INTERFACCIA GENERATA dall'AI: non più una semplice card-riassunto,
+ * ma una VISTA DETTAGLIO/CONFIGURATORE completa che prende il posto della griglia
+ * prodotti quando l'assistente risponde. Mock deterministico: i valori "scelti"
+ * nel configuratore sono quelli del prodotto consigliato (derivati da RECOMMENDATION).
+ */
+export type ImmGenOption = { label: string; values: string[]; selected: number };
+
+export const GENERATED = {
+  eyebrow: "Interfaccia generata dall'AI",
+  title: RECOMMENDATION.name,
+  price: RECOMMENDATION.price,
+  badges: RECOMMENDATION.badges,
+  reasons: RECOMMENDATION.reasons,
+  /** Configuratore (mock): l'AI pre-seleziona la combinazione giusta per la richiesta. */
+  options: [
+    { label: "Lunghezza", values: ["5 m", "7 m", "10 m"], selected: 0 },
+    { label: "Fase", values: ["Monofase", "Trifase"], selected: 0 },
+    { label: "Cavo", values: ["Liscio", "Spiralato"], selected: 0 },
+  ] as ImmGenOption[],
+  /** Riga di specifiche tecniche (mock). */
+  specs: [
+    { k: "Modo", v: "Modo 3" },
+    { k: "Connettore", v: "Tipo 2" },
+    { k: "Potenza", v: "7,4 kW" },
+    { k: "Garanzia", v: "24 mesi" },
+  ],
+  cta: "Aggiungi al carrello",
+};
