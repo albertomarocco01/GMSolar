@@ -126,7 +126,7 @@ export default function ChatWidget({
         }}
       >
         <label htmlFor="site-assistant-input" className="sr-only">
-          Scrivi un messaggio all'assistente
+          Scrivi un messaggio all&apos;assistente
         </label>
         <input
           id="site-assistant-input"

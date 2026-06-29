@@ -345,3 +345,71 @@ Per coerenza visiva/copy, la HOME deve recepire:
   `components/dashboard/ContentEditorPanel.tsx` + `components/home/AutoScroll.tsx`
   (set-state-in-effect) + warning vari. E un mismatch di hydration su /dashboard
   (`AnimatedCounter`, "1.428" SSR vs "1428" client, formato it-IT). Tutti fuori dal mio recinto.
+
+---
+
+## [BUG FINDER] Zero-defect sweep — modifiche zona condivisa (round corrente)
+
+Fase SOLO "bug finder" (nessun altro chat sta scrivendo). Le modifiche qui sotto toccano la
+zona condivisa per correggere difetti REALI di tooling; loggate come da protocollo.
+
+### eslint.base.mjs — onorare la convenzione `_`-prefix (no-unused-vars)
+
+`packages/config/eslint.base.mjs`: aggiunto un override di `@typescript-eslint/no-unused-vars`
+con `argsIgnorePattern`/`varsIgnorePattern`/`caughtErrorsIgnorePattern: "^_"`. Motivo: il
+codice usa già il prefisso `_` per segnalare identificatori intenzionalmente inutilizzati
+(es. `getTopPages(site, _range)` in `data/telemetry.ts`, dove `range` fa parte della firma
+uniforme dei getter dashboard ma non scala i dati mock). Prima il linter non rispettava la
+convenzione → falso positivo. La modifica RILASSA solo su nomi `_`-prefix (opt-in esplicito):
+non può nascondere bug non intenzionali. Verificato: `pnpm lint` ✅ 0 problemi.
+
+### packages/ui/AnimatedCounter.tsx + packages/tokens/tokens.css + packages/ui/Footer.tsx
+
+Difetti REALI trovati col runtime audit (Puppeteer + console F12 + axe-core), corretti nella zona
+condivisa:
+
+1. **AnimatedCounter.tsx** — `Intl.NumberFormat("it-IT")` (default `useGrouping:"auto"`) produceva
+   un **mismatch di idratazione** su /dashboard: l'ICU di Node (SSR) raggruppa i numeri a 4 cifre
+   ("1.428"), i browser per it-IT no (CLDR `minimumGroupingDigits=2` → "1428"). React rigenerava il
+   sottoalbero (errore #418) e, di rimbalzo, emetteva pure il warning "Encountered a script tag…"
+   (rirendendo lo `<script>` no-flash del layout). Fix: `useGrouping:"always"` → SSR e client
+   coincidono ("1.428"). Stesso fix applicato ai formatter it-IT lato app (TopPagesTable, grafici
+   dashboard, gestionale format.ts/OverviewView/filters) per coerenza e per l'intento documentato.
+
+2. **tokens.css `--accent-ink`** — mix verso il foreground 38% → 46%. A 38% l'ink lime su
+   `--accent-soft` restava 4.17–4.37:1 (sotto WCAG AA 4.5) per badge e voci attive di sidebar.
+   A 46% l'accoppiata ink/soft passa AA (≈5.1:1, hub lime) e su sfondo chiaro resta ottima. Le
+   route reali usano tutte il tema "hub" (lime), quindi il tuning è sul lime.
+
+3. **Footer.tsx** — la barra in fondo usava `text-muted/80`: l'opacità portava `--muted` (#5b6472)
+   a un effettivo #7c838e su bianco = 3.82:1 (sotto AA). Tolto `/80` → `text-muted` pieno (≈5.6:1).
+
+Verificato: `pnpm typecheck`/`lint`/`build` ✅; console F12 pulita su tutte e 6 le route
+(360/768/1280, normal + reduced-motion, + interazioni); axe-core 0 violazioni (incl. stati aperti
+gestionale/dashboard e mobile).
+
+### packages/ui/Header.tsx — link rotto /demos/tour → HUB_URL
+
+Il prefetch del `<Link href="/demos/tour">` (CTA "Tour" sempre visibile da ≥sm + voce "Avvia il
+tour" nel menu Servizi) dava **404** in produzione (visibile in F12 su ogni route ≥768; la route
+`/demos/tour` non esiste più — era il tour pre-pivot, branded). Repuntati entrambi a `HUB_URL`: la
+home È la scroll-narrativa cinematica (il "tour"), quindi la CTA torna alla panoramica. In dev non
+si vedeva (Next prefetcha solo in produzione) → trovato col `next start` + audit console.
+
+### Dead-code prune (seed list)
+
+- **packages/tokens/tokens.css**: rimossi `--color-violet`, `--color-violet-strong`, `--violet-ink`.
+  Erano vivi solo finché `components/home/scenes/HeroScene.tsx` li consumava (`bg-violet/12`); quel
+  file è stato eliminato e nessun altro consumatore esiste (verificato grep su apps+packages, CSS
+  incluso). Il viola "categorico" dei grafici resta perché usa l'hex letterale `#7c5cff`
+  (data/telemetry.ts, TrafficChart fallback), non il token.
+- **packages/lib/src/types.ts**: eliminato (+ rimosso l'export `./types` da package.json). Tipi di
+  dominio (SolarStats, ChargingPoint, Product…) che puntavano a JSON inesistenti
+  (solar-projects.json, charging-points.json, products.json: vivono solo in legacy/docs). Nessun
+  import attivo (solo una menzione in un commento di vetrina3d/content.ts, che resta valida).
+- **"platform" theme**: confermato già rimosso (nessun ThemeKey/`data-theme="platform"` residuo nel
+  core theme/providers/tokens). Le route reali risolvono tutte a "hub" (lime).
+
+Verificato dopo il prune: `pnpm typecheck`/`lint`/`build` ✅ verdi; due passate consecutive pulite
+(prod `next start` + dev) — console F12 e axe-core 0 problemi su tutte le route, breakpoint
+360/768/1280, normal + reduced-motion, stati interattivi inclusi.

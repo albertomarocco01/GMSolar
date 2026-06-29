@@ -29,11 +29,13 @@ export default function KpiCard({
   const positive = delta > 0;
   const neutral = delta === 0;
 
+  // Verde/rosso scuri (700) per superare WCAG AA su superficie chiara (i 500/600
+  // restavano ~3.4:1). Il progetto è light-only; le varianti dark restano per sicurezza.
   const deltaClass = neutral
     ? "text-muted"
     : positive
-      ? "text-emerald-600 dark:text-emerald-400"
-      : "text-red-500 dark:text-red-400";
+      ? "text-emerald-700 dark:text-emerald-400"
+      : "text-red-700 dark:text-red-400";
 
   return (
     <Card className="flex flex-col gap-3 p-5">

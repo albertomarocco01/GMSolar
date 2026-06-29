@@ -41,7 +41,7 @@ export default function Footer() {
         </div>
       </Container>
 
-      <Container className="border-border/60 text-muted/80 mt-10 flex flex-col gap-2 border-t pt-6 text-xs sm:flex-row sm:items-center sm:justify-between">
+      <Container className="border-border/60 text-muted mt-10 flex flex-col gap-2 border-t pt-6 text-xs sm:flex-row sm:items-center sm:justify-between">
         <p>© {year} — presentazione dimostrativa</p>
         <p>Siti vetrina · Assistenti AI · Dashboard · Gestionale · Integrazioni</p>
       </Container>

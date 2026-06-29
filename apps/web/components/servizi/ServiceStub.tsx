@@ -1,4 +1,3 @@
-import Link from "next/link";
 import Section from "@gmgroup/ui/Section";
 import Badge from "@gmgroup/ui/Badge";
 import Button from "@gmgroup/ui/Button";

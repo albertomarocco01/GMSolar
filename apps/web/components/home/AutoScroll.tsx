@@ -14,7 +14,7 @@
  */
 import { useEffect, useRef, useState } from "react";
 import { gsap } from "@gmgroup/lib/gsap";
-import { prefersReducedMotion } from "@gmgroup/lib/motion";
+import { prefersReducedMotion, useReducedMotion } from "@gmgroup/lib/motion";
 
 /** Sottoinsieme dell'API Lenis che ci serve (no `any`). */
 type LenisLike = {
@@ -31,8 +31,8 @@ const IDLE_MS = 9000;
 const PILL_HIDE_MS = 3500;
 
 export default function AutoScroll() {
+  const reduced = useReducedMotion();
   const [auto, setAuto] = useState(true);
-  const [reduced, setReduced] = useState(false);
   const [pillShown, setPillShown] = useState(true);
   const [holding, setHolding] = useState(false);
 
@@ -47,10 +47,10 @@ export default function AutoScroll() {
   };
 
   useEffect(() => {
-    if (prefersReducedMotion()) {
-      setReduced(true);
-      return;
-    }
+    // Reduced-motion: nessun auto-scroll (scroll nativo). Lettura SINCRONA così il
+    // ticker non parte mai (l'hook `reduced` può ritardare di un render in
+    // hydration); `reduced` è in deps per ri-eseguire se la preferenza cambia a runtime.
+    if (prefersReducedMotion()) return;
 
     const getLenis = () => (window as unknown as { __lenis?: LenisLike }).__lenis;
 
@@ -144,7 +144,7 @@ export default function AutoScroll() {
       window.removeEventListener("keydown", yield_);
       window.removeEventListener("autoscroll:hold", onHold);
     };
-  }, []);
+  }, [reduced]);
 
   if (reduced) return null;
 

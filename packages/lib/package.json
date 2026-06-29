@@ -9,7 +9,6 @@
     "./motion": "./src/motion.ts",
     "./site": "./src/site.ts",
     "./theme": "./src/theme.ts",
-    "./types": "./src/types.ts",
     "./utils": "./src/utils.ts"
   },
   "scripts": {

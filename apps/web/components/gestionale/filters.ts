@@ -103,8 +103,10 @@ export function describeFilter(f: GestionaleFilter): string {
   if (f.settore) parts.push(`settore ${f.settore}`);
   if (f.stato) parts.push(`stato "${f.stato}"`);
   if (f.inRitardo) parts.push("in ritardo");
-  if (f.minImporto != null) parts.push(`importo ≥ € ${f.minImporto.toLocaleString("it-IT")}`);
-  if (f.maxImporto != null) parts.push(`importo ≤ € ${f.maxImporto.toLocaleString("it-IT")}`);
+  if (f.minImporto != null)
+    parts.push(`importo ≥ € ${f.minImporto.toLocaleString("it-IT", { useGrouping: "always" })}`);
+  if (f.maxImporto != null)
+    parts.push(`importo ≤ € ${f.maxImporto.toLocaleString("it-IT", { useGrouping: "always" })}`);
   return parts.join(", ");
 }
 

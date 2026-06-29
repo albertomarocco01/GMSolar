@@ -28,7 +28,6 @@ import {
   type FormDraft,
   type Priorita,
   type Sito,
-  type Stato,
   type Tipo,
 } from "./types";
 

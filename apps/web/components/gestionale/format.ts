@@ -4,7 +4,10 @@
  * ISO "YYYY-MM-DD": le formattiamo senza `new Date()` per evitare scostamenti
  * di fuso e mismatch di idratazione SSR/CSR.
  */
-const NF = new Intl.NumberFormat("it-IT");
+// useGrouping "always": il default "auto" per it-IT NON raggruppa i numeri a 4
+// cifre (CLDR minimumGroupingDigits=2 → "1250"), mentre l'intento qui è "1.250".
+// "always" garantisce il separatore ovunque e coincide tra Node (SSR) e browser.
+const NF = new Intl.NumberFormat("it-IT", { useGrouping: "always" });
 
 /** Numero intero con separatore delle migliaia (es. 1.250). */
 export function formatNumber(n: number): string {

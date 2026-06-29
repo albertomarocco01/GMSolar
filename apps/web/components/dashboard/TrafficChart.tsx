@@ -60,7 +60,7 @@ export default function TrafficChart({ siteFilter, range }: Props) {
             tick={{ fontSize: 11, fill: "var(--muted)" }}
             tickLine={false}
             axisLine={false}
-            tickFormatter={(v: number) => v.toLocaleString("it-IT")}
+            tickFormatter={(v: number) => v.toLocaleString("it-IT", { useGrouping: "always" })}
           />
           <Tooltip
             contentStyle={{
@@ -71,7 +71,9 @@ export default function TrafficChart({ siteFilter, range }: Props) {
               color: "var(--foreground)",
             }}
             formatter={(value) =>
-              typeof value === "number" ? value.toLocaleString("it-IT") : String(value)
+              typeof value === "number"
+                ? value.toLocaleString("it-IT", { useGrouping: "always" })
+                : String(value)
             }
             labelFormatter={(label) => `Data: ${label}`}
           />

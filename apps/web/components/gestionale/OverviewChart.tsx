@@ -51,7 +51,7 @@ export default function OverviewChart() {
         <h3 className="text-foreground text-sm font-semibold">Valore preventivi per stato</h3>
         <p className="text-muted mb-2 text-xs">Importo totale (€) raggruppato per stato.</p>
         <div className="h-56 w-full">
-          <ResponsiveContainer width="100%" height="100%">
+          <ResponsiveContainer width="100%" height={224}>
             <BarChart data={perStato} margin={{ top: 8, right: 8, left: -8, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border)" />
               <XAxis dataKey="label" stroke="var(--muted)" fontSize={11} tickLine={false} />
@@ -76,7 +76,7 @@ export default function OverviewChart() {
         <h3 className="text-foreground text-sm font-semibold">Andamento mensile</h3>
         <p className="text-muted mb-2 text-xs">Pipeline (inviati) vs acquisito (accettati).</p>
         <div className="h-56 w-full">
-          <ResponsiveContainer width="100%" height="100%">
+          <ResponsiveContainer width="100%" height={224}>
             <LineChart data={mensile} margin={{ top: 8, right: 8, left: -8, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border)" />
               <XAxis dataKey="label" stroke="var(--muted)" fontSize={11} tickLine={false} />

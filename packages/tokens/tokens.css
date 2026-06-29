@@ -68,15 +68,17 @@
   /* "ink" = accent LEGGIBILE come TESTO: lo mescola verso il foreground, così
      si scurisce in light e si schiarisce in dark (l'accent pieno lime ha
      contrasto basso come testo su chiaro). Usa --accent per i FILL, --accent-ink
-     per il testo/icone. */
-  --accent-ink: color-mix(in oklab, var(--accent), var(--foreground) 38%);
+     per il testo/icone.
+     Mix 46% (era 38%): a 38% l'ink lime su --accent-soft restava 4.17–4.37:1,
+     sotto la soglia WCAG AA (4.5:1) per i badge e le voci attive di sidebar.
+     A 46% l'accoppiata ink/soft passa AA (≈5.1:1) e su sfondo chiaro resta ottima. */
+  --accent-ink: color-mix(in oklab, var(--accent), var(--foreground) 46%);
 
   /* Versioni "ink" dei colori statici di brand (per i testi delle 3 porte,
      dove i tre brand convivono). Anch'esse theme-aware via --foreground. */
   --solar-ink: color-mix(in oklab, var(--color-solar), var(--foreground) 40%);
   --mobility-ink: color-mix(in oklab, var(--color-mobility), var(--foreground) 26%);
   --shop-ink: color-mix(in oklab, var(--color-shop), var(--foreground) 44%);
-  --violet-ink: color-mix(in oklab, var(--color-violet), var(--foreground) 22%);
 }
 
 /* ---------- Token statici → utility Tailwind ---------- */
@@ -102,8 +104,6 @@
   --color-mobility-strong: #2f7e2e;
   --color-shop: #c8d400; /* Cavo Perfetto — lime acido */
   --color-shop-strong: #a8b200;
-  --color-violet: #7c5cff; /* viola elettrico — colore statico decorativo (scene home) */
-  --color-violet-strong: #6344e6;
 
   /* === Tipografia: famiglie (next/font inietta le variabili) ===
      Geist + Geist Mono (Vercel) via next/font/google: niente dipendenza extra.

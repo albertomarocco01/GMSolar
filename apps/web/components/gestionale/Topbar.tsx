@@ -32,9 +32,10 @@ export default function Topbar({ section, assistantOpen, onToggleAssistant }: To
           type="button"
           onClick={onToggleAssistant}
           aria-pressed={assistantOpen}
+          aria-label="Assistente AI"
           className="bg-accent text-accent-contrast hover:bg-accent-strong inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition-colors"
         >
-          <Sparkles className="h-4 w-4" />
+          <Sparkles className="h-4 w-4" aria-hidden="true" />
           <span className="hidden sm:inline">Assistente AI</span>
           {assistantOpen ? (
             <PanelRightClose className="h-4 w-4" />

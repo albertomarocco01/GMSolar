@@ -100,7 +100,7 @@ export default function DashboardSidebar({ open, onClose, activeTab, onTabChange
                   {icon}
                   <span>
                     <span className="block">{label}</span>
-                    <span className="block text-[11px] font-normal opacity-70">{description}</span>
+                    <span className="block text-[11px] font-normal">{description}</span>
                   </span>
                 </button>
               </li>

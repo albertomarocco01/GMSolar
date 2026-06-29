@@ -14,8 +14,7 @@ import { useSelfPlay } from "@/components/home/useSelfPlay";
 
 // ── Costanti ──────────────────────────────────────────────────────────────────
 
-const SITES = ["Tutti", "Solar", "Shop"] as const;
-type Site = (typeof SITES)[number];
+type Site = "Tutti" | "Solar" | "Shop";
 
 /** [Visite, Conversione %, Interazioni] */
 const KPI: Record<Site, [number, number, number]> = {

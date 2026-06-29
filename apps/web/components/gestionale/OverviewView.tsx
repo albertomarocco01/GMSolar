@@ -60,7 +60,7 @@ export default function OverviewView() {
         <p className="text-muted text-sm">
           Potenza totale in portafoglio progetti:{" "}
           <span className="text-foreground font-semibold">
-            {k.potenzaTotaleKWp.toLocaleString("it-IT")} kWp
+            {k.potenzaTotaleKWp.toLocaleString("it-IT", { useGrouping: "always" })} kWp
           </span>
           . Usa l&apos;<span className="text-accent-ink font-medium">Assistente AI</span> per
           filtrare i dati in linguaggio naturale.

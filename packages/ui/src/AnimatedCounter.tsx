@@ -39,6 +39,11 @@ export default function AnimatedCounter({
     `${prefix}${new Intl.NumberFormat(locale, {
       minimumFractionDigits: decimals,
       maximumFractionDigits: decimals,
+      // useGrouping "always": il default "auto" rispetta minimumGroupingDigits del
+      // CLDR (per it-IT = 2 → niente separatore per i numeri a 4 cifre), ma l'ICU di
+      // Node lo ignora e raggruppa comunque. Risultato: SSR "1.428" vs client "1428"
+      // → mismatch di idratazione. "always" forza il raggruppamento in entrambi.
+      useGrouping: "always",
     }).format(n)}${suffix}`;
 
   useIsoLayoutEffect(() => {

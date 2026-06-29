@@ -54,7 +54,7 @@ export default function InteractionsChart({ siteFilter, range }: Props) {
             }}
             formatter={(value) =>
               typeof value === "number"
-                ? [value.toLocaleString("it-IT"), "Interazioni"]
+                ? [value.toLocaleString("it-IT", { useGrouping: "always" }), "Interazioni"]
                 : [String(value), "Interazioni"]
             }
             cursor={{ fill: "var(--surface-2)" }}

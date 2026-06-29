@@ -16,6 +16,13 @@ const SITE_LABEL: Record<string, string> = {
   shop: "Shop",
 };
 
+/**
+ * useGrouping "always": evita il mismatch di idratazione SSR/client sui numeri a
+ * 4 cifre (l'ICU di Node raggruppa "1.428", i browser per it-IT no → "1428").
+ * Forzandolo, server e client coincidono. Vedi AnimatedCounter.
+ */
+const GROUP: Intl.NumberFormatOptions = { useGrouping: "always" };
+
 type Props = {
   siteFilter: SiteFilter;
   range: RangeKey;
@@ -74,16 +81,16 @@ export default function TopPagesTable({ siteFilter, range }: Props) {
                   <Badge variant="neutral">{SITE_LABEL[page.site] ?? page.site}</Badge>
                 </td>
                 <td className="text-muted px-3 py-3 text-right tabular-nums">
-                  {page.visite.toLocaleString("it-IT")}
+                  {page.visite.toLocaleString("it-IT", GROUP)}
                 </td>
                 <td className="text-muted hidden px-3 py-3 text-right tabular-nums md:table-cell">
-                  {page.utenti.toLocaleString("it-IT")}
+                  {page.utenti.toLocaleString("it-IT", GROUP)}
                 </td>
                 <td className="text-muted hidden px-3 py-3 text-right tabular-nums lg:table-cell">
-                  {page.interazioni.toLocaleString("it-IT")}
+                  {page.interazioni.toLocaleString("it-IT", GROUP)}
                 </td>
                 <td className="text-muted hidden px-5 py-3 text-right tabular-nums xl:table-cell">
-                  {page.conversioni.toLocaleString("it-IT")}
+                  {page.conversioni.toLocaleString("it-IT", GROUP)}
                 </td>
               </tr>
             ))}

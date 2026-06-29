@@ -4,7 +4,7 @@
  */
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Save, X } from "lucide-react";
 import Button from "@gmgroup/ui/Button";
 import type { ContentBlock } from "@/data/telemetry";
@@ -21,13 +21,19 @@ export default function ContentEditorPanel({ block, onClose, onSave }: Props) {
   const [stato, setStato] = useState<ContentBlock["stato"]>(block.stato);
   const [toastVisible, setToastVisible] = useState(false);
 
-  // Sincronizza i campi quando cambia il blocco selezionato
-  useEffect(() => {
+  // Quando cambia il blocco selezionato, ri-sincronizza i campi DURANTE il render
+  // (pattern React "adjusting state when a prop changes": niente effect, niente
+  // cascading render → vedi react.dev/learn/you-might-not-need-an-effect). Si
+  // sincronizza sull'id: dopo un salvataggio l'id resta lo stesso, quindi il toast
+  // di conferma non viene azzerato.
+  const [syncedId, setSyncedId] = useState(block.id);
+  if (syncedId !== block.id) {
+    setSyncedId(block.id);
     setTitolo(block.titolo);
     setContenuto(block.contenuto);
     setStato(block.stato);
     setToastVisible(false);
-  }, [block.id, block.titolo, block.contenuto, block.stato]);
+  }
 
   function handleSave() {
     const updated: ContentBlock = {

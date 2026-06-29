@@ -128,7 +128,7 @@ export default function Header() {
                 <li className="border-border/70 my-1.5 border-t" aria-hidden />
                 <li>
                   <Link
-                    href="/demos/tour"
+                    href={HUB_URL}
                     onClick={() => setOpen(false)}
                     className="bg-accent text-accent-contrast hover:bg-accent-strong flex items-center gap-2 rounded-xl px-3 py-2.5 text-sm font-semibold transition-colors motion-reduce:transition-none"
                   >
@@ -139,9 +139,10 @@ export default function Header() {
             )}
           </div>
 
-          {/* CTA tour, sempre visibile da desktop. */}
+          {/* CTA tour, sempre visibile da desktop → la home è la scroll-narrativa
+              cinematica (il "tour"). La vecchia route /demos/tour non esiste più. */}
           <Link
-            href="/demos/tour"
+            href={HUB_URL}
             className="bg-accent text-accent-contrast hover:bg-accent-strong hidden rounded-full px-4 py-1.5 text-sm font-semibold transition-colors motion-reduce:transition-none sm:inline-block"
           >
             Tour

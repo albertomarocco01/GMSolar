@@ -13,7 +13,8 @@ type Tone = "positive" | "warning" | "danger" | "neutral" | "info";
 
 const TONE: Record<Tone, string> = {
   positive: "bg-emerald-500/12 text-emerald-700 dark:text-emerald-300",
-  warning: "bg-amber-500/15 text-amber-700 dark:text-amber-300",
+  // amber-800 (non 700): su bg-amber-500/15 il 700 restava 4.48:1, sotto AA (4.5:1).
+  warning: "bg-amber-500/15 text-amber-800 dark:text-amber-300",
   danger: "bg-rose-500/12 text-rose-700 dark:text-rose-300",
   neutral: "bg-surface-2 text-muted",
   info: "bg-accent-soft text-accent-ink",
