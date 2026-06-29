@@ -78,4 +78,6 @@ pnpm format       # Prettier (write)
   [`packages/tokens/tokens.css`](packages/tokens/tokens.css) e si propagano a tutto il sito.
 - L'**AI è disabilitata per scelta** (`apps/web/lib/ai.ts`): le feature "intelligenti"
   rispondono con fallback deterministici. La demo non chiama mai un servizio esterno.
-- Deploy: un unico progetto Vercel serve tutte le route.
+- Deploy: un unico progetto **Vercel** serve tutte le route. Imposta **Root Directory =
+  `apps/web`** e premi Deploy (nessuna variabile d'ambiente necessaria). Guida completa:
+  [`docs/DEPLOY-VERCEL.md`](docs/DEPLOY-VERCEL.md).
