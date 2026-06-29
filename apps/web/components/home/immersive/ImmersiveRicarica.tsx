@@ -15,7 +15,7 @@
  *   Reduced-motion: gsap.set iniziale + tl.progress(1) → stato finale leggibile.
  */
 import { gsap } from "@gmgroup/lib/gsap";
-import { ImmersiveStage, Say, say, cursorTo, useImmersiveScene } from "./shared";
+import { ImmersiveStage, Say, say, cursorTo, clickZoom, useImmersiveScene } from "./shared";
 
 /** Formattatori Intl — singleton fuori dal componente (nessuna riallocazione). */
 const fmtEur = new Intl.NumberFormat("it-IT", {
@@ -100,8 +100,9 @@ export default function ImmersiveRicarica() {
       { clipPath: "inset(0 0% 0 0)", duration: 0.95, ease: "steps(28)" },
       "<",
     );
-    // Il cursore va sul tasto invia e fa "tap"
-    cursorTo(tl, "63%", "82%");
+    clickZoom(tl, ".imm-zoom-local", { position: "<" }); // punch-zoom della barra durante il typing
+    // Il cursore (mano) va sul tasto invia e fa "tap"
+    cursorTo(tl, ".imm-rc-send", { mode: "hand" });
     tl.to(".imm-rc-send", { scale: 0.86, duration: 0.12, ease: "power2.in" }, ">-0.05");
     tl.to(".imm-rc-send", { scale: 1, duration: 0.2, ease: "back.out(2.4)" }, ">");
     // Il campo si svuota e il messaggio entra nel thread
@@ -156,8 +157,8 @@ export default function ImmersiveRicarica() {
       "<0.1",
     );
 
-    // ── ⑤ L'utente prenota lo stallo (cursore "tap" sul bottone della card) ───
-    cursorTo(tl, "50%", "62%");
+    // ── ⑤ L'utente prenota lo stallo (cursore-mano "tap" sul bottone della card) ───
+    cursorTo(tl, ".imm-rc-book-btn", { mode: "hand" });
     tl.to(".imm-rc-book-btn", { scale: 0.94, duration: 0.12, ease: "power2.in" }, ">-0.05");
     tl.to(".imm-rc-book-btn", { scale: 1, duration: 0.2, ease: "back.out(2.2)" }, ">");
     tl.to(
@@ -538,7 +539,7 @@ export default function ImmersiveRicarica() {
             </div>
 
             {/* Barra di input — l'utente "scrive" qui (clip-path) */}
-            <div className="border-border bg-background flex shrink-0 items-center gap-2 border-t px-2.5 py-2.5">
+            <div className="imm-zoom-local border-border bg-background flex shrink-0 items-center gap-2 border-t px-2.5 py-2.5">
               <div className="bg-surface-2 relative flex h-8 flex-1 items-center overflow-hidden rounded-full px-3">
                 <span className="imm-rc-placeholder text-muted text-[10.5px]">
                   Scrivi all&apos;assistente…

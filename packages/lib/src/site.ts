@@ -225,7 +225,7 @@ export const SERVICES: Service[] = [
     title: "Un assistente che risponde e indirizza",
     blurb:
       "Chatbot AI nel sito vetrina: capisce la domanda, risponde sui contenuti e accompagna l'utente alla sezione o al prodotto giusto.",
-    theme: "platform",
+    theme: "hub",
   },
   {
     key: "dashboard",
@@ -235,7 +235,7 @@ export const SERVICES: Service[] = [
     title: "Una regìa unica per tutti i siti",
     blurb:
       "Pannello centralizzato: gestisci i contenuti e leggi la telemetria di ogni sito — utenti, interazioni, conversioni — in un colpo d'occhio.",
-    theme: "platform",
+    theme: "hub",
   },
   {
     key: "gestionale",
@@ -245,7 +245,7 @@ export const SERVICES: Service[] = [
     title: "Il gestionale che lavora con te",
     blurb:
       "Webapp gestionale con assistente AI integrato: chiedi in linguaggio naturale, ottieni risposte, report e azioni sui tuoi dati.",
-    theme: "platform",
+    theme: "hub",
   },
   {
     key: "ricarica",
@@ -262,10 +262,10 @@ export const SERVICES: Service[] = [
     number: "05",
     href: "/integrazioni",
     label: "Integrazioni API",
-    title: "Connessi a tutto ciò che usi già",
+    title: "Ci integriamo con molti sistemi, su richiesta",
     blurb:
       "WhatsApp, email transazionali (Resend), CRM, pagamenti: orchestriamo qualunque sistema con API in flussi automatici.",
-    theme: "platform",
+    theme: "hub",
   },
   {
     key: "segnalazioni",
@@ -275,6 +275,6 @@ export const SERVICES: Service[] = [
     title: "Un canale diretto per dirci tutto",
     blurb:
       "Pannello comodo per inviarci bug e richieste di modifica: con stato, priorità e storico. Niente più email perse.",
-    theme: "platform",
+    theme: "hub",
   },
 ];

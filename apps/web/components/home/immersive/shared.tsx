@@ -1,23 +1,51 @@
 "use client";
 
 /**
- * @descrizione  KIT per le scene IMMERSIVE della home. Garantisce coerenza tra i
- *   prodotti: accent per tema (con derivati ricalcolati), wrapper full-screen
- *   sticky-scrub, cursore finto, frasi-intermezzo (tono DESCRITTIVO, non
- *   promozionale) ed ease espressivi. Selettori auto-scoped alla sezione via
- *   gsap.context, quindi più scene possono condividere le stesse classi.
- * @indice
- * - accentVars(theme)         → CSS vars accent (override completo, anche soft/ink)
- * - useImmersiveScene(build)  → ref: sticky-scrub + reduced-motion + init says
- * - say(tl, i) / cursorTo(tl) → helper timeline (intermezzo / cursore)
- * - <ImmersiveStage>, <Say>, <Cursor> → markup riusabile
+ * @descrizione  KIT per le scene IMMERSIVE della home. Coerenza tra i prodotti:
+ *   accent per tema, cornice full-screen sticky-scrub con HAND-OFF scena→scena
+ *   (l'uscente sfuma e sale, l'entrante sale dentro — niente taglio netto),
+ *   cursore finto CONTESTUALE (freccia / mano / caret) che punta a ELEMENTI
+ *   REALI, "punch" zoom-locale per i click/type e frasi-intermezzo. Selettori
+ *   auto-scoped alla sezione via gsap.context: più scene condividono le classi.
+ *
+ * ┌─ HOME-KIT-API · guida per Pass 2 (non serve rileggere l'implementazione) ───┐
+ * │ useImmersiveScene(build)                                                     │
+ * │   build = (tl, section) => void. `tl` è scrubbata sullo scroll; `section` è   │
+ * │   l'elemento radice (per querySelector mirati). Sotto reduced-motion la tl    │
+ * │   va a progress(1): OGNI step deve avere uno STATO FINALE leggibile.          │
+ * │                                                                               │
+ * │ cursorTo(tl, target, opts?) — muove il cursore finto                          │
+ * │   target: selettore CSS (es. ".imm-send") o Element reale DENTRO la scena.    │
+ * │   opts.mode: "arrow" | "hand" | "text" (icona contestuale; default "arrow",   │
+ * │     "hand" sui bottoni, "text" sui campi di testo).                           │
+ * │   opts.duration: secondi (default 0.9). La posizione è letta a RUNTIME via    │
+ * │     getBoundingClientRect (function-based) → segue il layout vero, niente %    │
+ * │     "magici". Retro-compat: cursorTo(tl, "30%","90%") (left,top in %) regge.  │
+ * │                                                                               │
+ * │ clickZoom(tl, target, opts?) — "punch" zoom-in→out su un CLUSTER locale       │
+ * │   Convenzione: avvolgi il cluster da enfatizzare in className "imm-zoom-local"│
+ * │     (oppure passa un qualsiasi selettore/Element). NON tocca .imm-stage (che   │
+ * │     porta lo zoom di SCENA) → i due zoom non si sommano/litigano.             │
+ * │   opts.scale (default 1.08), opts.position (posizione GSAP, es "<"),          │
+ * │     opts.origin (transform-origin, default "50% 50%"). Torna a scale 1 →      │
+ * │     no-op pulito sotto reduced-motion.                                        │
+ * │                                                                               │
+ * │ say(tl, i) → mostra/nasconde <Say i={i}>. <ImmersiveStage>, <Say>, <Cursor>,  │
+ * │   accentVars(theme) → markup/util riusabili.                                  │
+ * └───────────────────────────────────────────────────────────────────────────┘
  */
 import { forwardRef, useRef } from "react";
+import { MousePointer2, Pointer, TextCursor } from "lucide-react";
 import { gsap, ScrollTrigger } from "@gmgroup/lib/gsap";
 import { prefersReducedMotion, useIsoLayoutEffect } from "@gmgroup/lib/motion";
 
+/**
+ * Accent per "mondo"/servizio. "platform" = aree servizio/admin: ora il LIME del
+ * gruppo (era viola elettrico, de-brandizzato su richiesta del cliente). `c` =
+ * colore del TESTO sopra l'accent pieno.
+ */
 const THEMES: Record<string, { a: string; s: string; c: string }> = {
-  platform: { a: "#7c5cff", s: "#6344e6", c: "#ffffff" },
+  platform: { a: "#84cc16", s: "#65a30d", c: "#0b1020" },
   mobility: { a: "#3c9e3a", s: "#2f7e2e", c: "#ffffff" },
   solar: { a: "#a8d920", s: "#8fbc15", c: "#0b1020" },
   shop: { a: "#c8d400", s: "#a8b200", c: "#0b1020" },
@@ -32,13 +60,120 @@ export function accentVars(theme: string): React.CSSProperties {
     "--accent-strong": t.s,
     "--accent-contrast": t.c,
     "--accent-soft": `color-mix(in oklab, ${t.a} 14%, transparent)`,
-    "--accent-ink": `color-mix(in oklab, ${t.a}, #0b1020 22%)`,
+    // ink = accent LEGGIBILE come testo (mix verso il fondo scuro). 38% → ~AAA su
+    // chiaro anche con il lime (allineato ai token del gruppo).
+    "--accent-ink": `color-mix(in oklab, ${t.a}, #0b1020 38%)`,
     "--accent-ring": `color-mix(in oklab, ${t.a} 55%, transparent)`,
   };
   return v as unknown as React.CSSProperties;
 }
 
-/** Sticky-scrub immersivo: il `build` popola la timeline (selettori scoped). */
+// ── Cursore finto: tipi + helper ─────────────────────────────────────────────
+
+export type CursorMode = "arrow" | "hand" | "text";
+
+/** Centro del target reale, in px, NELLO SPAZIO dell'offsetParent del cursore.
+ *  Letto a runtime: durante le interazioni la scena è a scale 1 (l'entrata/uscita
+ *  zoom avvengono FUORI dalla finestra di scrub principale), quindi i px del
+ *  target e quelli del cursore coincidono. */
+function cursorDest(
+  section: HTMLElement,
+  target: string | Element | null | undefined,
+): { left: number; top: number } | null {
+  const cursor = section.querySelector<HTMLElement>(".imm-cursor");
+  const el = typeof target === "string" ? section.querySelector<HTMLElement>(target) : (target ?? null);
+  if (!cursor || !el) return null;
+  const r = el.getBoundingClientRect();
+  // Target nascosto (es. sidebar in display:none su mobile) → niente salto in un
+  // angolo: il chiamante fa fallback alla posizione corrente del cursore.
+  if (r.width === 0 && r.height === 0) return null;
+  const parent = (cursor.offsetParent as HTMLElement | null) ?? section;
+  const pr = parent.getBoundingClientRect();
+  return { left: r.left + r.width / 2 - pr.left, top: r.top + r.height / 2 - pr.top };
+}
+
+/** Posizione corrente del cursore (px) — fallback se il target non si trova. */
+function cursorCurrent(section: HTMLElement | undefined): { left: number; top: number } {
+  const c = section?.querySelector<HTMLElement>(".imm-cursor");
+  if (!c) return { left: 0, top: 0 };
+  const cs = getComputedStyle(c);
+  return { left: parseFloat(cs.left) || 0, top: parseFloat(cs.top) || 0 };
+}
+
+function setCursorMode(section: HTMLElement | undefined, mode: CursorMode) {
+  const c = section?.querySelector<HTMLElement>(".imm-cursor");
+  if (c) c.dataset.cursorMode = mode;
+}
+
+/**
+ * Muove il cursore finto verso un TARGET reale (o, retro-compat, a left/top in %).
+ * La posizione è letta a runtime (getBoundingClientRect, valori function-based di
+ * GSAP) → segue il layout reale: niente percentuali "magiche" che mancano il bersaglio.
+ * In viaggio l'icona è la freccia; all'ARRIVO diventa l'icona contestuale (mode);
+ * scrubbando indietro torna freccia.
+ */
+export function cursorTo(
+  tl: gsap.core.Timeline,
+  target: string | Element | null | undefined,
+  optsOrTop?: { mode?: CursorMode; duration?: number } | string,
+): gsap.core.Timeline {
+  // Retro-compat: cursorTo(tl, "30%", "90%") — il 2° argomento è una stringa.
+  if (typeof optsOrTop === "string") {
+    return tl.to(".imm-cursor", {
+      left: target as string,
+      top: optsOrTop,
+      duration: 0.9,
+      ease: "power2.inOut",
+    });
+  }
+  const section = tl.data as HTMLElement | undefined;
+  const mode = optsOrTop?.mode ?? "arrow";
+  const duration = optsOrTop?.duration ?? 0.9;
+  return tl.to(".imm-cursor", {
+    duration,
+    ease: "power2.inOut",
+    left: () => (section ? (cursorDest(section, target)?.left ?? cursorCurrent(section).left) : 0),
+    top: () => (section ? (cursorDest(section, target)?.top ?? cursorCurrent(section).top) : 0),
+    onStart() {
+      setCursorMode(section, "arrow");
+    },
+    onComplete() {
+      setCursorMode(section, mode);
+    },
+    onReverseComplete() {
+      setCursorMode(section, "arrow");
+    },
+  });
+}
+
+/**
+ * "Punch" zoom-in→out su un cluster LOCALE (campo, bottone, card) quando il
+ * walkthrough simula un click o una digitazione. Tween di solo `scale` sul
+ * target → NON usa .imm-stage (che porta lo zoom di scena), così i due non si
+ * sommano. Finisce a scale 1 ⇒ no-op pulito sotto reduced-motion (progress(1)).
+ */
+export function clickZoom(
+  tl: gsap.core.Timeline,
+  target: string | Element,
+  opts?: { scale?: number; position?: number | string; origin?: string },
+): gsap.core.Timeline {
+  const peak = opts?.scale ?? 1.08;
+  // Sotto-timeline: la sequenza set→in→out resta integra a prescindere dalle
+  // posizioni relative del timeline padre; la inserisco poi a `position`
+  // (default ">", in coda).
+  const z = gsap.timeline();
+  z.set(target, { transformOrigin: opts?.origin ?? "50% 50%", willChange: "transform" })
+    .to(target, { scale: peak, duration: 0.28, ease: "power2.out" })
+    .to(target, { scale: 1, duration: 0.34, ease: "power2.inOut" });
+  tl.add(z, opts?.position ?? ">");
+  return tl;
+}
+
+/**
+ * Sticky-scrub immersivo + HAND-OFF di scena. Il `build` popola la timeline
+ * (selettori scoped a gsap.context). `tl.data = section` permette agli helper
+ * (cursorTo) di misurare i target reali nella scena giusta.
+ */
 export function useImmersiveScene(build: (tl: gsap.core.Timeline, section: HTMLElement) => void) {
   const ref = useRef<HTMLElement>(null);
   useIsoLayoutEffect(() => {
@@ -48,6 +183,7 @@ export function useImmersiveScene(build: (tl: gsap.core.Timeline, section: HTMLE
     const ctx = gsap.context(() => {
       gsap.set(".imm-say", { autoAlpha: 0, scale: 1.08, y: 26 });
       const tl = gsap.timeline({ defaults: { ease: "power3.out" } });
+      tl.data = section; // gli helper (cursorTo) misurano i target in QUESTA scena
       build(tl, section);
       if (reduced) {
         tl.progress(1);
@@ -57,39 +193,40 @@ export function useImmersiveScene(build: (tl: gsap.core.Timeline, section: HTMLE
         trigger: section,
         start: "top top",
         end: "bottom bottom",
-        scrub: 0.8, // smoothing → lo scrub "insegue" lo scroll (curva, non lineare)
+        scrub: 0.8,
+        invalidateOnRefresh: true, // su resize ri-misura i target del cursore
         animation: tl,
       });
 
-      // CAMERA: la scena entra in ZOOM-IN (da rimpicciolita+velata) e esce in
-      // ZOOM-OUT → tra due servizi consecutivi si legge "zoom-out · pan · zoom-in".
+      // HAND-OFF scena→scena (transform/opacity only, will-change attivo):
+      // l'ENTRANTE sale dentro e si mette a fuoco (rise + scale + fade-in); l'
+      // USCENTE sfuma e sale via (rise + scale-down + fade-out). Le due finestre
+      // di scrub stanno PRIMA ("top…") e DOPO ("bottom…") la finestra principale,
+      // quindi durante le interazioni la scena è ferma a scale 1.
       const stage = section.querySelector<HTMLElement>(".imm-stage");
       if (stage) {
-        gsap.set(stage, { transformOrigin: "center center" });
+        gsap.set(stage, { transformOrigin: "center center", willChange: "transform, opacity" });
         gsap.fromTo(
           stage,
-          { scale: 0.9, autoAlpha: 0.35 },
+          { scale: 0.92, autoAlpha: 0, yPercent: 8 },
           {
             scale: 1,
             autoAlpha: 1,
+            yPercent: 0,
             ease: "none",
             scrollTrigger: { trigger: section, start: "top bottom", end: "top top", scrub: 0.8 },
           },
         );
         gsap.fromTo(
           stage,
-          { scale: 1, autoAlpha: 1 },
+          { scale: 1, autoAlpha: 1, yPercent: 0 },
           {
-            scale: 0.92,
-            autoAlpha: 0.3,
+            scale: 0.94,
+            autoAlpha: 0,
+            yPercent: -8,
             ease: "none",
             immediateRender: false,
-            scrollTrigger: {
-              trigger: section,
-              start: "bottom bottom",
-              end: "bottom top",
-              scrub: 0.8,
-            },
+            scrollTrigger: { trigger: section, start: "bottom bottom", end: "bottom top", scrub: 0.8 },
           },
         );
       }
@@ -110,11 +247,6 @@ export function say(tl: gsap.core.Timeline, i: number) {
   );
 }
 
-/** Sposta il cursore finto (ease morbido). Chiamare dentro build. */
-export function cursorTo(tl: gsap.core.Timeline, left: string, top: string) {
-  return tl.to(".imm-cursor", { left, top, duration: 0.9, ease: "power2.inOut" });
-}
-
 /** Frase-intermezzo grande, centrata, su velo sfocato. Tono descrittivo. */
 export function Say({ i, children }: { i: number; children: React.ReactNode }) {
   return (
@@ -131,26 +263,42 @@ export function Say({ i, children }: { i: number; children: React.ReactNode }) {
   );
 }
 
-/** Cursore finto (la timeline lo muove via .imm-cursor). */
+/**
+ * Cursore finto CONTESTUALE: tre icone sovrapposte (freccia / mano / caret); il
+ * timeline ne sceglie una via `data-cursor-mode` (vedi cursorTo). Le icone sono
+ * centrate sul punto (left,top) che la timeline anima; un alone bianco le rende
+ * leggibili su qualunque superficie chiara.
+ */
 export function Cursor() {
+  const base =
+    "absolute top-0 left-0 h-5 w-5 -translate-x-1/2 -translate-y-1/2 text-foreground drop-shadow-[0_1px_2px_rgba(255,255,255,0.95)] transition-opacity duration-150";
   return (
     <div
-      className="imm-cursor pointer-events-none absolute z-30"
+      className="imm-cursor group/cur pointer-events-none absolute z-30"
       style={{ left: "50%", top: "55%" }}
+      data-cursor-mode="arrow"
       aria-hidden
     >
-      <svg width="22" height="22" viewBox="0 0 24 24" className="drop-shadow">
-        <path
-          d="M4 2l6 16 2.5-6.5L19 9 4 2z"
-          className="fill-foreground stroke-background"
-          strokeWidth="1.5"
-        />
-      </svg>
+      {/* Freccia (default) — riempita per leggersi come un cursore di sistema */}
+      <MousePointer2
+        className={`${base} fill-foreground opacity-100 group-data-[cursor-mode=hand]/cur:opacity-0 group-data-[cursor-mode=text]/cur:opacity-0`}
+        strokeWidth={1.25}
+      />
+      {/* Mano/puntatore — sopra un elemento cliccabile */}
+      <Pointer
+        className={`${base} opacity-0 group-data-[cursor-mode=hand]/cur:opacity-100`}
+        strokeWidth={2}
+      />
+      {/* Caret di testo (I-beam) — sopra un campo di testo */}
+      <TextCursor
+        className={`${base} opacity-0 group-data-[cursor-mode=text]/cur:opacity-100`}
+        strokeWidth={2}
+      />
     </div>
   );
 }
 
-/** Cornice full-screen sticky di una scena-prodotto: eyebrow + stage + cursore. */
+/** Cornice full-screen sticky di una scena-prodotto: stage + cursore. */
 export const ImmersiveStage = forwardRef<
   HTMLElement,
   {
@@ -171,7 +319,9 @@ export const ImmersiveStage = forwardRef<
       style={{ ...accentVars(theme), height: `${heightVh}vh` }}
     >
       <div className="bg-background sticky top-0 h-screen overflow-hidden">
-        {/* .imm-stage = camera (scale/opacity da scroll); .imm-skew = velocity skew */}
+        {/* .imm-stage = camera (scale/opacity/translate da scroll: zoom di scena +
+            hand-off); .imm-skew = velocity skew. Il cursore è FUORI da .imm-skew
+            (non va inclinato) ma dentro .imm-stage. */}
         <div className="imm-stage h-full w-full">
           <div className="imm-skew h-full w-full">{children}</div>
           <Cursor />

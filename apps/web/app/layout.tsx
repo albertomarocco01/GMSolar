@@ -23,7 +23,7 @@ const SITE_DESCRIPTION =
  * del gruppo (lime) prima che il client imposti l'accent del mondo. Deve restare
  * in sync con `themeFromPath` (@gmgroup/lib/theme).
  */
-const NO_FLASH_THEME = `(function(){try{var p=location.pathname;var plat=["/dashboard","/gestionale","/integrazioni","/segnalazioni","/assistente"];var t=p.indexOf("/solar")===0?"solar":p.indexOf("/mobility")===0?"mobility":p.indexOf("/shop")===0?"shop":plat.some(function(x){return p.indexOf(x)===0})?"platform":"hub";document.documentElement.dataset.theme=t;}catch(e){}})();`;
+const NO_FLASH_THEME = `(function(){try{var p=location.pathname;var t=p.indexOf("/solar")===0?"solar":p.indexOf("/mobility")===0?"mobility":p.indexOf("/shop")===0?"shop":"hub";document.documentElement.dataset.theme=t;}catch(e){}})();`;
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),

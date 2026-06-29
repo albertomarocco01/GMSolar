@@ -19,7 +19,7 @@
  *   presente sulla Schermata A + «Segnalazione ricevuta ✓» visibile.
  */
 import { gsap } from "@gmgroup/lib/gsap";
-import { ImmersiveStage, Say, say, cursorTo, useImmersiveScene } from "./shared";
+import { ImmersiveStage, Say, say, cursorTo, clickZoom, useImmersiveScene } from "./shared";
 
 // ── Dati Schermata A (pagina del gestionale) ─────────────────────────────────
 
@@ -65,8 +65,8 @@ export default function ImmersiveSegnalazioni() {
     // ① Frase: si segnala in un attimo
     say(tl, 0);
 
-    // ② Schermata A → il cursore preme «Copia link»
-    cursorTo(tl, "80%", "26%");
+    // ② Schermata A → il cursore (mano) preme «Copia link»
+    cursorTo(tl, ".imm-copy-link", { mode: "hand" });
     tl.to(".imm-copy-link", { scale: 0.94, duration: 0.1, ease: "power2.in" }, ">0.25");
     tl.to(".imm-copy-link", { scale: 1, duration: 0.4, ease: "back.out(3)" }, ">");
     // Toast «Link pagina copiato» (entra dal basso)
@@ -79,24 +79,25 @@ export default function ImmersiveSegnalazioni() {
     tl.to(".imm-copy-toast", { autoAlpha: 0, y: 48, duration: 0.4, ease: "power2.in" });
     tl.to(".imm-track", { xPercent: -50, duration: 1.1, ease: "expo.inOut" }, "<0.1");
 
-    // ④ Il cursore incolla il link → il campo si riempie (reveal rapido = "paste")
-    cursorTo(tl, "30%", "40%");
+    // ④ Il cursore (caret) incolla il link → il campo si riempie (reveal rapido = "paste")
+    cursorTo(tl, ".imm-link-text", { mode: "text" });
     tl.to(
       ".imm-link-text",
       { clipPath: "inset(0 0% 0 0)", duration: 0.4, ease: "steps(10)" },
       ">0.1",
     );
 
-    // ⑤ Il cursore scrive la richiesta → digitazione carattere per carattere
-    cursorTo(tl, "32%", "55%");
+    // ⑤ Il cursore (caret) scrive la richiesta → digitazione carattere per carattere
+    cursorTo(tl, ".imm-req-text", { mode: "text" });
     tl.to(
       ".imm-req-text",
       { clipPath: "inset(0 0% 0 0)", duration: 1.4, ease: "steps(36)" },
       ">0.15",
     );
+    clickZoom(tl, ".imm-zoom-local", { position: "<" }); // punch-zoom del modulo durante il typing
 
-    // ⑥ Il cursore preme INVIA → pulse di conferma
-    cursorTo(tl, "28%", "76%");
+    // ⑥ Il cursore (mano) preme INVIA → pulse di conferma
+    cursorTo(tl, ".imm-send-btn", { mode: "hand" });
     tl.to(".imm-send-btn", { scale: 0.94, duration: 0.1, ease: "power2.in" }, ">0.25");
     tl.to(".imm-send-btn", { scale: 1, duration: 0.45, ease: "back.out(3.5)" }, ">");
 
@@ -107,7 +108,7 @@ export default function ImmersiveSegnalazioni() {
     say(tl, 2);
 
     // ── PAN ORIZZONTALE → ritorno alla Schermata A ───────────────────────────
-    cursorTo(tl, "55%", "34%");
+    cursorTo(tl, ".imm-new-btn", { mode: "hand" });
     tl.to(".imm-track", { xPercent: 0, duration: 1.1, ease: "expo.inOut" }, "<");
 
     // ⑨ Il 4° bottone «Invia per email» APPARE (ease espressivo back.out)
@@ -240,7 +241,7 @@ export default function ImmersiveSegnalazioni() {
 
           {/* ════════════ SCHERMATA B · Modulo di segnalazione ════════════ */}
           <div className="w-1/2 shrink-0 overflow-hidden p-6 sm:p-8">
-            <div className="border-border bg-surface mx-auto flex h-full max-w-2xl flex-col overflow-hidden rounded-2xl border shadow-sm">
+            <div className="imm-zoom-local border-border bg-surface mx-auto flex h-full max-w-2xl flex-col overflow-hidden rounded-2xl border shadow-sm">
               <div className="border-border border-b px-6 py-4">
                 <h2 className="text-foreground font-semibold tracking-tight">
                   Modulo di segnalazione

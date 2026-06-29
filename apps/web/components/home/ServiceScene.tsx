@@ -17,7 +17,8 @@ import Container from "@gmgroup/ui/Container";
 type AccentTheme = "platform" | "mobility" | "solar";
 
 const ACCENTS: Record<AccentTheme, { a: string; s: string; c: string }> = {
-  platform: { a: "#7c5cff", s: "#6344e6", c: "#ffffff" },
+  // "platform" = aree servizio: ora il LIME del gruppo (era viola, de-brandizzato).
+  platform: { a: "#84cc16", s: "#65a30d", c: "#0b1020" },
   mobility: { a: "#3c9e3a", s: "#2f7e2e", c: "#ffffff" },
   solar: { a: "#a8d920", s: "#8fbc15", c: "#0b1020" },
 };

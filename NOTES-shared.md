@@ -277,3 +277,71 @@ dentro l'app unica, re-tematizzate sui token e con l'AI spostata server-side.
 - Le due route AI funzionano **senza chiave** (pre-baked + euristica/sandbox); con chiave
   passano al modello. `react/no-unescaped-entities` disabilitato a livello di file solo nei
   due grandi componenti di copy italiana (apostrofi), per leggibilità.
+
+---
+
+## Fondazione — accent unico LIME + copy integrazioni (de-violet), round corrente
+
+Modifiche ZONA CONDIVISA fatte dal chat "Fondazione" (unico writer della shared zone in
+questo round), su richiesta del cliente. Verificate: `pnpm typecheck` ✅, `pnpm build` ✅,
+verifica visiva a 1280px su /dashboard, /assistente, /integrazioni (accent lime, testo AA),
+no-flash confermato (SSR `<html data-theme="hub">` + script no-flash + render JS-off = lime).
+
+### TASK 1 — il tema "platform" (viola `#7c5cff`) è stato eliminato → tutte le route servizio usano il lime del gruppo ("hub" `#84cc16`)
+
+Il cliente vuole UN solo colore brand (lime). Le 5 route servizio (/dashboard, /gestionale,
+/integrazioni, /segnalazioni, /assistente) risolvevano al tema "platform" viola: ora risolvono
+a "hub". **Fonte di verità unica del lime = blocco `:root,[data-theme="hub"]` in tokens.css.**
+
+- `packages/tokens/tokens.css`: **rimosso** il blocco `[data-theme="platform"]` (accent viola).
+  Lasciati i token STATICI `--color-violet`/`--color-violet-strong`/`--violet-ink` (NON sono
+  l'accent di route: `--color-violet` è usato da `components/home/scenes/HeroScene.tsx`
+  → `bg-violet/12`, blob decorativo). Aggiornato solo il commento ora fuorviante.
+- `packages/lib/src/theme.ts`: rimosso `PLATFORM_PREFIXES` e il valore `"platform"` dal tipo
+  `ThemeKey` (ora `"hub" | "solar" | "mobility" | "shop"`); `themeFromPath` fa cadere ogni
+  route non-vetrina su `"hub"`. (Verificato type-safe: gli unici literal `"platform"` come
+  `ThemeKey` erano in site.ts; i componenti home usano un tipo LOCALE `theme: string`.)
+- `apps/web/app/layout.tsx`: script inline `NO_FLASH_THEME` riallineato byte-per-byte a
+  `themeFromPath` (rimosso l'array `plat[]` → solar/mobility/shop, altrimenti hub). Evita
+  mismatch di hydration sul colore.
+- `packages/lib/src/site.ts`: i 5 servizi con `theme:"platform"` → `theme:"hub"`.
+- **A11y:** le 5 route servizio NON usavano mai `text-accent` "nudo" (già `text-accent-ink`/
+  `-contrast`/`-soft`/`-strong`), quindi il lime come TESTO è già AAA. Nessun fix necessario.
+
+### TASK 2 — copy "integrazioni" vietata: niente "(sistemi) che usi già"
+
+Canonico imposto ovunque: **"Ci integriamo con molti sistemi, su richiesta."** (senza virgola
+nei titoli composti / con i due punti).
+
+- `apps/web/app/integrazioni/page.tsx`: metadata `title` + `h1` + commento di intestazione.
+- `packages/lib/src/site.ts`: `SERVICES` → titolo del servizio integrazioni (era "Connessi a
+  tutto ciò che usi già").
+- `apps/web/data/kb.ts`: prima frase della `contenuto` integrazioni (era "Connettiamo ciò che
+  usi già:") → canonico; tenuta la 2ª frase (orchestrazione), non vietata.
+
+### ⚠️ DA FARE — chat HOME (`components/home/**`, fuori dal mio recinto)
+
+Per coerenza visiva/copy, la HOME deve recepire:
+
+1. **Viola hardcoded nelle scene immersive** → portarlo a lime (`#84cc16`/strong `#65a30d`):
+   `components/home/immersive/shared.tsx` (`THEMES.platform`), `components/home/ServiceScene.tsx`
+   (`ACCENTS.platform`), `components/home/immersive/ImmersiveDashboard.tsx` (`PLT="#7c5cff"` +
+   gradienti `#7c5cff..`). Finché non cambia, le scene-prodotto della home restano viola.
+2. **Copy vietata in `components/home/immersive/ImmersiveIntegrazioni.tsx`** righe ~91 (commento)
+   e ~160 (visibile: "Ci colleghiamo ai sistemi che usi già.") → canonico Task 2.
+
+### Note / lasciato com'è di proposito
+
+- **Viola CATEGORICO dei grafici** (NON è il brand accent → lasciato): `data/telemetry.ts`
+  serie "Organica" (`#7c5cff`, donut "Sorgenti di traffico" su /dashboard) e il fallback
+  `?? "#7c5cff"` in `components/dashboard/TrafficChart.tsx` (~riga 90). Fuori dal mio recinto;
+  lo swap cosmetico del solo fallback è opzionale e spetta a chi possiede dashboard.
+- **Commenti stantii fuori dal mio recinto** (solo commenti, nessun effetto a runtime — l'accent
+  reso è lime): `apps/web/app/segnalazioni/page.tsx` (~riga 3) e `apps/web/app/assistente/page.tsx`
+  (~riga 71) citano ancora il tema "platform (viola)". Da aggiornare da chi possiede quelle pagine
+  (io ho corretto solo il commento equivalente in `integrazioni/page.tsx`, nel mio recinto).
+- **Pre-esistenti, NON introdotti da me** (verificato con `git stash` su HEAD pulito, stessi
+  errori): `pnpm lint` rosso — `components/assistente/ChatWidget.tsx` (no-unescaped-entities),
+  `components/dashboard/ContentEditorPanel.tsx` + `components/home/AutoScroll.tsx`
+  (set-state-in-effect) + warning vari. E un mismatch di hydration su /dashboard
+  (`AnimatedCounter`, "1.428" SSR vs "1428" client, formato it-IT). Tutti fuori dal mio recinto.

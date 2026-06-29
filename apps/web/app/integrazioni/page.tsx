@@ -6,8 +6,8 @@
  *   2. Griglia connettori: 7 card (WhatsApp, Email, CRM, Stripe, Calendar, AI, Sheets)
  *   3. Flussi animati: 2 scenari con diagramma a nodi SVG + log simulato
  *
- * L'accent "platform" (viola) è attivato automaticamente dal ThemeProvider
- * tramite la route /integrazioni (cfr. packages/lib/src/theme.ts).
+ * L'accent della pagina è il lime del gruppo ("hub"), impostato automaticamente
+ * dal ThemeProvider in base alla route (cfr. packages/lib/src/theme.ts).
  *
  * RECINTO: questo file e apps/web/components/integrazioni/** — non toccare
  * la zona condivisa (packages/**, layout, globals, tokens, Header/Footer).
@@ -24,7 +24,7 @@ import FlowDiagram from "@/components/integrazioni/FlowDiagram";
 import { CONNECTORS, SCENARIOS } from "@/components/integrazioni/data";
 
 export const metadata: Metadata = {
-  title: "Integrazioni API — Connessi a tutto ciò che usi già",
+  title: "Integrazioni API — Ci integriamo con molti sistemi su richiesta",
   description:
     "WhatsApp, email, CRM, pagamenti, AI: orchestriamo qualunque sistema con API in flussi automatici.",
 };
@@ -38,7 +38,7 @@ export default function IntegrazioniPage() {
           <Badge>Servizio 06 · Integrazioni API</Badge>
 
           <h1 className="font-display text-display-sm md:text-display-md mt-4 max-w-3xl font-bold tracking-tight text-balance">
-            Connessi a tutto ciò che usi già
+            Ci integriamo con molti sistemi, su richiesta
           </h1>
 
           <p className="text-muted mt-4 max-w-xl text-lg leading-relaxed">

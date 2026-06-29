@@ -10,7 +10,7 @@
  *   Reduced-motion: timeline portata a progress(1) → stato finale leggibile.
  */
 import { gsap } from "@gmgroup/lib/gsap";
-import { ImmersiveStage, Say, say, cursorTo, useImmersiveScene } from "./shared";
+import { ImmersiveStage, Say, say, cursorTo, clickZoom, useImmersiveScene } from "./shared";
 
 // ── Dati statici ───────────────────────────────────────────────────────────────
 
@@ -58,8 +58,9 @@ const STATO_CLS: Record<string, string> = {
   "In attesa": "bg-amber-100 text-amber-700",
 };
 
-/** Accent platform hardcoded (le CSS var non sono sempre interpolabili da GSAP). */
-const PLT = "#7c5cff";
+/** Accent platform hardcoded (le CSS var non sono sempre interpolabili da GSAP).
+ *  Ora LIME di gruppo (era viola, de-brandizzato). */
+const PLT = "#84cc16";
 
 // ── Componente ─────────────────────────────────────────────────────────────────
 
@@ -90,28 +91,30 @@ export default function ImmersiveDashboard() {
     // ── ① Contenuti ───────────────────────────────────────────────────────────
     say(tl, 0); // «Una regìa unica per tutti i tuoi siti.»
 
-    // Cursore si muove sull'area upload → simula un click (scale bounce)
-    cursorTo(tl, "40%", "36%");
+    // Cursore (mano) sull'area upload → click + punch-zoom del cluster card editor
+    cursorTo(tl, ".imm-img-placeholder", { mode: "hand" });
     tl.to({}, { duration: 0.3 });
     tl.to(".imm-img-placeholder", { scale: 0.96, duration: 0.12, ease: "power2.in" });
     tl.to(".imm-img-placeholder", { scale: 1, duration: 0.22, ease: "back.out(2.2)" }, ">");
+    clickZoom(tl, ".imm-zoom-local", { position: "<" }); // punch al click (non tocca .imm-stage)
     // L'immagine placeholder si riempie
     tl.to(".imm-img-fill", { autoAlpha: 1, duration: 0.6, ease: "power2.out" }, "<0.1");
 
-    // Cursore scende sul campo titolo → il testo appare (clip steps, effetto macchina da scrivere)
-    cursorTo(tl, "55%", "56%");
+    // Cursore (caret) sul campo titolo → digitazione + punch-zoom durante il typing
+    cursorTo(tl, ".imm-typed", { mode: "text" });
     tl.to({}, { duration: 0.25 });
     tl.to(".imm-typed", { clipPath: "inset(0 0% 0 0)", duration: 0.85, ease: "steps(22)" }, "<0.1");
+    clickZoom(tl, ".imm-zoom-local", { position: "<" });
 
     // ── ② Prodotti ────────────────────────────────────────────────────────────
     say(tl, 1); // «Carichi foto e testi, aggiungi prodotti.»
-    cursorTo(tl, "7%", "36%"); // click "Prodotti" nella sidebar
+    cursorTo(tl, navItems[1], { mode: "hand" }); // click "Prodotti" nella sidebar
     tl.to(".imm-nav-ind", { top: navTop(1), duration: 0.45, ease: "power3.inOut" }, "<0.3");
     tl.to(".imm-track", { xPercent: -25, duration: 1.1, ease: "expo.inOut" }, "<0.1");
 
-    // Cursore si posiziona sul bottone "Aggiungi prodotto" e lo preme
+    // Cursore (mano) sul bottone "Aggiungi prodotto" e lo preme
     tl.to({}, { duration: 0.35 });
-    cursorTo(tl, "72%", "17%");
+    cursorTo(tl, ".imm-add-btn", { mode: "hand" });
     tl.to(".imm-add-btn", { scale: 0.93, duration: 0.1, ease: "power2.in" });
     tl.to(".imm-add-btn", { scale: 1, duration: 0.18, ease: "back.out(2.5)" }, ">");
     // La nuova card prodotto entra con back.out
@@ -123,7 +126,7 @@ export default function ImmersiveDashboard() {
 
     // ── ③ Visite ──────────────────────────────────────────────────────────────
     say(tl, 2); // «Vedi visite, utenti e ordini in tempo reale.»
-    cursorTo(tl, "7%", "48%"); // click "Visite"
+    cursorTo(tl, navItems[2], { mode: "hand" }); // click "Visite"
     tl.to(".imm-nav-ind", { top: navTop(2), duration: 0.45, ease: "power3.inOut" }, "<0.3");
     tl.to(".imm-track", { xPercent: -50, duration: 1.1, ease: "expo.inOut" }, "<0.1");
 
@@ -157,7 +160,7 @@ export default function ImmersiveDashboard() {
     tl.to(".imm-bar", { scaleY: 1, duration: 0.6, stagger: 0.07, ease: "back.out(1.7)" }, "<0.3");
 
     // ── ④ Ordini ──────────────────────────────────────────────────────────────
-    cursorTo(tl, "7%", "60%"); // click "Ordini"
+    cursorTo(tl, navItems[3], { mode: "hand" }); // click "Ordini"
     tl.to(".imm-nav-ind", { top: navTop(3), duration: 0.45, ease: "power3.inOut" }, "<0.3");
     tl.to(".imm-track", { xPercent: -75, duration: 1.1, ease: "expo.inOut" }, "<0.1");
     // Righe tabella entrano con slide+fade staggered
@@ -245,7 +248,7 @@ export default function ImmersiveDashboard() {
             <div className="w-1/4 shrink-0 overflow-hidden p-6">
               <p className="mb-4 font-semibold text-slate-700">Editor contenuti</p>
 
-              <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+              <div className="imm-zoom-local rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
                 {/* Area upload immagine */}
                 <div className="imm-img-placeholder relative mb-4 flex h-32 cursor-pointer items-center justify-center overflow-hidden rounded-lg border-2 border-dashed border-slate-300 bg-slate-50">
                   {/* Stato vuoto: icona upload */}
@@ -272,7 +275,7 @@ export default function ImmersiveDashboard() {
                     className="imm-img-fill absolute inset-0 rounded-lg"
                     style={{
                       background:
-                        "repeating-linear-gradient(45deg, #7c5cff11 0px, #7c5cff11 2px, transparent 2px, transparent 10px), linear-gradient(135deg, #7c5cff22, #7c5cff44)",
+                        "repeating-linear-gradient(45deg, #84cc1611 0px, #84cc1611 2px, transparent 2px, transparent 10px), linear-gradient(135deg, #84cc1622, #84cc1644)",
                     }}
                     aria-hidden
                   >

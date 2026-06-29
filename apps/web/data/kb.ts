@@ -126,7 +126,7 @@ export const KB: KbEntry[] = [
     id: "integrazioni",
     titolo: "Integrazioni API",
     contenuto:
-      "Connettiamo ciò che usi già: WhatsApp, email transazionali (Resend), CRM e pagamenti. Orchestriamo qualunque sistema via API in flussi automatici, così i dati passano da soli da un punto all'altro.",
+      "Ci integriamo con molti sistemi su richiesta: WhatsApp, email transazionali (Resend), CRM e pagamenti. Orchestriamo qualunque sistema via API in flussi automatici, così i dati passano da soli da un punto all'altro.",
     href: "/integrazioni",
     tag: [
       "integrazioni",

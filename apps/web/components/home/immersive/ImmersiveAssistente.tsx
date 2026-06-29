@@ -13,7 +13,7 @@
  *   Reduced-motion: stato finale (card generata visibile) leggibile.
  */
 import { gsap } from "@gmgroup/lib/gsap";
-import { ImmersiveStage, Say, say, cursorTo, useImmersiveScene } from "./shared";
+import { ImmersiveStage, Say, say, cursorTo, clickZoom, useImmersiveScene } from "./shared";
 import { PRODUCTS, RECOMMENDATION, QUERY } from "./_assistente-data";
 
 const SHOP_NAV = ["Cavi", "Wallbox", "Adattatori", "Supporto"];
@@ -33,17 +33,18 @@ export default function ImmersiveAssistente() {
     // ① Presenta la scena: un assistente dentro la pagina prodotti
     say(tl, 0);
 
-    // ② Il cursore tocca la barra → focus (anello accent)
-    cursorTo(tl, "30%", "90%");
+    // ② Il cursore (caret) tocca la barra → focus (anello accent)
+    cursorTo(tl, ".imm-bar", { mode: "text" });
     tl.to(".imm-bar-ring", { autoAlpha: 1, duration: 0.35, ease: "power2.out" }, "<0.45");
 
     // ③ Digitazione della richiesta (placeholder esce, testo rivelato a "steps")
     tl.to(".imm-placeholder", { autoAlpha: 0, duration: 0.2, ease: "power2.in" });
     tl.to(".imm-typed", { clipPath: "inset(0 0% 0 0)", duration: 1.2, ease: "steps(30)" });
+    clickZoom(tl, ".imm-bar", { position: "<" }); // punch-zoom della barra durante il typing
     say(tl, 1);
 
-    // ④ Invio → l'AI "ragiona" (cursore sul tasto, press, typing dots)
-    cursorTo(tl, "93%", "90%");
+    // ④ Invio → l'AI "ragiona" (cursore-mano sul tasto, press, typing dots)
+    cursorTo(tl, ".imm-send", { mode: "hand" });
     tl.to(".imm-send", { scale: 0.86, duration: 0.12, ease: "power2.in" }, ">-0.05");
     tl.to(".imm-send", { scale: 1, duration: 0.22, ease: "back.out(2.4)" }, ">");
     tl.to(".imm-typing", { autoAlpha: 1, y: 0, duration: 0.35, ease: "power2.out" }, ">0.1");

@@ -9,7 +9,7 @@
  *   Usa il kit condiviso `./shared`. Reduced-motion: stato finale leggibile.
  */
 import { gsap } from "@gmgroup/lib/gsap";
-import { ImmersiveStage, Say, say, cursorTo, useImmersiveScene } from "./shared";
+import { ImmersiveStage, Say, say, cursorTo, clickZoom, useImmersiveScene } from "./shared";
 
 const NAV = ["Panoramica", "Ordini", "Clienti", "Agente AI"];
 
@@ -63,28 +63,29 @@ export default function ImmersiveGestionale() {
 
     // ② Ordini + query in linguaggio naturale
     say(tl, 1);
-    cursorTo(tl, "7%", "33%");
+    cursorTo(tl, navItems[1], { mode: "hand" });
     tl.to(".imm-nav-ind", { top: navTop(1), duration: 0.45, ease: "power3.inOut" }, "<0.3");
     tl.to(".imm-track", { xPercent: -25, duration: 1.1, ease: "expo.inOut" }, "<0.1");
-    cursorTo(tl, "44%", "30%");
+    cursorTo(tl, ".imm-query", { mode: "text" });
     tl.to(".imm-query", { clipPath: "inset(0 0% 0 0)", duration: 1, ease: "steps(22)" }, "<0.2");
+    clickZoom(tl, ".imm-zoom-local", { position: "<" }); // punch-zoom della barra di ricerca durante il typing
     tl.to(".imm-match", { opacity: 1, duration: 0.45, ease: "power2.out" }, ">0.1");
     tl.to(".imm-row-n", { opacity: 0.35, duration: 0.4 }, "<");
     tl.to(".imm-badge", { autoAlpha: 1, scale: 1, duration: 0.45, ease: "back.out(1.8)" }, "<");
 
     // ③ Clienti
     say(tl, 2);
-    cursorTo(tl, "7%", "44%");
+    cursorTo(tl, navItems[2], { mode: "hand" });
     tl.to(".imm-nav-ind", { top: navTop(2), duration: 0.45, ease: "power3.inOut" }, "<0.3");
     tl.to(".imm-track", { xPercent: -50, duration: 1.1, ease: "expo.inOut" }, "<0.1");
 
     // ④ Agente AI — riceve una richiesta in italiano ed ESEGUE l'operazione
     say(tl, 3);
-    cursorTo(tl, "7%", "55%");
+    cursorTo(tl, navItems[3], { mode: "hand" });
     tl.to(".imm-nav-ind", { top: navTop(3), duration: 0.45, ease: "power3.inOut" }, "<0.3");
     tl.to(".imm-track", { xPercent: -75, duration: 1.1, ease: "expo.inOut" }, "<0.1");
-    // 1. la richiesta in linguaggio naturale si "scrive"
-    cursorTo(tl, "50%", "30%");
+    // 1. la richiesta in linguaggio naturale si "scrive" (cursore-caret)
+    cursorTo(tl, ".imm-ag-req", { mode: "text" });
     tl.to(".imm-ag-req", { clipPath: "inset(0 0% 0 0)", duration: 0.9, ease: "steps(20)" }, "<0.2");
     // 2. l'agente esegue: gli step compaiono uno dopo l'altro
     tl.to(
@@ -173,7 +174,7 @@ export default function ImmersiveGestionale() {
             {/* 2 · Ordini */}
             <div className="relative w-1/4 shrink-0 overflow-hidden p-6">
               <div className="mb-4 flex items-center justify-between">
-                <div className="bg-surface-2 text-foreground flex h-9 max-w-sm flex-1 items-center rounded-full px-4 text-sm">
+                <div className="imm-zoom-local bg-surface-2 text-foreground flex h-9 max-w-sm flex-1 items-center rounded-full px-4 text-sm">
                   <span className="imm-query block whitespace-nowrap">
                     ordini aperti sopra 50.000&nbsp;€
                   </span>
