@@ -30,7 +30,7 @@ export const KB: KbEntry[] = [
     titolo: "Siti vetrina cinematografici",
     contenuto:
       "Realizziamo siti vetrina che si guardano come un film: scrollytelling, 3D in tempo reale e motion su misura, sempre veloci e accessibili. Trovi tre esempi vivi — energia, mobilità ed e-commerce — costruiti con lo stesso design system.",
-    href: "/solar",
+    href: "/#vetrina",
     tag: [
       "sito",
       "siti",
@@ -107,7 +107,7 @@ export const KB: KbEntry[] = [
     titolo: "App ricarica EV",
     contenuto:
       "App per colonnine di ricarica con assistente di bordo: trova la colonnina più vicina, stima costi e tempi e avvia la rotta. Pensata per chi guida elettrico e vuole ricaricare senza pensieri.",
-    href: "/mobility/agent",
+    href: "/",
     tag: [
       "ricarica",
       "ev",

@@ -68,8 +68,8 @@ const INTEGRATION = [
  * /assistente — Servizio #2 della vetrina. Presenta il chatbot AI di sito
  * (cosa fa, come si integra) e ne incorpora una demo interattiva: il widget
  * <SiteAssistant /> è autosufficiente e parla con `/api/assistant`, che funziona
- * anche senza chiave AI (ranking deterministico sulla KB locale). Accent viola
- * "platform" ereditato dalla route.
+ * anche senza chiave AI (ranking deterministico sulla KB locale). Accent "hub"
+ * (lime) ereditato dalla route.
  */
 export default function AssistentePage() {
   return (

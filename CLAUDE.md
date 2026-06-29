@@ -1,77 +1,82 @@
-# GM Group — Demo sito-portale unificato
+# Vetrina Servizi — demo (de-brandizzata)
 
 ## Obiettivo
 
-Demo single-page-app multi-sezione per un colloquio commerciale. UN solo
-sito Next che racconta l'ecosistema di GM Group (3 brand dello stesso gruppo)
-e dentro ha tre "mondi", ognuno con una tecnica visiva diversa:
+Demo single-page-app **de-brandizzata**: una **presentazione interattiva** (scrollytelling
+cinematografico) con cui mostriamo a un cliente le nostre capacità su **7 servizi digitali**.
+NON è un prodotto in produzione e NON è "tre siti vetrina brandizzati": è un'unica app Next
+che funge da vetrina delle proposte (noi → cliente). Niente nomi/loghi/anagrafiche reali.
 
-- /solar (GM Solar, EPC fotovoltaico): cinematic video 4K + scroll GSAP, stats, mappa progetti, calcolatore ROI
-- /mobility (GMobility, wallbox/colonnine Mennekes): 3D scroll storytelling con React Three Fiber
-- /shop (Cavo Perfetto, e-commerce cavi ricarica): rebuild + AI "trova il cavo per la tua auto"
+Route vive (le uniche che esistono):
+
+- **/** — home immersiva **chromeless** (scroll-narrativa che racconta i servizi; dentro
+  ci sono i capitoli "Siti vetrina" e "App ricarica EV")
+- **/assistente** — assistente AI di sito (chatbot demo)
+- **/dashboard** — dashboard & telemetria (mock analytics, grafici recharts)
+- **/gestionale** — gestionale con assistente AI (query in linguaggio naturale)
+- **/integrazioni** — integrazioni API (diagramma di flusso)
+- **/segnalazioni** — pannello segnalazioni (bug/richieste con stato e priorità)
 
 ## Stack (fisso, non cambiare senza chiedere)
 
-- Next.js App Router + React + TypeScript
-- Tailwind CSS con design token centralizzati (colori/spacing/typography in un solo file)
-- Animazioni: GSAP + ScrollTrigger + Lenis (rispetta SEMPRE prefers-reduced-motion)
-- 3D: React Three Fiber + drei + postprocessing; shader GLSL; WebGL come default
-- AI: route handler server-side; chiavi MAI nel client; function-calling con tool deterministico + catalogo JSON locale
-- Mappe: MapLibre GL
+- Next.js App Router (16) + React (19) + TypeScript (strict)
+- Tailwind CSS v4 con design token centralizzati (`packages/tokens/tokens.css`, fonte unica)
+- Animazioni: GSAP + ScrollTrigger + Lenis (rispetta **SEMPRE** prefers-reduced-motion)
+- Grafici: recharts (dashboard, gestionale)
+- Icone: lucide-react
+- **AI: SIMULATA (mock)**. `resolveAiProvider()` in `apps/web/lib/ai.ts` ritorna sempre `null`:
+  nessun provider esterno viene mai chiamato, neanche con una chiave. Ogni route AI usa
+  fallback deterministici. **Deve restare disabilitata.**
 - Deploy: Vercel
 
 ## Regole
 
-- È una DEMO: tutti gli asset sono PLACEHOLDER (video di stock, glTF gratuiti o primitive, foto e catalogo finti in /data). Struttura tutto per sostituire facilmente gli asset reali dopo. NON inventare che gli asset esistono.
-- Performance prima dell'effetto: lazy-load del 3D, Suspense, fallback a poster/video se WebGL non disponibile. Deve girare su mobile mid-range.
-- Mobile-first, accessibile, italiano come lingua principale.
-- Lavora a fasi. Dopo ogni fase: fermati, riepiloga cosa hai fatto, aspetta il via.
+- È una **DEMO mock**: tutti gli asset sono PLACEHOLDER, tutti i dati sono finti/deterministici
+  (in `apps/web/data/**` e nei componenti). NON inventare che asset o integrazioni reali esistano.
+- Performance prima dell'effetto: lazy-load, Suspense, fallback statici. Deve girare su mobile
+  mid-range.
+- **Mobile-first**, accessibile (target AA), **italiano** come lingua dei contenuti/UI.
+- **Tema CHIARO forzato**, un solo accent (lime del cliente). Nessun dark-mode, nessun
+  theming per-route.
+- Lavora a fasi. Dopo ogni fase: fermati, riepiloga, aspetta il via.
 - Codice pulito e commentato, componenti piccoli e riusabili.
+
+## Fonte di verità
+
+Il piano e l'architettura aggiornati vivono in **`docs/PROGETTO.md`** e
+**`docs/ROADMAP-MULTIAGENTE.md`**. In caso di dubbio, quelli vincono su questo file.
 
 ---
 
-## Ownership map (fase parallela)
+## Zona condivisa (NON si tocca senza concordare)
 
-La fase 1 ha costruito le fondamenta condivise (design system, theming, primitive UI,
-motion, layout, hub). Da qui le tre sezioni possono procedere IN PARALLELO, ognuna nel
-proprio recinto.
+Nessuno modifica unilateralmente la base condivisa che tutte le sezioni ereditano:
+`packages/ui` (primitive UI, Header/Footer, ThemeProvider, Lenis), `packages/lib`
+(site, utils, motion, gsap, assets, theme), `packages/tokens` (`tokens.css` + base.css),
+`packages/config`, `apps/web/app/layout.tsx`, `apps/web/app/globals.css`. Una modifica
+unilaterale qui rompe le altre sezioni.
 
-| Agente   | POSSIEDE (crea/modifica)                      | LEGGE (dati)                                                                                             |
-| -------- | --------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
-| SOLAR    | `/app/solar/**`, `/components/solar/**`       | `/data/solar-projects.json`; video drone in `/public/assets` (`gm-solar-hero.mp4`, `gm-solar-drone.mp4`) |
-| MOBILITY | `/app/mobility/**`, `/components/mobility/**` | `/data/charging-points.json` + Open Charge Map                                                           |
-| SHOP     | `/app/shop/**`, `/components/shop/**`         | `/data/products.json`                                                                                    |
-
-### REGOLA FERREA (zona condivisa, NON si tocca)
-
-Nessuno modifica `/components/ui`, `/components/layout`, `/components/providers`, `/lib`,
-i token (`app/tokens.css`), `app/globals.css`, `app/layout.tsx`, il ThemeProvider,
-Header/Footer. Sono la base che tutte e tre le sezioni ereditano: una modifica unilaterale
-rompe le altre.
-
-Se a una sezione serve una modifica nella zona condivisa (un nuovo token, una prop in più
-su una primitiva, un colore): **annotala in `NOTES-shared.md` e CHIEDI. Non modificare.**
+Se serve una modifica nella zona condivisa (un nuovo token, una prop in più su una primitiva,
+un colore): **annotala in `NOTES-shared.md` e CONCORDA prima.**
 
 ## Design system — riferimento per le sezioni
 
-Tutto parte da `app/tokens.css` (fonte unica). Le sezioni **consumano** i token, non li
-ridefiniscono.
+Tutto parte da `packages/tokens/tokens.css` (fonte unica). Le sezioni **consumano** i token,
+non li ridefiniscono.
 
-### Accent per "mondo" (theming)
+### Accent (theming)
 
 - L'accent attivo è la CSS var `--accent` (+ `--accent-strong`, `--accent-soft`,
-  `--accent-contrast`, `--accent-ink`, `--accent-ring`). Lo imposta `ThemeProvider` mettendo
-  `data-theme` su `<html>` in base alla route: `hub` (`#84CC16` lime gruppo), `solar`
-  (`#A8D920`), `mobility` (`#3C9E3A`), `shop` (`#C8D400`).
-- **Sulla tua route l'accent è già quello del tuo brand.** Usa le utility tematizzate:
-  `bg-accent`, `text-accent`, `border-accent`, `bg-accent-soft`, `text-accent-contrast`
-  (testo sopra l'accent pieno) e **`text-accent-ink`** (accent come TESTO, leggibile su
-  chiaro e scuro — l'accent pieno lime ha contrasto basso come testo su sfondo chiaro).
-- Leggi la chiave attiva con `useTheme()` da `@/components/providers/ThemeProvider`.
-- Colori statici di tutti i brand (solo per viste dove convivono, es. hub):
-  `bg-solar`/`text-solar`, `bg-mobility`/..., `bg-shop`/...; brand gruppo: `brand-50..950`.
+  `--accent-contrast`, `--accent-ink`, `--accent-ring`). È **un solo colore de-brandizzato**
+  (lime `#84CC16`, chiave `hub`) su tutte le route: lo imposta `ThemeProvider` mettendo
+  `data-theme="hub"` su `<html>`.
+- Usa le utility tematizzate: `bg-accent`, `text-accent`, `border-accent`, `bg-accent-soft`,
+  `text-accent-contrast` (testo sopra l'accent pieno) e **`text-accent-ink`** (accent come
+  TESTO, leggibile su chiaro — l'accent pieno lime ha contrasto basso come testo).
+- Palette gruppo statica per scale/sfumature: `brand-50..950`.
+- `useTheme()` da `@gmgroup/ui/ThemeProvider` ritorna sempre `"hub"`.
 
-### Primitive UI (`/components/ui`) — API
+### Primitive UI (`@gmgroup/ui`) — API
 
 - **Container** `{ size?: "narrow"|"default"|"wide"; className?; children }`
 - **Section** `{ id?; className?; fullBleed?: boolean; size?; containerClassName?; children }` — ritmo verticale `py-section`, wrappa in Container salvo `fullBleed`.
@@ -86,7 +91,7 @@ Tutte rispettano **SEMPRE** `prefers-reduced-motion` (regola di progetto).
 
 ### Motion
 
-- Importa GSAP/ScrollTrigger SOLO da `@/lib/gsap` (registrazione unica del plugin).
-- `@/lib/motion`: `prefersReducedMotion()`, `useReducedMotion()`, `useIsoLayoutEffect`,
+- Importa GSAP/ScrollTrigger SOLO da `@gmgroup/lib/gsap` (registrazione unica del plugin).
+- `@gmgroup/lib/motion`: `prefersReducedMotion()`, `useReducedMotion()`, `useIsoLayoutEffect`,
   `DURATION` (secondi), `EASE` (eased GSAP). Lo smooth scroll (Lenis) è già attivo a livello
   di layout e si disattiva da solo con reduced-motion.

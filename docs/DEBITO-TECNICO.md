@@ -2,6 +2,8 @@
 
 > Generato e mantenuto da Code Maniac · 2026-06-28. Registro delle scorciatoie e dei residui, così *"dopo"* non diventa *"mai"*. Alimentato da `scan` (complessità; knip/jscpd/depcruise da installare), dai marcatori `ponytail:` e dalle deroghe motivate alla costituzione.
 
+> **Aggiornamento 2026-06-29 (decommission 3-mondi):** rimosso tutto il codice del vecchio progetto "3 siti vetrina" — cartella `legacy/`, `ev-cable-advisor/`, scene 3D `vetrina3d/`, moduli home, `WORLDS`/`DEMOS`/`LOGOS`, token e asset di brand, deps 3D/mappa (three/R3F/maplibre). Di conseguenza i debiti che puntavano a file ora cancellati sono **chiusi/moot**: #1–#5 e #14 (file in `solar/`, `mobility/agent/`, `cable-finder/`, `demos/`), #10 e #16 (`WORLDS`/`LOGOS` de-brandizzati e rimossi), #13 (i "mondi-esempio" brand non esistono più). #15 (recharts SSR) risolto dal bug-finder.
+
 ## Come si legge
 
 - **Origine:** chi ha segnalato il debito (tool o decisione).

@@ -93,41 +93,35 @@ pnpm typecheck    # TypeScript (tsc --noEmit)
 
 Base: **http://localhost:3000**
 
-| Indirizzo | Mondo | Cosa mostra |
-|---|---|---|
-| `/` | Gruppo (hub) | Landing dell'ecosistema: le tre "porte" verso i brand. |
-| `/solar` | GM Solar | EPC fotovoltaico: video cinematic, stats, case study, **mappa progetti**, calcolatore ROI. |
-| `/solar/lead` | GM Solar · **Demo AI** | Lead-qualifier agentico: consiglia Monofase / Trifase / Accumulo e blocca le richieste fuori tema. |
-| `/solar/analytics` | GM Solar · **Demo AI** | Analytics in linguaggio naturale → SQL → grafici, con guardrail GDPR (blocca PIN/dati personali). |
-| `/mobility` | GMobility | Storytelling 3D (React Three Fiber) + **mappa rete di ricarica** (Open Charge Map). |
-| `/mobility/agent` | GMobility · **Demo AI** | Assistente di ricarica di bordo (mockup smartphone): costi, tempi, prenotazione stallo, guardrail. |
-| `/shop` | Cavo Perfetto | E-commerce cavi: catalogo, carrello, **"trova il cavo per la tua auto"** (AI + wizard a bottoni). |
-| `/shop/[id]` | Cavo Perfetto | Pagina di dettaglio prodotto (es. `/shop/modo3-t2-trifase-liscio`). |
+| Indirizzo | Cosa mostra |
+|---|---|
+| `/` | Home immersiva **chromeless**: scroll-narrativa cinematografica che racconta i servizi (dentro, i capitoli "Siti vetrina" e "App ricarica EV"). |
+| `/assistente` | Assistente AI di sito: chatbot demo che risponde dai contenuti e indirizza. |
+| `/dashboard` | Dashboard & telemetria: mock analytics (KPI, grafici recharts, gestione contenuti). |
+| `/gestionale` | Gestionale con assistente AI: query in linguaggio naturale su dati finti. |
+| `/integrazioni` | Integrazioni API: diagramma di flusso (WhatsApp, email, CRM, pagamenti). |
+| `/segnalazioni` | Pannello segnalazioni: invio bug/richieste con stato, priorità e storico. |
 
-Il tema (colore accent) cambia **da solo** in base alla pagina: lime per il gruppo,
-chartreuse per Solar, verde per Mobility, lime acido per Shop.
+Il sito è **de-brandizzato**: un solo accent (lime) su tutte le route.
 
 ---
 
-## 5. Tre modi per raggiungere le 3 Demo AI
+## 5. Come si naviga la demo
 
-1. **Menu "✨ Demo AI" nell'header** — presente su **ogni** pagina, in alto a destra.
-   Si apre con un click ed elenca le tre demo; ci si arriva da qualunque punto del sito.
-2. **Sezioni in pagina** — le demo Solar sono linkate dentro `/solar`; il cable-finder è
-   la sezione `#cable-finder` dentro `/shop`.
-3. **Regìa di presentazione (deck)** — pensata per il colloquio: premi **`Shift+D`**
-   (oppure apri una pagina con `?deck=1`, es. `http://localhost:3000/?deck=1`). Compare in
-   basso una barra con le "tappe" del racconto. Naviga con **Avanti/Indietro** o con le
-   frecce **←/→**. **`Esc`** la chiude. Le frecce **non** rubano i tasti mentre scrivi in un
-   campo di testo.
+- La **home `/`** è la presentazione vera e propria: si scrolla (auto-scroll che riparte da
+  solo quando sei fermo; muovi il mouse per riprendere il controllo). È chromeless: niente
+  header/footer, per il feel "motion design".
+- Le **pagine-servizio** (`/assistente`, `/dashboard`, …) hanno header e footer: dal menu
+  **"Servizi"** in alto raggiungi ogni servizio in un click.
 
 ---
 
-## 6. AI facoltativa (chiavi, provider, modello)
+## 6. AI — simulata per scelta (mock)
 
-> ✅ **Tutto funziona SENZA chiave.** Le 3 demo hanno un percorso deterministico (scenari
-> pre-caricati + euristiche) e non si rompono mai. La chiave serve solo per far rispondere
-> un vero modello a domande libere.
+> ✅ **Nessuna chiave serve.** In questa demo l'AI è **disabilitata di proposito**:
+> `apps/web/lib/ai.ts` non chiama mai un provider esterno (neanche con una chiave). Le feature
+> "intelligenti" rispondono con fallback deterministici e non si rompono mai. Le istruzioni
+> sotto sulle chiavi restano solo come riferimento per un eventuale collegamento futuro.
 
 Per abilitare l'AI, crea il file **`apps/web/.env.local`** (è ignorato da git) partendo
 dall'esempio in radice:

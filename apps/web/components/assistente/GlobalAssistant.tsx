@@ -4,10 +4,10 @@
  * GlobalAssistant — launcher floating dell'assistente di sito.
  *
  * Mostra una FAB in basso a destra che apre <SiteAssistant /> in un popover.
- * Presente SOLO sui "mondi vetrina" (hub + solar/mobility/shop): nascosto sulle
- * aree piattaforma (che hanno una loro UX) e sulla pagina /assistente (dove
- * l'assistente è già incorporato come demo). Accessibile: aria-expanded, Esc per
- * chiudere; rispetta prefers-reduced-motion via le utility motion-reduce.
+ * Presente SOLO sulla home vetrina ("/"): nascosto sulle aree servizio (che
+ * hanno una loro UX) e sulla pagina /assistente (dove l'assistente è già
+ * incorporato come demo). Accessibile: aria-expanded, Esc per chiudere;
+ * rispetta prefers-reduced-motion via le utility motion-reduce.
  */
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -21,7 +21,6 @@ const HIDE_ON = [
   "/gestionale",
   "/integrazioni",
   "/segnalazioni",
-  "/demos",
 ];
 
 export default function GlobalAssistant() {

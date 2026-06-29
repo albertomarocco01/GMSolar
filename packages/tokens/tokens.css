@@ -9,12 +9,10 @@
    Architettura colore:
    - NEUTRI runtime (--background/--foreground/--muted/--border/--surface)
      cambiano in light/dark via prefers-color-scheme.
-   - ACCENT runtime (--accent...) cambia in base al "mondo" attivo
-     (hub/solar/mobility/shop). Lo imposta il ThemeProvider via
-     [data-theme] su <html>. Le sezioni CONSUMANO --accent, non lo
-     ridefiniscono. Vedi components/providers/ThemeProvider.tsx.
-   - I colori statici di brand (brand-*, solar, mobility, shop) servono
-     dove vanno mostrati TUTTI insieme (es. le 3 "porte" della home).
+   - ACCENT runtime (--accent...) è un solo accent de-brandizzato (lime "hub",
+     colore del cliente). Lo imposta il ThemeProvider via [data-theme="hub"]
+     su <html>. Le sezioni CONSUMANO --accent, non lo ridefiniscono.
+   - Palette gruppo statica (brand-50..950) per scale e sfumature.
    ============================================================= */
 
 /* ---------- Neutri runtime: SEMPRE chiaro ----------
@@ -31,37 +29,17 @@
   --surface-2: #eef2f7; /* superficie alternativa */
 }
 
-/* ---------- Accent per "mondo" ----------
-   Default = gruppo (lime GM). Il ThemeProvider mette data-theme su <html>
-   e l'accent si ri-tematizza su TUTTO il sito (header/footer compresi).
-   --accent-soft è derivato dall'accent corrente con color-mix: vale per
-   ogni mondo senza doverlo ridefinire. */
+/* ---------- Accent (de-brandizzato: un solo colore) ----------
+   Lime del cliente. Il ThemeProvider mette data-theme="hub" su <html> e
+   l'accent si applica a TUTTO il sito (header/footer compresi). --accent-soft
+   e gli altri derivati nascono dall'accent corrente con color-mix. */
 :root,
 [data-theme="hub"] {
   --accent: #84cc16; /* lime gruppo */
   --accent-strong: #65a30d; /* hover / pressed */
   --accent-contrast: #0b1020; /* testo sopra l'accent pieno */
 }
-[data-theme="solar"] {
-  --accent: #a8d920; /* chartreuse caldo */
-  --accent-strong: #8fbc15;
-  --accent-contrast: #0b1020;
-}
-[data-theme="mobility"] {
-  --accent: #3c9e3a; /* verde foresta */
-  --accent-strong: #2f7e2e;
-  --accent-contrast: #ffffff;
-}
-[data-theme="shop"] {
-  --accent: #c8d400; /* lime acido / giallo */
-  --accent-strong: #a8b200;
-  --accent-contrast: #0b1020;
-}
-/* NB: le aree servizio/admin (dashboard, gestionale, integrazioni, segnalazioni,
-   assistente) NON hanno un accent dedicato: ereditano il lime del gruppo ("hub"),
-   unico colore brand del cliente. Vedi themeFromPath in @gmgroup/lib/theme. */
-
-/* Derivati dell'accent corrente (validi per ogni mondo). */
+/* Derivati dell'accent corrente. */
 :root {
   --accent-soft: color-mix(in oklab, var(--accent) 14%, transparent);
   --accent-ring: color-mix(in oklab, var(--accent) 55%, transparent);
@@ -73,12 +51,6 @@
      sotto la soglia WCAG AA (4.5:1) per i badge e le voci attive di sidebar.
      A 46% l'accoppiata ink/soft passa AA (≈5.1:1) e su sfondo chiaro resta ottima. */
   --accent-ink: color-mix(in oklab, var(--accent), var(--foreground) 46%);
-
-  /* Versioni "ink" dei colori statici di brand (per i testi delle 3 porte,
-     dove i tre brand convivono). Anch'esse theme-aware via --foreground. */
-  --solar-ink: color-mix(in oklab, var(--color-solar), var(--foreground) 40%);
-  --mobility-ink: color-mix(in oklab, var(--color-mobility), var(--foreground) 26%);
-  --shop-ink: color-mix(in oklab, var(--color-shop), var(--foreground) 44%);
 }
 
 /* ---------- Token statici → utility Tailwind ---------- */
@@ -95,15 +67,6 @@
   --color-brand-800: #3f6212;
   --color-brand-900: #365314;
   --color-brand-950: #1a2e05;
-
-  /* === Accenti statici di brand (derivati dai loghi reali) ===
-     Usati dove i 3 mondi compaiono insieme (le porte della home). */
-  --color-solar: #a8d920; /* GM Solar — chartreuse caldo */
-  --color-solar-strong: #8fbc15;
-  --color-mobility: #3c9e3a; /* GMobility — verde foresta */
-  --color-mobility-strong: #2f7e2e;
-  --color-shop: #c8d400; /* Cavo Perfetto — lime acido */
-  --color-shop-strong: #a8b200;
 
   /* === Tipografia: famiglie (next/font inietta le variabili) ===
      Geist + Geist Mono (Vercel) via next/font/google: niente dipendenza extra.

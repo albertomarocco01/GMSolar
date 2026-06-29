@@ -17,13 +17,12 @@ const SITE_DESCRIPTION =
   "Presentazione interattiva di servizi digitali: siti vetrina, dashboard e telemetria, assistenti AI, gestionale, app di ricarica EV e integrazioni API.";
 
 /**
- * Sito unico multi-mondo: il tema NON è più fisso per app, ma deriva dalla
- * route (ThemeProvider lo deduce dal pathname). Questo script pre-paint allinea
- * `data-theme` su <html> PRIMA dell'hydration, così non c'è flash dell'accent
- * del gruppo (lime) prima che il client imposti l'accent del mondo. Deve restare
- * in sync con `themeFromPath` (@gmgroup/lib/theme).
+ * Presentazione de-brandizzata: un solo accent (lime "hub") su tutte le route.
+ * Questo script pre-paint fissa `data-theme="hub"` su <html> PRIMA dell'hydration
+ * (coerente con `themeFromPath` in @gmgroup/lib/theme e con l'attributo già
+ * impostato lato server qui sotto), così non c'è flash dell'accent.
  */
-const NO_FLASH_THEME = `(function(){try{var p=location.pathname;var t=p.indexOf("/solar")===0?"solar":p.indexOf("/mobility")===0?"mobility":p.indexOf("/shop")===0?"shop":"hub";document.documentElement.dataset.theme=t;}catch(e){}})();`;
+const NO_FLASH_THEME = `(function(){try{document.documentElement.dataset.theme="hub";}catch(e){}})();`;
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),

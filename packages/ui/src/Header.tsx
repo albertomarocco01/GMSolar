@@ -11,8 +11,8 @@ import { cn } from "@gmgroup/lib/utils";
  * Header sticky, SENZA branding: un mark neutro (quadrato accent) + un menu
  * "Servizi" che dà accesso in un click ai 7 servizi della presentazione (dal
  * registry SERVICES) + una CTA che avvia il tour. CONSUMA l'accent attivo
- * (--accent) dal ThemeProvider, che cambia per area (vetrina = verde, piattaforma
- * = viola). Il menu segue il pattern disclosure WAI-ARIA (Esc + click fuori).
+ * (--accent, lime) dal ThemeProvider. Il menu segue il pattern disclosure
+ * WAI-ARIA (Esc + click fuori).
  */
 export default function Header() {
   const pathname = usePathname();
@@ -140,7 +140,7 @@ export default function Header() {
           </div>
 
           {/* CTA tour, sempre visibile da desktop → la home è la scroll-narrativa
-              cinematica (il "tour"). La vecchia route /demos/tour non esiste più. */}
+              cinematica (il "tour"). */}
           <Link
             href={HUB_URL}
             className="bg-accent text-accent-contrast hover:bg-accent-strong hidden rounded-full px-4 py-1.5 text-sm font-semibold transition-colors motion-reduce:transition-none sm:inline-block"

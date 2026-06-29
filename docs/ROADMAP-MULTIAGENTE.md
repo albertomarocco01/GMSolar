@@ -125,7 +125,7 @@ racconti tutti i servizi **inline**, con **auto-scroll** (mouse → controllo, i
 **scrollytelling** vero (pin, video-scrub, tratti **orizzontali**) e **stile uniforme**. Inoltre il
 "sito vetrina" si dimostra con **solo un video scrubbato** (3D rimosso dalla demo).
 
-**F2 ridisegnata (✅):**
+**F2 ridisegnata (✅, poi superata da Re-plan 2 — i nomi di componente qui sotto, es. `HeroScene`/`HorizontalServices`/`ClosingScene`, NON esistono più):**
 - `AutoScroll` (pilota Lenis via `window.__lenis`): auto-scroll, `mousemove` reale → pausa, idle 2.5s → riprende, pill di controllo accessibile, reduced-motion off.
 - Home = `HeroScene` → `VetrinaScene` (video `gm-solar-drone.mp4` scrubbato + pin, no 3D) → `HorizontalServices` (track ORIZZONTALE pinnato coi 6 servizi inline, riusa le `visuals/*`) → `ClosingScene`.
 - Rimossi `Hero`, `Chapter`, `ChapterVisual`, `VetrinaVisual` (vecchio impianto a capitoli→pagine).

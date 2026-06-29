@@ -1,6 +1,6 @@
 /**
  * /segnalazioni — pannello per inviarci bug e richieste di modifica.
- * Tema "platform" (viola elettrico) impostato automaticamente da ThemeProvider.
+ * Accent "hub" (lime) — unico accent de-brandizzato — impostato dal ThemeProvider.
  */
 
 import type { Metadata } from "next";

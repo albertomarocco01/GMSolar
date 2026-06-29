@@ -294,9 +294,9 @@ Il cliente vuole UN solo colore brand (lime). Le 5 route servizio (/dashboard, /
 a "hub". **Fonte di verità unica del lime = blocco `:root,[data-theme="hub"]` in tokens.css.**
 
 - `packages/tokens/tokens.css`: **rimosso** il blocco `[data-theme="platform"]` (accent viola).
-  Lasciati i token STATICI `--color-violet`/`--color-violet-strong`/`--violet-ink` (NON sono
-  l'accent di route: `--color-violet` è usato da `components/home/scenes/HeroScene.tsx`
-  → `bg-violet/12`, blob decorativo). Aggiornato solo il commento ora fuorviante.
+  (Aggiornamento successivo: `--color-violet`/`-strong`/`--violet-ink` e il componente
+  `HeroScene.tsx` che li usava sono stati poi RIMOSSI — vedi la voce "Decommission 3-mondi"
+  in fondo. Non esistono più.)
 - `packages/lib/src/theme.ts`: rimosso `PLATFORM_PREFIXES` e il valore `"platform"` dal tipo
   `ThemeKey` (ora `"hub" | "solar" | "mobility" | "shop"`); `themeFromPath` fa cadere ogni
   route non-vetrina su `"hub"`. (Verificato type-safe: gli unici literal `"platform"` come
@@ -413,3 +413,43 @@ si vedeva (Next prefetcha solo in produzione) → trovato col `next start` + aud
 Verificato dopo il prune: `pnpm typecheck`/`lint`/`build` ✅ verdi; due passate consecutive pulite
 (prod `next start` + dev) — console F12 e axe-core 0 problemi su tutte le route, breakpoint
 360/768/1280, normal + reduced-motion, stati interattivi inclusi.
+
+---
+
+## [DECOMMISSION 3-MONDI] Rimozione codice deprecato (2026-06-29)
+
+Rimosso tutto il codice del vecchio progetto "3 siti vetrina" (solar/mobility/shop branded),
+post-pivot a "Vetrina Servizi". Build/typecheck/lint verdi a fine corsa. Modifiche **zona
+condivisa** (loggate come da protocollo):
+
+- **`packages/lib/src/site.ts`**: rimossi `WORLDS`, `DEMOS`, i tipi `World`/`Demo`, l'helper
+  `worldHref()` e l'import `LOGOS`; rimosso il campo morto `theme` da `Service`/`SERVICES`
+  (nessuno lo leggeva). Tenuti `GROUP`/`SITE_URL`/`groupJsonLd`/`HUB_URL`/`SERVICES`.
+- **`packages/lib/src/assets.ts`**: rimossi `LOGOS` (3 loghi brand) + `VIDEOS.solarHero` +
+  `POSTERS.solarHero`. Tenuti `solarDrone` (mp4 + poster) usati da `VetrinaScene`.
+- **`packages/lib/src/theme.ts`**: `ThemeKey` → solo `"hub"`; `themeFromPath()` ritorna sempre
+  `"hub"` (le route brand non esistono più). `ThemeProvider` invariato (compatibile).
+- **`apps/web/app/layout.tsx`**: `NO_FLASH_THEME` semplificato a `data-theme="hub"` fisso
+  (resta in sync con `themeFromPath`).
+- **`packages/tokens/tokens.css`**: rimossi i blocchi `[data-theme=solar|mobility|shop]`, i
+  token statici `--color-solar/mobility/shop` (+`-strong`) e le derivazioni `--solar-ink`/
+  `--mobility-ink`/`--shop-ink`. Resta solo l'accent `hub` (lime) + palette `brand-50..950`.
+- **`packages/config/eslint.package.mjs`**: aggiunto l'override `no-unused-vars` con
+  `argsIgnorePattern:"^_"` (parità con `eslint.base.mjs`), così la convenzione `_`-prefix vale
+  anche nei package (serviva per `themeFromPath(_pathname)`).
+- **`packages/ui/src/Header.tsx`**: ripuliti i commenti stantii (accent per-area/viola, /demos/tour).
+
+Fuori zona condivisa (per contesto): rimossi `legacy/` (85 file) e `ev-cable-advisor/` (17,
+vecchia app Vite), le scene 3D `components/home/vetrina3d/` + i 6 `home/modules/` +
+`useSelfPlay.ts` + `ServiceScene.tsx`, i 5 asset brand in `public/assets`, le deps morte
+`three`/`@react-three/*`/`@types/three`/`maplibre-gl`/`motion` (+`three-jsx.d.ts`), il tool
+`extract-logo-colors.mjs`, e 9 doc puro-vecchio-mondo (PLAN, QA-REPORT, briefs, scraping…).
+Sistemati i link morti `/solar`→`/#vetrina` e `/mobility/agent`→`/` in `data/kb.ts`.
+
+**Lasciato di proposito (NON è codice morto):** i nomi brand (GM Solar/GMobility/Cavo Perfetto/
+Mennekes) e i path `/solar|/mobility|/shop` nei **dati mock** dei servizi vivi (`data/telemetry.ts`,
+`erp-mock.ts`, `segnalazioni/mockData.ts`, `_assistente-data.ts`, scene immersive home) sono
+**contenuto d'esempio** ("tre siti d'esempio: energia/mobilità/e-commerce"), descopati per scelta
+(vedi DEBITO #13). Le chiavi locali `solar/mobility/platform` in `home/immersive/shared.tsx` sono
+preset d'accent VIVI della home (colori già lime/de-brand), non il vecchio tema condiviso. Un
+eventuale de-brand totale del contenuto d'esempio è un pass separato.

@@ -19,7 +19,7 @@ export const metadata: Metadata = {
  * il route handler `app/api/gestionale` (helper multi-provider @/lib/ai): con
  * AI_API_KEY interpreta via LLM, altrimenti ricade su un parser euristico
  * deterministico. Guardrail server-side contro injection e richieste fuori
- * ambito. Accent viola "platform" ereditato dal ThemeProvider sulla route.
+ * ambito. Accent "hub" (lime) ereditato dal ThemeProvider sulla route.
  */
 export default function GestionalePage() {
   return (
