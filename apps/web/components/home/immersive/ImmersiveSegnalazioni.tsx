@@ -356,8 +356,12 @@ export default function ImmersiveSegnalazioni() {
 
       {/* Frasi-intermezzo DESCRITTIVE (spiegano, non vendono) */}
       <Say i={0}>Segnali un problema o una richiesta in un attimo.</Say>
-      <Say i={1}>Copi il link, scrivi cosa serve, invii.</Say>
-      <Say i={2}>La richiesta arriva e prende vita.</Say>
+      <Say i={1} variant="caption">
+        Copi il link, scrivi cosa serve, invii.
+      </Say>
+      <Say i={2} variant="caption">
+        La richiesta arriva e prende vita.
+      </Say>
     </ImmersiveStage>
   );
 }

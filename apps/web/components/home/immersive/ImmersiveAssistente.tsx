@@ -67,7 +67,13 @@ export default function ImmersiveAssistente() {
     // ④ Invio → l'AI "ragiona": press del tasto (kit: pressButton), dots + un
     //    mini-grafico/spec che si DISEGNA durante la pausa di ragionamento.
     cursorTo(tl, ".imm-send", { mode: "hand" });
-    pressButton(tl, ".imm-send", { down: 0.86, downDur: 0.12, upDur: 0.22, back: 2.4, position: ">-0.05" });
+    pressButton(tl, ".imm-send", {
+      down: 0.86,
+      downDur: 0.12,
+      upDur: 0.22,
+      back: 2.4,
+      position: ">-0.05",
+    });
     tl.to(".imm-typing", { autoAlpha: 1, y: 0, duration: 0.35, ease: "power2.out" }, ">0.1");
     drawPath(tl, ".imm-think-path", { duration: 0.7, ease: "power2.inOut", position: ">0.05" });
     tl.to({}, { duration: 0.4 }); // pausa: "sta ragionando"
@@ -90,13 +96,28 @@ export default function ImmersiveAssistente() {
     });
     // Interfaccia generata IN (overlay assoluto); le sezioni entrano con un WIPE
     // direzionale (kit: maskReveal) invece del semplice fade+slide.
-    tl.to(".imm-genui", { autoAlpha: 1, y: 0, scale: 1, duration: 0.75, ease: "expo.out" }, ">-0.15");
-    maskReveal(tl, ".imm-genui-item", { dir: "l", duration: 0.5, stagger: 0.07, position: "<0.18" });
+    tl.to(
+      ".imm-genui",
+      { autoAlpha: 1, y: 0, scale: 1, duration: 0.75, ease: "expo.out" },
+      ">-0.15",
+    );
+    maskReveal(tl, ".imm-genui-item", {
+      dir: "l",
+      duration: 0.5,
+      stagger: 0.07,
+      position: "<0.18",
+    });
 
     // ⑥ Il configuratore "funziona": il cursore preme la combinazione pre-scelta
     //    (kit: pressButton) e un punch-zoom evidenzia il cluster.
     cursorTo(tl, ".imm-config-pick", { mode: "hand" });
-    pressButton(tl, ".imm-config-pick", { down: 0.9, downDur: 0.1, upDur: 0.3, back: 2.6, position: ">-0.05" });
+    pressButton(tl, ".imm-config-pick", {
+      down: 0.9,
+      downDur: 0.1,
+      upDur: 0.3,
+      back: 2.6,
+      position: ">-0.05",
+    });
     clickZoom(tl, ".imm-config-zoom", { position: "<" });
 
     // ⑦ Pausa finale
@@ -117,7 +138,7 @@ export default function ImmersiveAssistente() {
           <div className="flex items-center gap-2">
             <span className="bg-accent h-4 w-4 rounded-[5px]" aria-hidden />
             <span className="font-display text-foreground text-base font-bold tracking-tight">
-              Cavo Perfetto
+              GM Solar Shop
             </span>
           </div>
           <nav className="hidden items-center gap-5 sm:flex" aria-hidden>
@@ -337,8 +358,12 @@ export default function ImmersiveAssistente() {
 
       {/* ── Frasi-intermezzo DESCRITTIVE (spiegano, non vendono) ──────────── */}
       <Say i={0}>Un assistente AI dentro il sito vetrina.</Say>
-      <Say i={1}>Capisce la richiesta in linguaggio naturale.</Say>
-      <Say i={2}>E genera al volo l&apos;interfaccia su misura.</Say>
+      <Say i={1} variant="caption">
+        Capisce la richiesta in linguaggio naturale.
+      </Say>
+      <Say i={2} variant="caption">
+        E genera al volo l&apos;interfaccia su misura.
+      </Say>
     </ImmersiveStage>
   );
 }

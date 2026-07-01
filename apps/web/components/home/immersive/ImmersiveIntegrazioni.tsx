@@ -145,10 +145,15 @@ export default function ImmersiveIntegrazioni() {
     tl.to(matches, { scale: 1.1, duration: 0.4, ease: "back.out(2)" }, "<");
     tl.to(".imm-int-badge", { autoAlpha: 1, scale: 1, duration: 0.4, ease: "back.out(1.8)" }, "<");
 
-    // ── ④ Il cursore apre il DETTAGLIO dell'integrazione (cursorTo + clickZoom) ──
+    // ── ④ Il cursore apre il DETTAGLIO dell'integrazione ─────────────────────
     say(tl, 3); // «Un click e la colleghi.»
     cursorTo(tl, ".imm-int-open", { mode: "hand" });
-    clickZoom(tl, ".imm-int-open", { position: ">-0.05", scale: 1.16 });
+    // Punch inline che torna a 1.1 (la scala del filtro ancora attivo): clickZoom
+    // finirebbe a scale 1 e la tile cliccata resterebbe più PICCOLA di PayPal
+    // finché il filtro non si azzera al beat ⑤.
+    tl.set(".imm-int-open", { transformOrigin: "50% 50%", willChange: "transform" }, ">-0.05");
+    tl.to(".imm-int-open", { scale: 1.26, duration: 0.28, ease: "power2.out" });
+    tl.to(".imm-int-open", { scale: 1.1, duration: 0.34, ease: "power2.inOut" });
     tl.to(
       ".imm-int-detail",
       { autoAlpha: 1, scale: 1, y: 0, duration: 0.5, ease: "back.out(1.5)" },
@@ -162,7 +167,11 @@ export default function ImmersiveIntegrazioni() {
     tl.to(nonMatches, { autoAlpha: 1, duration: 0.4, ease: "power2.out" }, "<");
     tl.to(matches, { scale: 1, duration: 0.3, ease: "power2.out" }, "<");
     tl.to(".imm-int-badge", { autoAlpha: 0, duration: 0.3 }, "<");
-    tl.to(".imm-int-query", { clipPath: "inset(0 100% 0 0)", duration: 0.3, ease: "power2.in" }, "<");
+    tl.to(
+      ".imm-int-query",
+      { clipPath: "inset(0 100% 0 0)", duration: 0.3, ease: "power2.in" },
+      "<",
+    );
     tl.to(".imm-int-placeholder", { autoAlpha: 1, duration: 0.3 }, "<");
     tl.to({}, { duration: 0.4 });
 
@@ -195,7 +204,12 @@ export default function ImmersiveIntegrazioni() {
         {/* Barra di ricerca: la query si "scrive" (clip-path) e filtra il muro */}
         <div className="mb-8 w-full max-w-md" aria-hidden>
           <div className="imm-int-search border-border bg-surface flex h-11 items-center gap-2.5 rounded-full border px-4 shadow-sm">
-            <svg viewBox="0 0 24 24" fill="none" className="text-muted h-4 w-4 shrink-0" aria-hidden>
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              className="text-muted h-4 w-4 shrink-0"
+              aria-hidden
+            >
               <circle cx="11" cy="11" r="7" stroke="currentColor" strokeWidth="2" />
               <path d="m20 20-3-3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
             </svg>
@@ -281,9 +295,15 @@ export default function ImmersiveIntegrazioni() {
 
       {/* ── Frasi-intermezzo DESCRITTIVE ─────────────────────────────────────── */}
       <Say i={0}>Ci integriamo con i sistemi che usi ogni giorno.</Say>
-      <Say i={1}>…e con molti altri.</Say>
-      <Say i={2}>Cerca quello che ti serve: l&apos;elenco si filtra.</Say>
-      <Say i={3}>Un click e la colleghi.</Say>
+      <Say i={1} variant="caption">
+        …e con molti altri.
+      </Say>
+      <Say i={2} variant="caption">
+        Cerca quello che ti serve: l&apos;elenco si filtra.
+      </Say>
+      <Say i={3} variant="caption">
+        Un click e la colleghi.
+      </Say>
     </ImmersiveStage>
   );
 }

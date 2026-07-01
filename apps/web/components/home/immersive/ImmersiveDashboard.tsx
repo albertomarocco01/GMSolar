@@ -70,10 +70,6 @@ const STATO_CLS: Record<string, string> = {
   "In attesa": "bg-amber-100 text-amber-700",
 };
 
-/** Accent platform hardcoded (le CSS var non sono sempre interpolabili da GSAP).
- *  Ora LIME di gruppo (era viola, de-brandizzato). */
-const PLT = "#84cc16";
-
 // ── Componente ─────────────────────────────────────────────────────────────────
 
 export default function ImmersiveDashboard() {
@@ -162,6 +158,7 @@ export default function ImmersiveDashboard() {
     clickZoom(tl, ".imm-kpi-zoom", { position: ">-0.05", scale: 1.08 });
 
     // ── ④ Ordini ──────────────────────────────────────────────────────────────
+    say(tl, 3);
     cursorTo(tl, navItems[3], { mode: "hand" }); // click "Ordini"
     tl.to(".imm-nav-ind", { top: () => navTop(3), duration: 0.45, ease: "power3.inOut" }, "<0.3");
     tl.to(".imm-track", { xPercent: -75, duration: 1.1, ease: "expo.inOut" }, "<0.1");
@@ -183,26 +180,27 @@ export default function ImmersiveDashboard() {
       label="Dashboard multi-sito"
       eyebrow="02 · Dashboard multi-sito"
     >
-      {/* Forza tema chiaro su tutta la scena — sovrascrive bg-background del wrapper */}
-      <div className="flex h-full bg-white pt-10 text-slate-800">
+      {/* Stessi token della scena Gestionale adiacente: fondi, grigi e accent
+          identici (prima era bg-white + scala slate hardcoded → salto di tono). */}
+      <div className="bg-background text-foreground flex h-full pt-10">
         {/* ── Sidebar ────────────────────────────────────────────────────────── */}
-        <aside className="relative hidden w-52 shrink-0 border-r border-slate-200 bg-slate-50 p-4 sm:block">
-          <div className="mb-6 flex items-center gap-2 px-2 font-semibold text-slate-800">
-            <span className="h-4 w-4 rounded-[5px]" style={{ background: PLT }} />
+        <aside className="border-border bg-surface relative hidden w-52 shrink-0 border-r p-4 sm:block">
+          <div className="text-foreground mb-6 flex items-center gap-2 px-2 font-semibold">
+            <span className="bg-accent h-4 w-4 rounded-[5px]" />
             Dashboard
           </div>
 
           <nav className="relative space-y-1">
             {/* Indicatore scorrevole della voce attiva */}
             <span
-              className="imm-nav-ind pointer-events-none absolute inset-x-0 h-10 rounded-lg"
-              style={{ top: 0, background: `${PLT}18` }}
+              className="imm-nav-ind bg-accent-soft pointer-events-none absolute inset-x-0 h-10 rounded-lg"
+              style={{ top: 0 }}
               aria-hidden
             />
             {NAV.map((n) => (
               <div
                 key={n}
-                className="imm-nav-item relative rounded-lg px-3 py-2.5 text-sm font-medium text-slate-700"
+                className="imm-nav-item text-foreground relative rounded-lg px-3 py-2.5 text-sm font-medium"
               >
                 {n}
               </div>
@@ -210,16 +208,16 @@ export default function ImmersiveDashboard() {
           </nav>
 
           {/* Siti connessi */}
-          <div className="mt-6 border-t border-slate-200 pt-4">
-            <p className="mb-2 px-2 text-[11px] font-semibold tracking-wider text-slate-400 uppercase">
+          <div className="border-border mt-6 border-t pt-4">
+            <p className="text-muted mb-2 px-2 text-[11px] font-semibold tracking-wider uppercase">
               Siti
             </p>
             {["Solar", "Mobility", "Shop"].map((s) => (
               <div
                 key={s}
-                className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-slate-500"
+                className="text-muted flex items-center gap-2 rounded-lg px-3 py-2 text-sm"
               >
-                <span className="h-2 w-2 rounded-full" style={{ background: `${PLT}99` }} />
+                <span className="bg-accent/60 h-2 w-2 rounded-full" />
                 {s}
               </div>
             ))}
@@ -235,22 +233,19 @@ export default function ImmersiveDashboard() {
           }`}
         >
           {/* Topbar */}
-          <div className="flex h-12 items-center gap-3 border-b border-slate-200 bg-white/80 px-5 backdrop-blur">
+          <div className="border-border bg-background/80 flex h-12 items-center gap-3 border-b px-5 backdrop-blur">
             <span className="h-2 w-2 rounded-full bg-emerald-400" />
-            <span className="text-xs font-semibold text-slate-500">3 siti connessi</span>
+            <span className="text-muted text-xs font-semibold">3 siti connessi</span>
             <div className="ml-auto flex items-center gap-1.5">
               {["Solar", "Mobility"].map((s) => (
                 <span
                   key={s}
-                  className="rounded-full bg-slate-100 px-3 py-1 text-[11px] font-semibold text-slate-500"
+                  className="bg-surface-2 text-muted rounded-full px-3 py-1 text-[11px] font-semibold"
                 >
                   {s}
                 </span>
               ))}
-              <span
-                className="rounded-full px-3 py-1 text-[11px] font-semibold text-white"
-                style={{ background: PLT }}
-              >
+              <span className="bg-accent text-accent-contrast rounded-full px-3 py-1 text-[11px] font-semibold">
                 Shop ✓
               </span>
             </div>
@@ -260,13 +255,13 @@ export default function ImmersiveDashboard() {
           <div className="imm-track flex h-[calc(100%-3rem)]" style={{ width: "400%" }}>
             {/* ① CONTENUTI ──────────────────────────────────────────────────── */}
             <div className="w-1/4 shrink-0 overflow-hidden p-6">
-              <p className="mb-4 font-semibold text-slate-700">Editor contenuti</p>
+              <p className="text-foreground mb-4 font-semibold">Editor contenuti</p>
 
-              <div className="imm-zoom-local rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+              <div className="imm-zoom-local border-border bg-surface rounded-xl border p-5 shadow-sm">
                 {/* Area upload immagine */}
-                <div className="imm-img-placeholder relative mb-4 flex h-32 cursor-pointer items-center justify-center overflow-hidden rounded-lg border-2 border-dashed border-slate-300 bg-slate-50">
+                <div className="imm-img-placeholder border-border bg-surface-2 relative mb-4 flex h-32 cursor-pointer items-center justify-center overflow-hidden rounded-lg border-2 border-dashed">
                   {/* Stato vuoto: icona upload */}
-                  <div className="flex flex-col items-center gap-1.5 text-slate-400">
+                  <div className="text-muted flex flex-col items-center gap-1.5">
                     <svg
                       className="h-8 w-8"
                       fill="none"
@@ -289,12 +284,12 @@ export default function ImmersiveDashboard() {
                     className="imm-img-fill absolute inset-0 rounded-lg"
                     style={{
                       background:
-                        "repeating-linear-gradient(45deg, #84cc1611 0px, #84cc1611 2px, transparent 2px, transparent 10px), linear-gradient(135deg, #84cc1622, #84cc1644)",
+                        "repeating-linear-gradient(45deg, color-mix(in oklab, var(--accent) 7%, transparent) 0px, color-mix(in oklab, var(--accent) 7%, transparent) 2px, transparent 2px, transparent 10px), linear-gradient(135deg, color-mix(in oklab, var(--accent) 13%, transparent), color-mix(in oklab, var(--accent) 27%, transparent))",
                     }}
                     aria-hidden
                   >
                     <div className="flex h-full items-center justify-center">
-                      <span className="rounded-lg bg-white/85 px-3 py-1.5 text-xs font-semibold text-slate-700 shadow-sm">
+                      <span className="bg-background/85 text-foreground rounded-lg px-3 py-1.5 text-xs font-semibold shadow-sm">
                         foto-solare.jpg
                       </span>
                     </div>
@@ -304,10 +299,10 @@ export default function ImmersiveDashboard() {
                 {/* Campi testo */}
                 <div className="space-y-3">
                   <div>
-                    <label className="mb-1 block text-[11px] font-semibold tracking-wider text-slate-400 uppercase">
+                    <label className="text-muted mb-1 block text-[11px] font-semibold tracking-wider uppercase">
                       Titolo
                     </label>
-                    <div className="min-h-[34px] rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700">
+                    <div className="border-border bg-surface-2 text-foreground min-h-[34px] rounded-lg border px-3 py-2 text-sm">
                       {/* Il testo appare per clip-path (effect macchina da scrivere) */}
                       <span className="imm-typed inline-block whitespace-nowrap">
                         Energia solare per la tua azienda
@@ -315,18 +310,17 @@ export default function ImmersiveDashboard() {
                     </div>
                   </div>
                   <div>
-                    <label className="mb-1 block text-[11px] font-semibold tracking-wider text-slate-400 uppercase">
+                    <label className="text-muted mb-1 block text-[11px] font-semibold tracking-wider uppercase">
                       Descrizione
                     </label>
-                    <div className="min-h-[52px] rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-400">
+                    <div className="border-border bg-surface-2 text-muted min-h-[52px] rounded-lg border px-3 py-2 text-sm">
                       Inserisci una descrizione…
                     </div>
                   </div>
                 </div>
 
                 <button
-                  className="mt-4 rounded-lg px-4 py-2 text-sm font-semibold text-white"
-                  style={{ background: PLT }}
+                  className="bg-accent text-accent-contrast mt-4 rounded-lg px-4 py-2 text-sm font-semibold"
                   tabIndex={-1}
                   aria-hidden
                 >
@@ -338,10 +332,9 @@ export default function ImmersiveDashboard() {
             {/* ② PRODOTTI ───────────────────────────────────────────────────── */}
             <div className="w-1/4 shrink-0 overflow-hidden p-6">
               <div className="mb-4 flex items-center justify-between">
-                <p className="font-semibold text-slate-700">Catalogo prodotti</p>
+                <p className="text-foreground font-semibold">Catalogo prodotti</p>
                 <button
-                  className="imm-add-btn rounded-lg px-4 py-1.5 text-xs font-semibold text-white shadow-sm"
-                  style={{ background: PLT }}
+                  className="imm-add-btn bg-accent text-accent-contrast rounded-lg px-4 py-1.5 text-xs font-semibold shadow-sm"
                   tabIndex={-1}
                   aria-hidden
                 >
@@ -353,33 +346,23 @@ export default function ImmersiveDashboard() {
                 {PRODOTTI_INIT.map((p) => (
                   <div
                     key={p.nome}
-                    className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm"
+                    className="border-border bg-surface rounded-xl border p-4 shadow-sm"
                   >
-                    <div className="mb-2 flex h-10 w-10 items-center justify-center rounded-lg bg-slate-100 text-xl">
+                    <div className="bg-surface-2 mb-2 flex h-10 w-10 items-center justify-center rounded-lg text-xl">
                       {p.ico}
                     </div>
-                    <p className="text-sm font-semibold text-slate-700">{p.nome}</p>
-                    <p className="text-xs font-bold" style={{ color: PLT }}>
-                      {p.prezzo}
-                    </p>
+                    <p className="text-foreground text-sm font-semibold">{p.nome}</p>
+                    <p className="text-accent-ink text-xs font-bold">{p.prezzo}</p>
                   </div>
                 ))}
 
                 {/* Nuova card: entra con back.out al click del cursore */}
-                <div
-                  className="imm-new-card rounded-xl border-2 bg-white p-4 shadow-sm"
-                  style={{ borderColor: `${PLT}66`, background: `${PLT}08` }}
-                >
-                  <div
-                    className="mb-2 flex h-10 w-10 items-center justify-center rounded-lg text-xl"
-                    style={{ background: `${PLT}18` }}
-                  >
+                <div className="imm-new-card border-accent/40 bg-accent/5 rounded-xl border-2 p-4 shadow-sm">
+                  <div className="bg-accent-soft mb-2 flex h-10 w-10 items-center justify-center rounded-lg text-xl">
                     🔋
                   </div>
-                  <p className="text-sm font-semibold text-slate-700">Batteria 10 kWh</p>
-                  <p className="text-xs font-bold" style={{ color: PLT }}>
-                    3.200 €
-                  </p>
+                  <p className="text-foreground text-sm font-semibold">Batteria 10 kWh</p>
+                  <p className="text-accent-ink text-xs font-bold">3.200 €</p>
                 </div>
               </div>
             </div>
@@ -388,31 +371,30 @@ export default function ImmersiveDashboard() {
             {/* overflow-y-auto: su viewport molto bassi (landscape) le barre in fondo
                 restano raggiungibili invece di essere clippate. */}
             <div className="w-1/4 shrink-0 overflow-y-auto p-6">
-              <p className="mb-4 font-semibold text-slate-700">Visite · ultimi 30 giorni</p>
+              <p className="text-foreground mb-4 font-semibold">Visite · ultimi 30 giorni</p>
 
               {/* 3 card KPI: counter animato via proxy GSAP */}
               <div className="mb-4 grid grid-cols-3 gap-3">
                 {KPI.map(({ label }, i) => (
                   <div
                     key={label}
-                    className={`imm-kpi-card rounded-xl border border-slate-200 bg-white p-4 shadow-sm${
-                      i === 0 ? " imm-kpi-zoom" : ""
+                    className={`imm-kpi-card border-border bg-surface rounded-xl border p-4 shadow-sm ${
+                      i === 0 ? "imm-kpi-zoom" : ""
                     }`}
                   >
                     <p
-                      className={`imm-kpi-val-${i} font-display text-2xl font-bold tabular-nums`}
-                      style={{ color: PLT }}
+                      className={`imm-kpi-val-${i} text-accent-ink font-display text-2xl font-bold tabular-nums`}
                     >
                       0
                     </p>
-                    <p className="mt-0.5 text-xs text-slate-500">{label}</p>
+                    <p className="text-muted mt-0.5 text-xs">{label}</p>
                   </div>
                 ))}
               </div>
 
               {/* Sparkline: disegnata tramite strokeDashoffset → 0 */}
-              <div className="mb-4 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-                <p className="mb-2 text-[11px] font-semibold tracking-wider text-slate-400 uppercase">
+              <div className="border-border bg-surface mb-4 rounded-xl border p-4 shadow-sm">
+                <p className="text-muted mb-2 text-[11px] font-semibold tracking-wider uppercase">
                   Trend visite
                 </p>
                 <svg
@@ -423,16 +405,16 @@ export default function ImmersiveDashboard() {
                 >
                   <defs>
                     <linearGradient id="imm-db2-spark-grad" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor={PLT} stopOpacity="0.15" />
-                      <stop offset="100%" stopColor={PLT} stopOpacity="0" />
+                      {/* var() non è valido negli attributi SVG di presentazione → style */}
+                      <stop offset="0%" style={{ stopColor: "var(--accent)" }} stopOpacity="0.15" />
+                      <stop offset="100%" style={{ stopColor: "var(--accent)" }} stopOpacity="0" />
                     </linearGradient>
                   </defs>
                   <path d={`${SPARK_D} L200,60 L0,60 Z`} fill="url(#imm-db2-spark-grad)" />
                   <path
-                    className="imm-spark-path"
+                    className="imm-spark-path stroke-accent"
                     d={SPARK_D}
                     fill="none"
-                    stroke={PLT}
                     strokeWidth="2"
                     strokeLinecap="round"
                     strokeLinejoin="round"
@@ -441,16 +423,15 @@ export default function ImmersiveDashboard() {
               </div>
 
               {/* Barre giornaliere: scaleY 0→1 dal basso con stagger */}
-              <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+              <div className="border-border bg-surface rounded-xl border p-4 shadow-sm">
                 <div className="flex h-20 items-end gap-1.5">
                   {BARS.map((h, i) => (
                     <span
                       key={i}
-                      className="imm-bar flex-1 rounded-t"
-                      style={{
-                        height: `${h}%`,
-                        background: i === BARS.length - 1 ? PLT : `${PLT}44`,
-                      }}
+                      className={`imm-bar flex-1 rounded-t ${
+                        i === BARS.length - 1 ? "bg-accent" : "bg-accent/25"
+                      }`}
+                      style={{ height: `${h}%` }}
                     />
                   ))}
                 </div>
@@ -459,11 +440,11 @@ export default function ImmersiveDashboard() {
 
             {/* ④ ORDINI ─────────────────────────────────────────────────────── */}
             <div className="w-1/4 shrink-0 overflow-hidden p-6">
-              <p className="mb-4 font-semibold text-slate-700">Ordini recenti</p>
+              <p className="text-foreground mb-4 font-semibold">Ordini recenti</p>
 
-              <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+              <div className="border-border bg-surface overflow-hidden rounded-xl border shadow-sm">
                 {/* Intestazione tabella */}
-                <div className="grid grid-cols-[auto_1fr_auto_auto] gap-3 bg-slate-50 px-4 py-2.5 text-[11px] font-semibold tracking-wider text-slate-400 uppercase">
+                <div className="bg-surface-2 text-muted grid grid-cols-[auto_1fr_auto_auto] gap-3 px-4 py-2.5 text-[11px] font-semibold tracking-wider uppercase">
                   <span>N°</span>
                   <span>Cliente</span>
                   <span>Importo</span>
@@ -471,17 +452,17 @@ export default function ImmersiveDashboard() {
                 </div>
 
                 {/* Righe: entrano con slide+fade staggered */}
-                <div className="divide-y divide-slate-100">
+                <div className="divide-border divide-y">
                   {ORDINI.map((o) => (
                     <div
                       key={o.n}
                       className="imm-ord-row grid grid-cols-[auto_1fr_auto_auto] items-center gap-3 px-4 py-3 text-sm"
                     >
-                      <span className="font-mono text-xs text-slate-400">{o.n}</span>
-                      <span className="font-medium text-slate-700">{o.cliente}</span>
-                      <span className="font-mono text-slate-600">{o.importo}</span>
+                      <span className="text-muted font-mono text-xs">{o.n}</span>
+                      <span className="text-foreground font-medium">{o.cliente}</span>
+                      <span className="text-foreground font-mono">{o.importo}</span>
                       <span
-                        className={`rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${STATO_CLS[o.stato] ?? "bg-slate-100 text-slate-600"}`}
+                        className={`rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${STATO_CLS[o.stato] ?? "bg-surface-2 text-muted"}`}
                       >
                         {o.stato}
                       </span>
@@ -494,10 +475,18 @@ export default function ImmersiveDashboard() {
         </div>
       </div>
 
-      {/* Frasi-intermezzo DESCRITTIVE (spiegano, non vendono) */}
+      {/* Frasi-intermezzo DESCRITTIVE (spiegano, non vendono).
+          Prima frase = veil (annuncia la scena); le altre = caption lower-third. */}
       <Say i={0}>Una regìa unica per tutti i tuoi siti.</Say>
-      <Say i={1}>Carichi foto e testi, aggiungi prodotti.</Say>
-      <Say i={2}>Vedi visite, utenti e ordini in tempo reale.</Say>
+      <Say i={1} variant="caption">
+        Carichi foto e testi, aggiungi prodotti.
+      </Say>
+      <Say i={2} variant="caption">
+        Vedi visite, utenti e ordini in tempo reale.
+      </Say>
+      <Say i={3} variant="caption">
+        Ordini e incassi, sempre sotto controllo.
+      </Say>
     </ImmersiveStage>
   );
 }

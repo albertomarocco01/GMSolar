@@ -9,8 +9,7 @@
  *   ferma MAI a metà scena o dentro un hand-off: gli anchor cadono esattamente
  *   dove l'entrata scena→scena è già completa. Il mouse REALE cede il controllo;
  *   dopo l'inattività riparte verso l'anchor successivo (ricalcolato dalla
- *   posizione corrente, mai dal punto morto). I moduli chiedono pause
- *   "recitazione" via `autoscroll:hold`. La pill si nasconde da sola.
+ *   posizione corrente, mai dal punto morto). La pill si nasconde da sola.
  *   Reduced-motion: non fa nulla (scroll nativo).
  * @indice
  * - AutoScroll → componente client da montare una volta sulla pagina home
@@ -44,6 +43,8 @@ const ARRIVE_EPS = 2;
 const DWELL_MS = 850;
 /** Inattività mouse prima che l'auto riparta (~2s: prima era 9s, troppo). */
 const IDLE_MS = 2000;
+/** Inattività su TOUCH prima che l'auto riparta (più respiro: si legge col dito fermo). */
+const TOUCH_IDLE_MS = 4500;
 /** Dopo quanto la pill si auto-nasconde. */
 const PILL_HIDE_MS = 3500;
 
@@ -51,7 +52,6 @@ export default function AutoScroll() {
   const reduced = useReducedMotion();
   const [auto, setAuto] = useState(true);
   const [pillShown, setPillShown] = useState(true);
-  const [holding, setHolding] = useState(false);
   const [paused, setPaused] = useState(false); // pausa VOLONTARIA (click) → overlay
 
   const autoRef = useRef(true);
@@ -170,19 +170,21 @@ export default function AutoScroll() {
     // Setup: primo calcolo (deferito così il layout delle scene è pronto) +
     // ricalcolo su refresh/resize.
     const raf0 = requestAnimationFrame(computeAnchors);
+    // Sosta iniziale: lascia finire la dissolvenza di IntroOverlay (~1.9s) prima di partire.
+    holdUntilRef.current = performance.now() + 2200;
     ScrollTrigger.addEventListener("refresh", computeAnchors);
     window.addEventListener("resize", computeAnchors, { passive: true });
     gsap.ticker.add(tick);
 
     let idle: ReturnType<typeof setTimeout> | undefined;
     /** Input utente → cede il controllo; idle → riprende (target ricalcolato nel tick). */
-    const yield_ = () => {
+    const yield_ = (idleMs: number = IDLE_MS) => {
       if (lockedRef.current || replayingRef.current) return;
       if (autoRef.current) setAutoState(false);
       if (idle) clearTimeout(idle);
       idle = setTimeout(() => {
         if (!lockedRef.current && !replayingRef.current && !atBottomRef.current) setAutoState(true);
-      }, IDLE_MS);
+      }, idleMs);
     };
 
     // Pill: riappare al movimento reale, poi si auto-nasconde.
@@ -201,16 +203,6 @@ export default function AutoScroll() {
         yield_();
         flashPill();
       }
-    };
-
-    let holdEndTimer: ReturnType<typeof setTimeout> | undefined;
-    const onHold = (e: Event) => {
-      const ms = (e as CustomEvent<{ ms?: number }>).detail?.ms ?? 0;
-      if (ms <= 0) return;
-      holdUntilRef.current = Math.max(holdUntilRef.current, performance.now() + ms);
-      setHolding(true);
-      if (holdEndTimer) clearTimeout(holdEndTimer);
-      holdEndTimer = setTimeout(() => setHolding(false), ms);
     };
 
     // Pausa VOLONTARIA: un click ferma tutto (l'idle non la supera); un altro riparte.
@@ -261,13 +253,16 @@ export default function AutoScroll() {
     };
 
     const opts: AddEventListenerOptions = { passive: true };
+    // yield_ ora accetta un parametro: va sempre avvolto in arrow (altrimenti l'Event
+    // finirebbe nel parametro idleMs). onTouch dà più respiro (si legge col dito fermo).
+    const onYield = () => yield_();
+    const onTouch = () => yield_(TOUCH_IDLE_MS);
     window.addEventListener("mousemove", onMouseMove, opts);
-    window.addEventListener("wheel", yield_, opts);
-    window.addEventListener("touchstart", yield_, opts);
-    window.addEventListener("touchmove", yield_, opts);
-    window.addEventListener("pointerdown", yield_, opts);
-    window.addEventListener("keydown", yield_);
-    window.addEventListener("autoscroll:hold", onHold);
+    window.addEventListener("wheel", onYield, opts);
+    window.addEventListener("touchstart", onTouch, opts);
+    window.addEventListener("touchmove", onTouch, opts);
+    window.addEventListener("pointerdown", onYield, opts);
+    window.addEventListener("keydown", onYield);
     window.addEventListener("click", onClick);
     window.addEventListener("presentation:replay", onReplay);
 
@@ -278,14 +273,12 @@ export default function AutoScroll() {
       window.removeEventListener("resize", computeAnchors);
       if (idle) clearTimeout(idle);
       if (pillTimer) clearTimeout(pillTimer);
-      if (holdEndTimer) clearTimeout(holdEndTimer);
       window.removeEventListener("mousemove", onMouseMove);
-      window.removeEventListener("wheel", yield_);
-      window.removeEventListener("touchstart", yield_);
-      window.removeEventListener("touchmove", yield_);
-      window.removeEventListener("pointerdown", yield_);
-      window.removeEventListener("keydown", yield_);
-      window.removeEventListener("autoscroll:hold", onHold);
+      window.removeEventListener("wheel", onYield);
+      window.removeEventListener("touchstart", onTouch);
+      window.removeEventListener("touchmove", onTouch);
+      window.removeEventListener("pointerdown", onYield);
+      window.removeEventListener("keydown", onYield);
       window.removeEventListener("click", onClick);
       window.removeEventListener("presentation:replay", onReplay);
     };
@@ -293,11 +286,9 @@ export default function AutoScroll() {
 
   if (reduced) return null;
 
-  const label = holding
-    ? "In riproduzione…"
-    : auto
-      ? "Scorri per il controllo manuale"
-      : "Manuale · scorri per navigare";
+  const label = auto
+    ? "Scorri per il controllo manuale"
+    : "Manuale · scorri per navigare";
 
   return (
     <>
@@ -316,7 +307,7 @@ export default function AutoScroll() {
           <span
             aria-hidden
             className={
-              auto || holding
+              auto
                 ? "bg-accent h-2 w-2 animate-pulse rounded-full"
                 : "bg-muted h-2 w-2 rounded-full"
             }

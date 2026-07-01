@@ -7,7 +7,7 @@
  */
 export default function CinematicGrain() {
   return (
-    <div aria-hidden className="pointer-events-none fixed inset-0 z-55">
+    <div aria-hidden className="pointer-events-none fixed inset-0 z-30">
       {/* Vignette */}
       <div
         className="absolute inset-0"

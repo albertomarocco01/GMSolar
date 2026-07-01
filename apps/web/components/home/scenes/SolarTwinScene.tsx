@@ -1,11 +1,14 @@
 "use client";
 
 /**
- * @descrizione  Scena "impianto solare" — gemello digitale del fotovoltaico (subito
- *   dopo l'intro azienda). Config del motore VideoScrubScene: il video solare
- *   (all-keyframe) viene scrubbato dallo scroll mentre i callout raccontano l'arco
- *   NARRATIVO: impianto chiavi in mano → cos'è il modulo → efficienza → inverter →
- *   accumulo → produzione reale (dal progetto all'energia, zoom via via più tecnico).
+ * @descrizione  Scena "impianto solare" — gemello digitale del fotovoltaico e ULTIMO
+ *   video del capitolo azienda (subito dopo l'intro drone). Non è più seguita dal
+ *   cavo EV: apre direttamente i servizi. Poiché la scena successiva (l'Assistente)
+ *   è CHIARA, alza un velo chiaro sul finale (`exitToLight`) → ingresso pulito, senza
+ *   flash scuro. Config del motore VideoScrubScene: il video solare (all-keyframe)
+ *   viene scrubbato dallo scroll mentre i callout raccontano l'arco NARRATIVO:
+ *   impianto chiavi in mano → cos'è il modulo → efficienza → inverter → accumulo →
+ *   produzione reale (dal progetto all'energia, zoom via via più tecnico).
  * @indice
  * - SolarTwinScene → config solare di VideoScrubScene
  */
@@ -32,6 +35,7 @@ export default function SolarTwinScene() {
       title="Il tuo impianto, dato per dato."
       lede="Dalla posa dei moduli alla produzione reale: ogni numero del fotovoltaico GM Solar, mentre scorri."
       callouts={CALLOUTS}
+      exitToLight
     />
   );
 }

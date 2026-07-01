@@ -1,8 +1,12 @@
 "use client";
 
 /**
- * @descrizione  Scena "cavo EV" — terzo e ultimo video del capitolo (subito dopo il
- *   solare). Config del motore VideoScrubScene: il video del cavo (all-keyframe) viene
+ * @descrizione  Scena "cavo EV" — STACCO scuro di METÀ presentazione che introduce il
+ *   capitolo ricarica (subito prima dell'app di ricarica EV). L'ingresso arriva dopo
+ *   una scena CHIARA (Segnalazioni): il taglio chiaro→scuro è VOLUTO (effetto "cambio
+ *   capitolo"), non un difetto — nessun velo d'ingresso. Alza invece un velo CHIARO
+ *   sul finale (`exitToLight`) perché la scena seguente — la Ricarica — è chiara.
+ *   Config del motore VideoScrubScene: il video del cavo (all-keyframe) viene
  *   scrubbato dallo scroll mentre i callout raccontano l'arco NARRATIVO: il cavo/
  *   connettore in generale → quanta potenza → per quali auto è adatto → trifase per
  *   la ricarica rapida → sessione live (SoC, tempo).

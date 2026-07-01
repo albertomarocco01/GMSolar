@@ -110,7 +110,13 @@ export default function ImmersiveRicarica() {
     clickZoom(tl, ".imm-zoom-local", { position: "<0.3" }); // punch-zoom della barra durante il typing
     // Il cursore (mano) va sul tasto invia e fa "tap" (kit: pressButton)
     cursorTo(tl, ".imm-rc-send", { mode: "hand" });
-    pressButton(tl, ".imm-rc-send", { down: 0.86, downDur: 0.12, upDur: 0.2, back: 2.4, position: ">-0.05" });
+    pressButton(tl, ".imm-rc-send", {
+      down: 0.86,
+      downDur: 0.12,
+      upDur: 0.2,
+      back: 2.4,
+      position: ">-0.05",
+    });
     // Il campo si svuota e il messaggio entra nel thread
     tl.to(
       ".imm-rc-input-text",
@@ -169,7 +175,13 @@ export default function ImmersiveRicarica() {
     // ── ⑤ L'utente prenota lo stallo (cursore-mano "tap" + punch-zoom della card) ──
     cursorTo(tl, ".imm-rc-book-btn", { mode: "hand" });
     clickZoom(tl, ".imm-rc-card-station", { position: ">-0.05", scale: 1.03 });
-    pressButton(tl, ".imm-rc-book-btn", { down: 0.94, downDur: 0.12, upDur: 0.2, back: 2.2, position: "<" });
+    pressButton(tl, ".imm-rc-book-btn", {
+      down: 0.94,
+      downDur: 0.12,
+      upDur: 0.2,
+      back: 2.2,
+      position: "<",
+    });
     tl.to(
       ".imm-rc-user-2",
       { autoAlpha: 1, y: 0, duration: 0.45, ease: "back.out(1.7)" },
@@ -576,8 +588,12 @@ export default function ImmersiveRicarica() {
 
       {/* Frasi-intermezzo DESCRITTIVE — tono neutro, spiegano, non vendono */}
       <Say i={0}>Un assistente di ricarica dentro l&apos;app.</Say>
-      <Say i={1}>Trova la colonnina giusta sul tuo percorso.</Say>
-      <Say i={2}>Prenota lo stallo e segue tempi e costi in tempo reale.</Say>
+      <Say i={1} variant="caption">
+        Trova la colonnina giusta sul tuo percorso.
+      </Say>
+      <Say i={2} variant="caption">
+        Prenota lo stallo e segue tempi e costi in tempo reale.
+      </Say>
     </ImmersiveStage>
   );
 }

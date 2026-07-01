@@ -1,7 +1,7 @@
 /**
  * @descrizione  Dati per la scena immersiva ASSISTENTE AI (servizio 04).
  *   Prodotti realistici ripresi da `legacy/data/products.json` (cavi di ricarica
- *   Cavo Perfetto), ridotti ai soli campi mostrati a schermo. Uno è marcato
+ *   GM Solar Shop), ridotti ai soli campi mostrati a schermo. Uno è marcato
  *   `recommended`: è il match che l'assistente "genera" per la richiesta della
  *   scena — «ricaricare a casa» → wallbox residenziale, monofase, best seller.
  *   La logica originale sta nel legacy (`cable-matcher.ts`); qui ne mostriamo

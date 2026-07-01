@@ -11,10 +11,9 @@ import Section from "@gmgroup/ui/Section";
 import ScrollReveal from "@gmgroup/ui/ScrollReveal";
 import ReplayButton from "@/components/home/ReplayButton";
 
-// I 7 servizi digitali della demo, nell'ordine in cui la presentazione li mostra.
+// I 6 servizi digitali mostrati nella presentazione, nell'ordine in cui appaiono.
 // Tutti mock/placeholder (vedi CLAUDE.md: la demo è la vetrina delle proposte).
 const SERVIZI = [
-  "Siti vetrina moderni",
   "Assistente AI di sito",
   "Dashboard & telemetria",
   "Gestionale con AI",

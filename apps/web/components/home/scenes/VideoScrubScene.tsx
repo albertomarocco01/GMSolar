@@ -69,7 +69,7 @@ export type VideoScrubSceneProps = {
 /** Chip di un callout. Su dark (video) l'accent lime come testo è leggibile. */
 function CalloutChip({ c }: { c: Callout }) {
   return (
-    <div className="border-accent/30 bg-black/45 rounded-2xl border px-4 py-3 shadow-xl backdrop-blur-md">
+    <div className="border-accent/30 rounded-2xl border bg-black/45 px-4 py-3 shadow-xl backdrop-blur-md">
       <p className="text-accent text-[10.5px] font-semibold tracking-[0.18em] uppercase">
         {c.kicker}
       </p>
@@ -147,18 +147,31 @@ export default function VideoScrubScene({
       tl.to(".sv-head", { autoAlpha: 1, y: 0, duration: 0.06, ease: "power2.out" }, 0.02);
       tl.to(".sv-head", { autoAlpha: 0, y: -12, duration: 0.06, ease: "power2.in" }, 0.16);
 
-      // Callout: compaiono al loro `at`, sfumano dopo `hold`.
+      // Callout: compaiono al loro `at`, sfumano dopo `hold`. L'uscita non deve
+      // MAI sforare la durata-1 dello spacer: la timeline si allungherebbe e
+      // ScrollTrigger, mappando lo scroll sull'INTERA durata, rimapperebbe TUTTI
+      // i beat in anticipo rispetto al frame video (rompe `at` = frazione video).
       const els = gsap.utils.toArray<HTMLElement>(".sv-callout");
       callouts.forEach((c, i) => {
         const el = els[i];
         if (!el) return;
         tl.to(el, { autoAlpha: 1, y: 0, scale: 1, duration: 0.05, ease: "power2.out" }, c.at);
-        tl.to(el, { autoAlpha: 0, y: -10, duration: 0.05, ease: "power2.in" }, c.at + c.hold);
+        const outAt = Math.min(c.at + c.hold, 0.95);
+        tl.to(el, { autoAlpha: 0, y: -10, duration: 0.05, ease: "power2.in" }, outAt);
       });
 
       // Velo d'uscita chiaro sul finale → SOLO se la scena seguente è chiara.
       if (exitToLight) {
         tl.to(".sv-exit-veil", { autoAlpha: 1, duration: 0.08, ease: "power2.in" }, 0.9);
+      }
+
+      // Guardia di sviluppo: se un tween sfora lo spacer la sincronizzazione
+      // scroll↔video di tutta la scena slitta — meglio saperlo subito.
+      if (process.env.NODE_ENV !== "production" && tl.duration() > 1) {
+        console.warn(
+          `[VideoScrubScene] timeline ${tl.duration().toFixed(3)} > 1: beat rimappati in anticipo`,
+          { src },
+        );
       }
 
       ScrollTrigger.create({
@@ -220,7 +233,7 @@ export default function VideoScrubScene({
           </video>
         )}
 
-        <VetrinaFilmGrade gradeOpacity={0.3} vignetteOpacity={0.55} grainOpacity={0.1} />
+        <VetrinaFilmGrade gradeOpacity={0.3} vignetteOpacity={0.55} grainOpacity={0.06} />
 
         {/* Scrim di leggibilità. */}
         <div aria-hidden className="absolute inset-0 bg-black/35" />
@@ -236,8 +249,8 @@ export default function VideoScrubScene({
         {/* Intestazione del capitolo (entra e poi lascia la scena al video). */}
         <div
           className={cn(
-            "relative z-20 px-6 pt-16 md:px-[6vw]",
-            !reduced && "sv-head absolute top-[8vh] left-0 max-w-lg",
+            "z-20 px-6 pt-16 md:px-[6vw]",
+            reduced ? "relative" : "sv-head absolute top-[8vh] left-0 max-w-lg",
           )}
           style={TEXT_SHADOW}
         >

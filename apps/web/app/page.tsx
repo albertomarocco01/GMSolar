@@ -21,9 +21,9 @@ import ImmersiveGestionale from "@/components/home/immersive/ImmersiveGestionale
  * scroll scrubba un walkthrough (frasi-intermezzo descrittive + cursore + pan
  * orizzontale dove serve). Transizioni verticali seamless tra prodotti.
  *   Capitolo AZIENDA (video, scuro): GM Solar/azienda (drone) → Solare (impianto,
- *   gemello digitale) → Cavo EV. Poi INTERAZIONE: Assistente. Poi CONTROLLO (i
- *   capi): Dashboard → Gestionale → Segnalazioni. Poi Ricarica EV → Integrazioni
- *   → chiusura GM Solar.
+ *   gemello digitale). Poi INTERAZIONE: Assistente. Poi CONTROLLO (i capi):
+ *   Dashboard → Gestionale → Segnalazioni. Poi lo STACCO EV (video cavo, scuro)
+ *   introduce il capitolo ricarica: Ricarica EV → Integrazioni → chiusura GM Solar.
  */
 export default function HomePage() {
   return (
@@ -33,10 +33,9 @@ export default function HomePage() {
       <CinematicGrain />
       <VelocitySkew />
 
-      {/* Capitolo AZIENDA — video scuri (GM Solar/drone → solare → cavo EV) */}
+      {/* Capitolo AZIENDA — video scuri (GM Solar/drone → impianto solare) */}
       <VetrinaScene />
       <SolarTwinScene />
-      <EvCableScene />
 
       {/* INTERAZIONE — come le persone usano il sito */}
       <ImmersiveAssistente />
@@ -45,6 +44,9 @@ export default function HomePage() {
       <ImmersiveDashboard />
       <ImmersiveGestionale />
       <ImmersiveSegnalazioni />
+
+      {/* STACCO EV — video scuro (cavo) che introduce il capitolo ricarica */}
+      <EvCableScene />
 
       {/* App dedicata + integrazioni */}
       <ImmersiveRicarica />

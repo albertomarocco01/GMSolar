@@ -30,8 +30,10 @@
  * │     opts.origin (transform-origin, default "50% 50%"). Torna a scale 1 →      │
  * │     no-op pulito sotto reduced-motion.                                        │
  * │                                                                               │
- * │ say(tl, i) → mostra/nasconde <Say i={i}>. <ImmersiveStage>, <Say>, <Cursor>,  │
- * │   accentVars(theme) → markup/util riusabili.                                  │
+ * │ say(tl, i) → mostra/nasconde <Say i={i}>. <Say variant="veil"|"caption">:     │
+ * │   veil = frase grande su velo full-screen (PRIMA frase della scena);          │
+ * │   caption = pill lower-third senza velo (frasi successive). say() rileva la   │
+ * │   variante dal DOM. <ImmersiveStage>, <Cursor>, accentVars(theme) → util.     │
  * └───────────────────────────────────────────────────────────────────────────┘
  */
 import { forwardRef, useRef } from "react";
@@ -79,7 +81,8 @@ function cursorDest(
   target: string | Element | null | undefined,
 ): { left: number; top: number } | null {
   const cursor = section.querySelector<HTMLElement>(".imm-cursor");
-  const el = typeof target === "string" ? section.querySelector<HTMLElement>(target) : (target ?? null);
+  const el =
+    typeof target === "string" ? section.querySelector<HTMLElement>(target) : (target ?? null);
   if (!cursor || !el) return null;
   const r = el.getBoundingClientRect();
   // Target nascosto (es. sidebar in display:none su mobile) → niente salto in un
@@ -329,7 +332,14 @@ export function useImmersiveScene(build: (tl: gsap.core.Timeline, section: HTMLE
     if (!section) return;
     const reduced = prefersReducedMotion();
     const ctx = gsap.context(() => {
-      gsap.set(".imm-say", { autoAlpha: 0, scale: 1.08, y: 26 });
+      // Due varianti di intermezzo (vedi <Say variant>): il VELO full-screen
+      // entra teatrale (scale+rise), la CAPTION lower-third solo con un rise lieve.
+      if (section.querySelector(".imm-say:not(.imm-say--caption)")) {
+        gsap.set(".imm-say:not(.imm-say--caption)", { autoAlpha: 0, scale: 1.08, y: 26 });
+      }
+      if (section.querySelector(".imm-say--caption")) {
+        gsap.set(".imm-say--caption", { autoAlpha: 0, y: 16 });
+      }
       const tl = gsap.timeline({ defaults: { ease: "power3.out" } });
       tl.data = section; // gli helper (cursorTo) misurano i target in QUESTA scena
       build(tl, section);
@@ -380,7 +390,12 @@ export function useImmersiveScene(build: (tl: gsap.core.Timeline, section: HTMLE
             yPercent: -8,
             ease: "none",
             immediateRender: false,
-            scrollTrigger: { trigger: section, start: "bottom bottom", end: "bottom top", scrub: 0.8 },
+            scrollTrigger: {
+              trigger: section,
+              start: "bottom bottom",
+              end: "bottom top",
+              scrub: 0.8,
+            },
           },
         );
       }
@@ -391,8 +406,19 @@ export function useImmersiveScene(build: (tl: gsap.core.Timeline, section: HTMLE
   return ref;
 }
 
-/** Intermezzo: la frase entra (expo) e poi esce (back-in). Chiamare dentro build. */
+/**
+ * Intermezzo: la frase entra e poi esce. Chiamare dentro build. Rileva da solo
+ * la variante dal DOM (`.imm-say--caption`): il velo entra teatrale (expo,
+ * scale), la caption con un rise sobrio — la regia delle scene non cambia.
+ */
 export function say(tl: gsap.core.Timeline, i: number) {
+  const section = tl.data as HTMLElement | undefined;
+  const caption = !!section?.querySelector(`.imm-say-${i}.imm-say--caption`);
+  if (caption) {
+    tl.to(`.imm-say-${i}`, { autoAlpha: 1, y: 0, duration: 0.5, ease: "power3.out" });
+    tl.to(`.imm-say-${i}`, { autoAlpha: 0, y: -10, duration: 0.4, ease: "power2.in" }, "+=0.7");
+    return;
+  }
   tl.to(`.imm-say-${i}`, { autoAlpha: 1, scale: 1, y: 0, duration: 0.7, ease: "expo.out" });
   tl.to(
     `.imm-say-${i}`,
@@ -401,8 +427,40 @@ export function say(tl: gsap.core.Timeline, i: number) {
   );
 }
 
-/** Frase-intermezzo grande, centrata, su velo sfocato. Tono descrittivo. */
-export function Say({ i, children }: { i: number; children: React.ReactNode }) {
+/**
+ * Frase-intermezzo, tono descrittivo. Due varianti:
+ *   - "veil" (default): frase grande centrata su velo sfocato full-screen —
+ *     annuncia il capitolo. Da usare per la PRIMA frase di ogni scena.
+ *   - "caption": pill lower-third senza velo — commenta senza interrompere la
+ *     vista del prodotto. Per le frasi successive (il velo ripetuto ~20 volte
+ *     nella demo faceva effetto "slide di PowerPoint").
+ * GSAP anima il contenitore esterno (`.imm-say-N`); la pill tiene il proprio
+ * translate di centraggio su un nodo interno, così i transform non si pestano.
+ */
+export function Say({
+  i,
+  variant = "veil",
+  children,
+}: {
+  i: number;
+  variant?: "veil" | "caption";
+  children: React.ReactNode;
+}) {
+  if (variant === "caption") {
+    return (
+      <div
+        className={`imm-say imm-say-${i} imm-say--caption pointer-events-none absolute inset-0 z-40`}
+        style={{ opacity: 0 }}
+        aria-hidden
+      >
+        <div className="border-border bg-background/90 absolute bottom-24 left-1/2 max-w-[70vw] -translate-x-1/2 rounded-full border px-6 py-3 shadow-lg backdrop-blur-sm">
+          <p className="font-display text-foreground text-center text-sm font-semibold tracking-tight text-balance sm:text-base">
+            {children}
+          </p>
+        </div>
+      </div>
+    );
+  }
   return (
     <div
       className={`imm-say imm-say-${i} pointer-events-none absolute inset-0 z-40 flex items-center justify-center`}
@@ -472,7 +530,7 @@ export const ImmersiveStage = forwardRef<
       className="relative"
       style={{ ...accentVars(theme), height: `${heightVh}vh` }}
     >
-      <div className="bg-background sticky top-0 h-screen overflow-hidden">
+      <div className="bg-background sticky top-0 h-svh overflow-hidden">
         {/* .imm-stage = camera (scale/opacity/translate da scroll: zoom di scena +
             hand-off); .imm-skew = velocity skew. Il cursore è FUORI da .imm-skew
             (non va inclinato) ma dentro .imm-stage. */}
