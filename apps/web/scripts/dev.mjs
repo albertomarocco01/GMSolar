@@ -39,5 +39,6 @@ if (port !== base) {
 console.log(`▶ Next dev su http://localhost:${port}`);
 
 // shell:true → su Windows risolve `next` (next.cmd) dal PATH di pnpm/.bin.
-const child = spawn("next", ["dev", "-p", String(port)], { stdio: "inherit", shell: true });
+// Comando come stringa unica (niente array args) → niente DEP0190, porta è un Number quindi safe.
+const child = spawn(`next dev -p ${port}`, { stdio: "inherit", shell: true });
 child.on("exit", (code) => process.exit(code ?? 0));
