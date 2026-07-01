@@ -98,7 +98,6 @@ export default function VetrinaScene() {
       gsap.set(".vt-pan", { xPercent: 0 });
       gsap.set(".vt-video", { scale: 1.06, xPercent: 0, transformOrigin: "50% 50%" });
       gsap.set(".vt-showcase-head", { autoAlpha: 0, y: 20 });
-      gsap.set(".vt-exit-veil", { autoAlpha: 0 });
 
       const tl = gsap.timeline({
         defaults: { ease: "none" },
@@ -158,8 +157,6 @@ export default function VetrinaScene() {
       tl
         // Respiro continuo: lento zoom del video per tutta la sequenza.
         .to(".vt-video", { scale: 1.22, duration: 5.4 }, 0)
-        // Lo scroll-cue sparisce appena si comincia a scorrere.
-        .to(".vt-cue", { autoAlpha: 0, duration: 0.3 }, 0)
         // ② PAN: l'intera homepage scorre a sinistra; il video la segue con un
         // leggero parallax (resta sotto, dà profondità) → rivela la vetrina.
         .to(".vt-pan", { xPercent: -50, ease: "power2.inOut", duration: 1.1 }, 0.95)
@@ -198,10 +195,8 @@ export default function VetrinaScene() {
       tl.to(".vt-mock-cta", { scale: 0.92, duration: 0.12, ease: "power2.in" }, asm + 1.05);
       tl.to(".vt-mock-cta", { scale: 1, duration: 0.34, ease: "back.out(3)" }, asm + 1.17);
 
-      // HAND-OFF → scena 02 (chiara): dopo un respiro (il video continua lo zoom)
-      // un velo bg-background sale sul video scuro, così il passaggio dark→light
-      // non è uno stacco netto; poi la scena 02 (ImmersiveStage) entra dal chiaro.
-      tl.to(".vt-exit-veil", { autoAlpha: 1, duration: 0.5, ease: "power2.in" }, 5.3);
+      // HAND-OFF → scena solare (SCURA): niente velo chiaro (era per la vecchia
+      // scena 02 chiara). Ora segue un video scuro → cut dark→dark pulito.
 
       ScrollTrigger.refresh();
     });
@@ -326,29 +321,6 @@ export default function VetrinaScene() {
               </p>
             </div>
 
-            {/* Scroll-cue: solo in regia (desktop, non reduced). */}
-            {!reduced && (
-              <div
-                aria-hidden
-                className="vt-cue pointer-events-none absolute inset-x-0 bottom-6 z-20 mx-auto hidden w-fit flex-col items-center gap-1 text-white/70 md:flex"
-              >
-                <span className="text-[0.7rem] font-medium tracking-[0.25em] uppercase">Scorri</span>
-                <span className="animate-bounce">
-                  <svg
-                    width="22"
-                    height="22"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="1.6"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <path d="m6 9 6 6 6-6" />
-                  </svg>
-                </span>
-              </div>
-            )}
           </div>
 
           {/* ② PANNELLO VETRINA — card premium "sospese" + mini-grafici */}
@@ -406,15 +378,6 @@ export default function VetrinaScene() {
           </div>
         )}
 
-        {/* Velo di uscita → scena 02 (chiara): sale sul finale del video scuro,
-            solo in regia (desktop, non reduced). */}
-        {!reduced && (
-          <div
-            aria-hidden
-            className="vt-exit-veil bg-background pointer-events-none absolute inset-0 z-40"
-            style={{ opacity: 0 }}
-          />
-        )}
       </div>
     </section>
   );
