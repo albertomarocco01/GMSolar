@@ -339,7 +339,8 @@ export function useImmersiveScene(build: (tl: gsap.core.Timeline, section: HTMLE
         // a progress(1) mostrerebbe SOLO l'ultimo pannello (gli altri fuori campo).
         // Azzeriamo il transform del binario → il layout reduced (binario scrollabile
         // in orizzontale, vedi scene multi-pannello) mostra tutti i pannelli.
-        gsap.set(section.querySelectorAll<HTMLElement>(".imm-track"), { clearProps: "transform" });
+        const tracks = section.querySelectorAll<HTMLElement>(".imm-track");
+        if (tracks.length) gsap.set(tracks, { clearProps: "transform" });
         return;
       }
       ScrollTrigger.create({

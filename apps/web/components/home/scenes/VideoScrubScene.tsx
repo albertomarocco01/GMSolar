@@ -1,29 +1,35 @@
 "use client";
 
 /**
- * @descrizione  MOTORE generico per una scena "video scrubbato + callout tecnici".
- *   Un video ALL-KEYFRAME a tutto schermo (ScrubVideo) viene pilotato dallo scroll;
- *   sopra, chip di callout (SVG/HTML, NON incisi nel filmato) compaiono/scompaiono in
- *   sync coi beat, ancorati allo scroll. Riusato dalle scene solare e cavo EV: cambia
- *   solo la config (src/poster/copy/callout), non il comportamento.
+ * @descrizione  MOTORE generico "video full-bleed + callout tecnici guidati dallo
+ *   scroll". Due modalità:
+ *     - scrub (default): video ALL-KEYFRAME pilotato dallo scroll (ScrubVideo →
+ *       currentTime = progress·durata). Usato da solare e cavo EV.
+ *     - free (`scrub={false}`): video in autoplay-loop LIBERO — per sorgenti NON
+ *       all-keyframe (es. il drone dell'intro azienda). La regia scroll rivela
+ *       comunque head/callout/cue; il video gira sotto.
+ *   Sopra al video, chip di callout (SVG/HTML, NON incisi nel filmato) compaiono/
+ *   scompaiono in sync coi beat; un cue "Scorri" ricompare all'inizio di OGNI scena
+ *   (meccanica ripetuta) e sfuma appena parte lo scroll. Cambia solo la config, non
+ *   il comportamento.
  *
- *   Pattern come VetrinaScene (NON useImmersiveScene: il suo zoom .imm-stage
- *   litigherebbe col video full-bleed). UNA ScrollTrigger scrubba una timeline
- *   NORMALIZZATA 0→1: l'onUpdate passa lo stesso progress al ScrubVideo (seek) e muove
- *   la barra; i callout sono tween posizionati sul loro `at` (= frazione di durata del
- *   video). Regia attiva anche su mobile (solo scrub verticale → mobile-first ok).
- *   reduced-motion → scena STATICA: poster + callout impilati e leggibili.
+ *   UNA ScrollTrigger scrubba una timeline NORMALIZZATA 0→1: l'onUpdate passa il
+ *   progress al ScrubVideo (seek, solo in scrub) e muove la barra; i callout sono
+ *   tween sul loro `at` (= frazione di durata del video). Regia attiva anche su
+ *   mobile (solo scrub verticale → mobile-first ok). reduced-motion → scena
+ *   STATICA: poster + callout impilati e leggibili.
  * @indice
- * - VideoScrubScene → engine riusabile; SolarTwinScene/EvCableScene lo configurano
+ * - VideoScrubScene → engine riusabile (scrub | free); i wrapper lo configurano
  * - type Callout → forma di un callout tecnico
  */
-import { useRef } from "react";
+import { useEffect, useRef } from "react";
 import { cn } from "@gmgroup/lib/utils";
 import { gsap, ScrollTrigger } from "@gmgroup/lib/gsap";
 import { useReducedMotion, useIsoLayoutEffect } from "@gmgroup/lib/motion";
 import VetrinaFilmGrade from "../vetrina/VetrinaFilmGrade";
 import { accentVars } from "../immersive/shared";
 import ScrubVideo, { type ScrubVideoHandle } from "../ScrubVideo";
+import ScrollCue from "../ScrollCue";
 
 const TEXT_SHADOW = { textShadow: "0 2px 28px rgba(0,0,0,0.55)" } as const;
 
@@ -53,6 +59,11 @@ export type VideoScrubSceneProps = {
   /** Alza un velo CHIARO sul finale — solo se la scena SEGUENTE è chiara (evita il
    *  flash bianco tra scene video scure consecutive). Default false (cut dark→dark). */
   exitToLight?: boolean;
+  /** false → video in autoplay-loop libero (sorgenti NON all-keyframe, es. drone).
+   *  Default true (scrub del currentTime). */
+  scrub?: boolean;
+  /** id ancora opzionale (es. "vetrina" per i link /#vetrina di menu/kb). */
+  id?: string;
 };
 
 /** Chip di un callout. Su dark (video) l'accent lime come testo è leggibile. */
@@ -79,26 +90,58 @@ export default function VideoScrubScene({
   lede,
   callouts,
   exitToLight = false,
+  scrub = true,
+  id,
 }: VideoScrubSceneProps) {
   const reduced = useReducedMotion();
   const stageRef = useRef<HTMLElement>(null);
-  const videoRef = useRef<ScrubVideoHandle>(null);
+  const videoRef = useRef<ScrubVideoHandle>(null); // solo in scrub
+  const freeVideoRef = useRef<HTMLVideoElement>(null); // solo in free
   const progressRef = useRef<HTMLDivElement>(null);
+
+  // Modalità FREE: avvio differito + pausa fuori-schermo del video (come il vecchio
+  // drone di VetrinaScene). `preload="none"` → non compete con l'LCP (= poster).
+  useEffect(() => {
+    if (scrub || reduced) return;
+    const v = freeVideoRef.current;
+    if (!v) return;
+    let timer = 0;
+    const io = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) void v.play().catch(() => {});
+        else v.pause();
+      },
+      { threshold: 0.05 },
+    );
+    const raf = requestAnimationFrame(() => {
+      timer = window.setTimeout(() => io.observe(v), 200);
+    });
+    return () => {
+      cancelAnimationFrame(raf);
+      clearTimeout(timer);
+      io.disconnect();
+    };
+  }, [scrub, reduced]);
 
   useIsoLayoutEffect(() => {
     const stage = stageRef.current;
     if (!stage || reduced) return;
 
     const ctx = gsap.context(() => {
-      // Stato iniziale: intestazione e callout nascosti; velo d'uscita giù.
+      // Stato iniziale: intestazione e callout nascosti; cue visibile; velo giù.
       gsap.set(".sv-head", { autoAlpha: 0, y: 18 });
       gsap.set(".sv-callout", { autoAlpha: 0, y: 14, scale: 0.96 });
+      gsap.set(".sv-cue", { autoAlpha: 1 });
       if (exitToLight) gsap.set(".sv-exit-veil", { autoAlpha: 0 });
 
       // Timeline NORMALIZZATA a durata 1 (spacer) → le posizioni dei tween coincidono
       // con il progress dello scroll e con la frazione di durata del video.
       const tl = gsap.timeline({ defaults: { ease: "none" } });
       tl.to({}, { duration: 1 }, 0);
+
+      // Cue "Scorri": visibile all'avvio, sfuma appena parte lo scroll (ricompare
+      // a ogni scena perché ogni scena ha la sua timeline).
+      tl.to(".sv-cue", { autoAlpha: 0, duration: 0.04, ease: "power2.in" }, 0.05);
 
       // Intestazione: entra all'inizio, esce lasciando spazio a video + callout.
       tl.to(".sv-head", { autoAlpha: 1, y: 0, duration: 0.06, ease: "power2.out" }, 0.02);
@@ -122,10 +165,10 @@ export default function VideoScrubScene({
         trigger: stage,
         start: "top top",
         end: "bottom bottom",
-        scrub: 0.8,
+        scrub: 0.5,
         animation: tl,
         onUpdate: (self) => {
-          videoRef.current?.seek(self.progress); // il video segue lo scroll
+          if (scrub) videoRef.current?.seek(self.progress); // il video segue lo scroll
           if (progressRef.current) {
             progressRef.current.style.transform = `scaleX(${self.progress})`;
           }
@@ -136,13 +179,14 @@ export default function VideoScrubScene({
     }, stage);
 
     return () => ctx.revert();
-  }, [reduced, exitToLight]);
+  }, [reduced, exitToLight, scrub]);
 
   return (
     <section
       ref={stageRef}
+      id={id}
       aria-label={ariaLabel}
-      className={cn("relative isolate text-white", !reduced && "h-[450svh]")}
+      className={cn("relative isolate text-white", !reduced && "h-[320svh]")}
       style={accentVars("platform")}
     >
       <div
@@ -158,8 +202,23 @@ export default function VideoScrubScene({
           className="absolute inset-0 -z-20 bg-linear-to-br from-[#0b1020] via-[#13210a] to-[#0b1020]"
         />
 
-        {/* Video scrubbato (o poster statico in reduced-motion). */}
-        <ScrubVideo ref={videoRef} src={src} poster={poster} className="absolute inset-0 -z-10" />
+        {/* Video: scrubbato (all-keyframe) o autoplay-loop libero (drone). */}
+        {scrub ? (
+          <ScrubVideo ref={videoRef} src={src} poster={poster} className="absolute inset-0 -z-10" />
+        ) : (
+          <video
+            ref={freeVideoRef}
+            className="absolute inset-0 -z-10 h-full w-full object-cover"
+            muted
+            loop={!reduced}
+            playsInline
+            preload="none"
+            poster={poster}
+            aria-hidden
+          >
+            <source src={src} type="video/mp4" />
+          </video>
+        )}
 
         <VetrinaFilmGrade gradeOpacity={0.3} vignetteOpacity={0.55} grainOpacity={0.1} />
 
@@ -207,6 +266,13 @@ export default function VideoScrubScene({
               <CalloutChip c={c} />
             </div>
           ))
+        )}
+
+        {/* Cue "Scorri" → ricompare a inizio scena (solo in regia). */}
+        {!reduced && (
+          <div className="sv-cue pointer-events-none absolute inset-x-0 bottom-6 z-30 flex justify-center">
+            <ScrollCue reduced={reduced} />
+          </div>
         )}
 
         {/* Barra di avanzamento (solo in regia). */}

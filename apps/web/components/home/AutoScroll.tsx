@@ -16,6 +16,7 @@
  * - AutoScroll → componente client da montare una volta sulla pagina home
  */
 import { useEffect, useRef, useState } from "react";
+import { Play } from "lucide-react";
 import { gsap, ScrollTrigger } from "@gmgroup/lib/gsap";
 import { prefersReducedMotion, useReducedMotion } from "@gmgroup/lib/motion";
 
@@ -23,7 +24,10 @@ import { prefersReducedMotion, useReducedMotion } from "@gmgroup/lib/motion";
 type LenisLike = {
   scroll: number;
   limit: number;
-  scrollTo: (target: number, opts?: { immediate?: boolean }) => void;
+  scrollTo: (
+    target: number,
+    opts?: { immediate?: boolean; duration?: number; onComplete?: () => void },
+  ) => void;
 };
 
 // ── Knob (cadenza cinematografica) ───────────────────────────────────────────
@@ -48,9 +52,12 @@ export default function AutoScroll() {
   const [auto, setAuto] = useState(true);
   const [pillShown, setPillShown] = useState(true);
   const [holding, setHolding] = useState(false);
+  const [paused, setPaused] = useState(false); // pausa VOLONTARIA (click) → overlay
 
   const autoRef = useRef(true);
-  const lockedRef = useRef(false); // blocco VOLONTARIO (pill); l'idle non lo supera
+  const lockedRef = useRef(false); // pausa VOLONTARIA (click o pill); l'idle non la supera
+  const replayingRef = useRef(false); // rewind "Rivedi" in corso: ignora input/idle
+  const togglePauseRef = useRef<() => void>(() => {}); // esposto alla pill (definito nell'effect)
   const atBottomRef = useRef(false);
   const holdUntilRef = useRef(0);
   /** Resto sub-pixel accumulato tra i frame. Lenis riallinea `scroll` all'intero
@@ -170,11 +177,11 @@ export default function AutoScroll() {
     let idle: ReturnType<typeof setTimeout> | undefined;
     /** Input utente → cede il controllo; idle → riprende (target ricalcolato nel tick). */
     const yield_ = () => {
-      if (lockedRef.current) return;
+      if (lockedRef.current || replayingRef.current) return;
       if (autoRef.current) setAutoState(false);
       if (idle) clearTimeout(idle);
       idle = setTimeout(() => {
-        if (!lockedRef.current && !atBottomRef.current) setAutoState(true);
+        if (!lockedRef.current && !replayingRef.current && !atBottomRef.current) setAutoState(true);
       }, IDLE_MS);
     };
 
@@ -206,6 +213,53 @@ export default function AutoScroll() {
       holdEndTimer = setTimeout(() => setHolding(false), ms);
     };
 
+    // Pausa VOLONTARIA: un click ferma tutto (l'idle non la supera); un altro riparte.
+    const togglePause = () => {
+      if (replayingRef.current) return;
+      if (lockedRef.current) {
+        lockedRef.current = false;
+        setPaused(false);
+        atBottomRef.current = false;
+        setAutoState(true);
+      } else {
+        lockedRef.current = true;
+        setPaused(true);
+        setAutoState(false);
+      }
+    };
+    togglePauseRef.current = togglePause;
+
+    // Click in QUALSIASI punto → pausa/ripresa. Esclude elementi interattivi
+    // (pill, CTA di chiusura): lì scatta il loro onClick, non la pausa globale.
+    const onClick = (e: MouseEvent) => {
+      const t = e.target as Element | null;
+      if (t && t.closest("a, button, [data-no-pause]")) return;
+      togglePause();
+    };
+
+    // "Rivedi la presentazione": rewind SMOOTH fino in cima, poi riparte l'auto.
+    // Durante il rewind l'auto è spento (sennò il tick lo contrasterebbe) e
+    // replayingRef blinda idle/input.
+    const onReplay = () => {
+      const lenis = getLenis();
+      replayingRef.current = true;
+      lockedRef.current = false;
+      setPaused(false);
+      atBottomRef.current = false;
+      setAutoState(false);
+      const finish = () => {
+        replayingRef.current = false;
+        atBottomRef.current = false;
+        setAutoState(true);
+        flashPill();
+      };
+      if (lenis) lenis.scrollTo(0, { duration: 2.2, onComplete: finish });
+      else {
+        window.scrollTo({ top: 0, behavior: "smooth" });
+        finish();
+      }
+    };
+
     const opts: AddEventListenerOptions = { passive: true };
     window.addEventListener("mousemove", onMouseMove, opts);
     window.addEventListener("wheel", yield_, opts);
@@ -214,6 +268,8 @@ export default function AutoScroll() {
     window.addEventListener("pointerdown", yield_, opts);
     window.addEventListener("keydown", yield_);
     window.addEventListener("autoscroll:hold", onHold);
+    window.addEventListener("click", onClick);
+    window.addEventListener("presentation:replay", onReplay);
 
     return () => {
       cancelAnimationFrame(raf0);
@@ -230,50 +286,57 @@ export default function AutoScroll() {
       window.removeEventListener("pointerdown", yield_);
       window.removeEventListener("keydown", yield_);
       window.removeEventListener("autoscroll:hold", onHold);
+      window.removeEventListener("click", onClick);
+      window.removeEventListener("presentation:replay", onReplay);
     };
   }, [reduced]);
 
   if (reduced) return null;
 
-  const toggle = () => {
-    if (autoRef.current) {
-      lockedRef.current = true;
-      setAutoState(false);
-    } else {
-      lockedRef.current = false;
-      atBottomRef.current = false;
-      setAutoState(true);
-    }
-  };
-
   const label = holding
     ? "In riproduzione…"
     : auto
-      ? "Auto · muovi il mouse per controllare"
-      : "Manuale · riprendi";
+      ? "Scorri per il controllo manuale"
+      : "Manuale · scorri per navigare";
 
   return (
-    <div
-      className={`pointer-events-none fixed inset-x-0 bottom-5 z-40 flex justify-center transition-opacity duration-500 ${
-        pillShown ? "opacity-100" : "opacity-0"
-      }`}
-    >
-      <button
-        type="button"
-        onClick={toggle}
-        aria-pressed={auto}
-        className="border-border/70 bg-background/80 text-muted hover:text-foreground pointer-events-auto flex items-center gap-2 rounded-full border px-4 py-2 text-xs font-medium shadow-lg backdrop-blur-sm transition-colors"
+    <>
+      {/* Pill-hint in basso: come prendere il controllo. Sparisce in pausa (parla l'overlay). */}
+      <div
+        className={`pointer-events-none fixed inset-x-0 bottom-5 z-40 flex justify-center transition-opacity duration-500 ${
+          pillShown && !paused ? "opacity-100" : "opacity-0"
+        }`}
       >
-        <span
-          aria-hidden
-          className={
-            auto || holding
-              ? "bg-accent h-2 w-2 animate-pulse rounded-full"
-              : "bg-muted h-2 w-2 rounded-full"
-          }
-        />
-        {label}
-      </button>
-    </div>
+        <button
+          type="button"
+          onClick={() => togglePauseRef.current()}
+          aria-pressed={paused}
+          className="border-border/70 bg-background/80 text-muted hover:text-foreground pointer-events-auto flex items-center gap-2 rounded-full border px-4 py-2 text-xs font-medium shadow-lg backdrop-blur-sm transition-colors"
+        >
+          <span
+            aria-hidden
+            className={
+              auto || holding
+                ? "bg-accent h-2 w-2 animate-pulse rounded-full"
+                : "bg-muted h-2 w-2 rounded-full"
+            }
+          />
+          {label}
+        </button>
+      </div>
+
+      {/* Overlay di PAUSA: la presentazione è ferma, un click la fa ripartire. */}
+      <div
+        aria-hidden
+        className={`pointer-events-none fixed inset-0 z-40 flex items-center justify-center transition-opacity duration-300 ${
+          paused ? "opacity-100" : "opacity-0"
+        }`}
+      >
+        <div className="bg-background/75 flex items-center gap-2.5 rounded-full px-6 py-3 shadow-lg backdrop-blur-sm">
+          <Play className="text-accent-ink h-4 w-4" aria-hidden />
+          <span className="text-foreground text-sm font-medium">Premi di nuovo per riprendere</span>
+        </div>
+      </div>
+    </>
   );
 }
