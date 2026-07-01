@@ -40,15 +40,13 @@ import { gsap, ScrollTrigger } from "@gmgroup/lib/gsap";
 import { prefersReducedMotion, useIsoLayoutEffect } from "@gmgroup/lib/motion";
 
 /**
- * Accent per "mondo"/servizio. "platform" = aree servizio/admin: ora il LIME del
- * gruppo (era viola elettrico, de-brandizzato su richiesta del cliente). `c` =
- * colore del TESTO sopra l'accent pieno.
+ * Accent UNICO de-brandizzato: il LIME del gruppo su TUTTE le scene (erano temi
+ * per-mondo solar/mobility/shop, collassati su richiesta del cliente). `c` =
+ * colore del TESTO sopra l'accent pieno. Resta una mappa — con fallback in
+ * accentVars() — per non rompere le firme `theme="…"` delle scene.
  */
 const THEMES: Record<string, { a: string; s: string; c: string }> = {
   platform: { a: "#84cc16", s: "#65a30d", c: "#0b1020" },
-  mobility: { a: "#3c9e3a", s: "#2f7e2e", c: "#ffffff" },
-  solar: { a: "#a8d920", s: "#8fbc15", c: "#0b1020" },
-  shop: { a: "#c8d400", s: "#a8b200", c: "#0b1020" },
 };
 
 /** Accent completo per tema: include i derivati (soft/ink/ring) perché a :root
@@ -170,6 +168,156 @@ export function clickZoom(
 }
 
 /**
+ * "Pressione" di un bottone/elemento cliccabile: scala giù di scatto (power2.in)
+ * e rimbalza a 1 (back.out). Formalizza il pattern down→up ripetuto nelle scene.
+ * Finisce a scale 1 ⇒ no-op pulito sotto reduced-motion (progress(1)).
+ */
+export function pressButton(
+  tl: gsap.core.Timeline,
+  target: string | Element,
+  opts?: {
+    down?: number;
+    downDur?: number;
+    upDur?: number;
+    back?: number;
+    position?: number | string;
+  },
+): gsap.core.Timeline {
+  tl.to(
+    target,
+    { scale: opts?.down ?? 0.94, duration: opts?.downDur ?? 0.1, ease: "power2.in" },
+    opts?.position ?? ">",
+  );
+  tl.to(
+    target,
+    { scale: 1, duration: opts?.upDur ?? 0.4, ease: `back.out(${opts?.back ?? 3})` },
+    ">",
+  );
+  return tl;
+}
+
+/**
+ * Digitazione "macchina da scrivere": il testo si rivela per clip-path a scatti
+ * (steps). Nasconde SUBITO il target (inset destro 100%, applicato in build →
+ * prima del paint) e poi lo scopre. Il target va reso inline con whitespace-nowrap.
+ * Reduced-motion (progress(1)) → testo interamente visibile.
+ */
+export function typeInField(
+  tl: gsap.core.Timeline,
+  target: string | Element,
+  opts?: { steps?: number; duration?: number; position?: number | string },
+): gsap.core.Timeline {
+  gsap.set(target, { clipPath: "inset(0 100% 0 0)" });
+  tl.to(
+    target,
+    {
+      clipPath: "inset(0 0% 0 0)",
+      duration: opts?.duration ?? 0.9,
+      ease: `steps(${opts?.steps ?? 24})`,
+    },
+    opts?.position ?? ">",
+  );
+  return tl;
+}
+
+/**
+ * Disegno progressivo di un path SVG (strokeDashoffset → 0). Misura la lunghezza
+ * reale del tratto, lo nasconde SUBITO (in build → prima del paint) e poi lo
+ * "traccia". Reduced-motion → path interamente disegnato.
+ */
+export function drawPath(
+  tl: gsap.core.Timeline,
+  target: string | Element,
+  opts?: { duration?: number; ease?: string; position?: number | string },
+): gsap.core.Timeline {
+  const section = tl.data as HTMLElement | undefined;
+  const el =
+    typeof target === "string"
+      ? (section?.querySelector(target) as SVGPathElement | null)
+      : (target as SVGPathElement);
+  const len = el?.getTotalLength?.() ?? 1;
+  gsap.set(target, { strokeDasharray: len, strokeDashoffset: len });
+  tl.to(
+    target,
+    { strokeDashoffset: 0, duration: opts?.duration ?? 1.2, ease: opts?.ease ?? "power2.inOut" },
+    opts?.position ?? ">",
+  );
+  return tl;
+}
+
+/**
+ * Conteggio animato di uno o più numeri con UN solo tween proxy. Scrive ogni
+ * valore nel rispettivo nodo con un formatter (default: intero arrotondato).
+ * Reduced-motion → valori finali scritti subito (progress(1)).
+ */
+export function countUp(
+  tl: gsap.core.Timeline,
+  items: Array<{ el: string | HTMLElement; to: number; format?: (n: number) => string }>,
+  opts?: { duration?: number; ease?: string; position?: number | string },
+): gsap.core.Timeline {
+  const section = tl.data as HTMLElement | undefined;
+  const resolved = items.map((it, i) => ({
+    node: typeof it.el === "string" ? (section?.querySelector<HTMLElement>(it.el) ?? null) : it.el,
+    format: it.format ?? ((n: number) => String(Math.round(n))),
+    key: `v${i}`,
+    to: it.to,
+  }));
+  const proxy: Record<string, number> = {};
+  const vars: gsap.TweenVars = {
+    duration: opts?.duration ?? 1.4,
+    ease: opts?.ease ?? "power2.out",
+    onUpdate() {
+      for (const r of resolved) if (r.node) r.node.textContent = r.format(proxy[r.key]);
+    },
+  };
+  for (const r of resolved) {
+    proxy[r.key] = 0;
+    vars[r.key] = r.to;
+  }
+  tl.to(proxy, vars, opts?.position ?? ">");
+  return tl;
+}
+
+/**
+ * Reveal a MASCHERA: il target si scopre con un wipe direzionale via clip-path
+ * `inset`. Usa `fromTo` così sotto reduced-motion (progress(1)) finisce SEMPRE
+ * RIVELATO (`inset(0 0% 0 0)`). `immediateRender` (default true) applica lo stato
+ * "coperto" prima del paint → niente flash. Con `stagger` scopre in cascata più
+ * elementi (selettore/array). dir: "l"(default) da sinistra, "r" da destra,
+ * "t" dall'alto, "b" dal basso.
+ */
+export function maskReveal(
+  tl: gsap.core.Timeline,
+  target: string | Element | Element[],
+  opts?: {
+    dir?: "l" | "r" | "t" | "b";
+    duration?: number;
+    ease?: string;
+    stagger?: number | gsap.StaggerVars;
+    position?: number | string;
+  },
+): gsap.core.Timeline {
+  const FROM: Record<"l" | "r" | "t" | "b", string> = {
+    l: "inset(0 100% 0 0)",
+    r: "inset(0 0 0 100%)",
+    t: "inset(0 0 100% 0)",
+    b: "inset(100% 0 0 0)",
+  };
+  tl.fromTo(
+    target,
+    { clipPath: FROM[opts?.dir ?? "l"] },
+    {
+      clipPath: "inset(0 0% 0 0)",
+      duration: opts?.duration ?? 0.7,
+      ease: opts?.ease ?? "power2.out",
+      stagger: opts?.stagger,
+    },
+    opts?.position ?? ">",
+  );
+  return tl;
+}
+
+/**
  * Sticky-scrub immersivo + HAND-OFF di scena. Il `build` popola la timeline
  * (selettori scoped a gsap.context). `tl.data = section` permette agli helper
  * (cursorTo) di misurare i target reali nella scena giusta.
@@ -187,6 +335,11 @@ export function useImmersiveScene(build: (tl: gsap.core.Timeline, section: HTMLE
       build(tl, section);
       if (reduced) {
         tl.progress(1);
+        // I pan orizzontali (`.imm-track`) lasciano il binario a xPercent negativo:
+        // a progress(1) mostrerebbe SOLO l'ultimo pannello (gli altri fuori campo).
+        // Azzeriamo il transform del binario → il layout reduced (binario scrollabile
+        // in orizzontale, vedi scene multi-pannello) mostra tutti i pannelli.
+        gsap.set(section.querySelectorAll<HTMLElement>(".imm-track"), { clearProps: "transform" });
         return;
       }
       ScrollTrigger.create({

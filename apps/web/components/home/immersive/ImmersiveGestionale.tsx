@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * @descrizione  Scena immersiva GESTIONALE (servizio 07). Full-screen, alta
+ * @descrizione  Scena immersiva GESTIONALE (servizio 05). Full-screen, alta
  *   fedeltà: lo scroll scrubba un walkthrough — frasi-intermezzo DESCRITTIVE,
  *   cursore che naviga, pan orizzontale tra le funzioni (Panoramica → Ordini →
  *   Clienti → Agente AI), query in linguaggio naturale che filtra e un agente
@@ -9,7 +9,17 @@
  *   Usa il kit condiviso `./shared`. Reduced-motion: stato finale leggibile.
  */
 import { gsap } from "@gmgroup/lib/gsap";
-import { ImmersiveStage, Say, say, cursorTo, clickZoom, useImmersiveScene } from "./shared";
+import { useReducedMotion } from "@gmgroup/lib/motion";
+import {
+  ImmersiveStage,
+  Say,
+  say,
+  cursorTo,
+  clickZoom,
+  useImmersiveScene,
+  typeInField,
+  maskReveal,
+} from "./shared";
 
 const NAV = ["Panoramica", "Ordini", "Clienti", "Agente AI"];
 
@@ -30,74 +40,94 @@ const MARZO = [
 ];
 
 // Passi che l'agente AI mostra mentre esegue la richiesta in linguaggio naturale.
+// Ogni step ha un check che "poppa" (vedi .imm-ag-check) → niente ✓ nel testo.
 const AGENT_STEPS = [
   "Analizzo gli ordini di Marzo…",
   "Trovati 4 ordini da evadere…",
   "Aggiorno 4 record nel gestionale…",
-  "Fatto ✓",
+  "Fatto",
 ];
 
 export default function ImmersiveGestionale() {
+  // Reduced-motion: il binario a 4 pannelli diventa un carosello scrollabile.
+  const reduced = useReducedMotion();
   const ref = useImmersiveScene((tl, section) => {
+    // `() => navTop(i)`: valori FUNZIONE → ri-misurati da invalidateOnRefresh su resize.
     const navItems = Array.from(section.querySelectorAll<HTMLElement>(".imm-nav-item"));
     const navTop = (i: number) => navItems[i]?.offsetTop ?? 0;
 
-    gsap.set(".imm-query", { clipPath: "inset(0 100% 0 0)" });
-    gsap.set(".imm-match", { opacity: 0 });
     gsap.set(".imm-badge", { autoAlpha: 0, scale: 0.8 });
     gsap.set(".imm-kpi", { autoAlpha: 0, y: 18 });
-    // Agente AI: richiesta da "digitare", step da rivelare, righe che cambiano stato.
-    gsap.set(".imm-ag-req", { clipPath: "inset(0 100% 0 0)" });
+    // Barre Panoramica: crescono dal basso (scaleY).
+    gsap.set(".imm-pano-bar", { scaleY: 0, transformOrigin: "bottom" });
+    // Agente AI: step da rivelare (+ check che "poppa"), righe che cambiano stato
+    // con un FLIP rotateY (transformPerspective per la profondità 3D del giro).
     gsap.set(".imm-ag-step", { autoAlpha: 0, y: 8 });
-    gsap.set(".imm-ag-new", { autoAlpha: 0, scale: 0.8 });
+    gsap.set(".imm-ag-check", { scale: 0, transformOrigin: "50% 50%" });
+    gsap.set(".imm-ag-old", { transformPerspective: 400, transformOrigin: "50% 50%" });
+    gsap.set(".imm-ag-new", {
+      autoAlpha: 0,
+      rotationY: -90,
+      transformPerspective: 400,
+      transformOrigin: "50% 50%",
+    });
     tl.set(".imm-cursor", { left: "50%", top: "55%" });
-    tl.set(".imm-nav-ind", { top: navTop(0) });
+    tl.set(".imm-nav-ind", { top: () => navTop(0) });
 
-    // ① Panoramica
+    // ① Panoramica — le KPI entrano, poi le barre crescono dal basso
     say(tl, 0);
     tl.to(
       ".imm-kpi",
       { autoAlpha: 1, y: 0, duration: 0.5, stagger: 0.1, ease: "back.out(1.6)" },
       "<0.2",
     );
+    tl.to(".imm-pano-bar", { scaleY: 1, duration: 0.6, stagger: 0.07, ease: "back.out(1.7)" }, ">-0.1");
 
-    // ② Ordini + query in linguaggio naturale
+    // ② Ordini + query in linguaggio naturale (kit: typeInField)
     say(tl, 1);
     cursorTo(tl, navItems[1], { mode: "hand" });
-    tl.to(".imm-nav-ind", { top: navTop(1), duration: 0.45, ease: "power3.inOut" }, "<0.3");
+    tl.to(".imm-nav-ind", { top: () => navTop(1), duration: 0.45, ease: "power3.inOut" }, "<0.3");
     tl.to(".imm-track", { xPercent: -25, duration: 1.1, ease: "expo.inOut" }, "<0.1");
     cursorTo(tl, ".imm-query", { mode: "text" });
-    tl.to(".imm-query", { clipPath: "inset(0 0% 0 0)", duration: 1, ease: "steps(22)" }, "<0.2");
-    clickZoom(tl, ".imm-zoom-local", { position: "<" }); // punch-zoom della barra di ricerca durante il typing
-    tl.to(".imm-match", { opacity: 1, duration: 0.45, ease: "power2.out" }, ">0.1");
-    tl.to(".imm-row-n", { opacity: 0.35, duration: 0.4 }, "<");
+    typeInField(tl, ".imm-query", { steps: 22, duration: 1, position: "<0.2" });
+    clickZoom(tl, ".imm-zoom-local", { position: "<0.3" }); // punch-zoom barra ricerca durante il typing
+    // Le righe che fanno match: l'evidenziazione accent entra a WIPE (maskReveal).
+    tl.to(".imm-row-n", { opacity: 0.35, duration: 0.4 }, ">0.1");
+    maskReveal(tl, ".imm-match", { dir: "l", duration: 0.5, stagger: 0.12, position: "<" });
     tl.to(".imm-badge", { autoAlpha: 1, scale: 1, duration: 0.45, ease: "back.out(1.8)" }, "<");
 
-    // ③ Clienti
+    // ③ Clienti — il cursore apre una scheda (click-zoom "a dettaglio")
     say(tl, 2);
     cursorTo(tl, navItems[2], { mode: "hand" });
-    tl.to(".imm-nav-ind", { top: navTop(2), duration: 0.45, ease: "power3.inOut" }, "<0.3");
+    tl.to(".imm-nav-ind", { top: () => navTop(2), duration: 0.45, ease: "power3.inOut" }, "<0.3");
     tl.to(".imm-track", { xPercent: -50, duration: 1.1, ease: "expo.inOut" }, "<0.1");
+    cursorTo(tl, ".imm-cli-card", { mode: "hand" });
+    clickZoom(tl, ".imm-cli-card", { position: ">-0.1", scale: 1.06 });
 
     // ④ Agente AI — riceve una richiesta in italiano ed ESEGUE l'operazione
     say(tl, 3);
     cursorTo(tl, navItems[3], { mode: "hand" });
-    tl.to(".imm-nav-ind", { top: navTop(3), duration: 0.45, ease: "power3.inOut" }, "<0.3");
+    tl.to(".imm-nav-ind", { top: () => navTop(3), duration: 0.45, ease: "power3.inOut" }, "<0.3");
     tl.to(".imm-track", { xPercent: -75, duration: 1.1, ease: "expo.inOut" }, "<0.1");
-    // 1. la richiesta in linguaggio naturale si "scrive" (cursore-caret)
+    // 1. la richiesta in linguaggio naturale si "scrive" (kit: typeInField)
     cursorTo(tl, ".imm-ag-req", { mode: "text" });
-    tl.to(".imm-ag-req", { clipPath: "inset(0 0% 0 0)", duration: 0.9, ease: "steps(20)" }, "<0.2");
-    // 2. l'agente esegue: gli step compaiono uno dopo l'altro
+    typeInField(tl, ".imm-ag-req", { steps: 20, duration: 0.9, position: "<0.2" });
+    // 2. l'agente esegue: gli step compaiono e ogni check "poppa" (scale 0→1 back)
     tl.to(
       ".imm-ag-step",
       { autoAlpha: 1, y: 0, duration: 0.35, stagger: 0.3, ease: "power2.out" },
       ">0.1",
     );
-    // 3. i dati nel gestionale si aggiornano: lo stato delle righe cambia
-    tl.to(".imm-ag-old", { autoAlpha: 0, duration: 0.3, stagger: 0.08 }, ">-0.05");
+    tl.to(".imm-ag-check", { scale: 1, duration: 0.4, stagger: 0.3, ease: "back.out(3)" }, "<0.15");
+    // 3. i record cambiano stato con un FLIP rotateY: "In lavorazione" → "Evaso ✓"
+    tl.to(
+      ".imm-ag-old",
+      { rotationY: 90, autoAlpha: 0, duration: 0.3, stagger: 0.08, ease: "power2.in" },
+      ">-0.05",
+    );
     tl.to(
       ".imm-ag-new",
-      { autoAlpha: 1, scale: 1, duration: 0.4, stagger: 0.08, ease: "back.out(1.8)" },
+      { rotationY: 0, autoAlpha: 1, duration: 0.45, stagger: 0.08, ease: "back.out(1.4)" },
       "<0.05",
     );
     tl.to({}, { duration: 0.6 });
@@ -106,10 +136,10 @@ export default function ImmersiveGestionale() {
   return (
     <ImmersiveStage
       ref={ref}
-      heightVh={460}
+      heightVh={540}
       theme="platform"
       label="Gestionale"
-      eyebrow="07 · Gestionale con AI"
+      eyebrow="05 · Gestionale con AI"
     >
       <div className="flex h-full pt-12">
         <aside className="border-border bg-surface relative hidden w-56 shrink-0 border-r p-4 sm:block">
@@ -133,7 +163,12 @@ export default function ImmersiveGestionale() {
           </nav>
         </aside>
 
-        <div className="relative flex-1 overflow-hidden">
+        {/* Reduced-motion: overflow-x-auto → binario a 4 pannelli scorribile a mano. */}
+        <div
+          className={`relative flex-1 ${
+            reduced ? "overflow-x-auto overflow-y-hidden" : "overflow-hidden"
+          }`}
+        >
           <div className="border-border bg-surface/60 flex h-14 items-center gap-3 border-b px-6 backdrop-blur">
             <div className="bg-surface-2 text-muted flex h-8 max-w-md flex-1 items-center rounded-full px-4 text-sm">
               Cerca o chiedi all&apos;AI…
@@ -163,7 +198,9 @@ export default function ImmersiveGestionale() {
                   <span
                     key={i}
                     className={
-                      i === 5 ? "bg-accent flex-1 rounded-t" : "bg-accent/30 flex-1 rounded-t"
+                      i === 5
+                        ? "imm-pano-bar bg-accent flex-1 rounded-t"
+                        : "imm-pano-bar bg-accent/30 flex-1 rounded-t"
                     }
                     style={{ height: `${h}%` }}
                   />
@@ -215,10 +252,12 @@ export default function ImmersiveGestionale() {
                   { n: "Ferrari Group", c: "Modena · Automotive", v: "87.000 €" },
                   { n: "Bianchi S.p.A.", c: "Milano · Retail", v: "12.500 €" },
                   { n: "Conti S.r.l.", c: "Roma · Servizi", v: "34.200 €" },
-                ].map((c) => (
+                ].map((c, ci) => (
                   <div
                     key={c.n}
-                    className="border-border bg-surface flex items-center gap-4 rounded-xl border p-5"
+                    className={`border-border bg-surface flex items-center gap-4 rounded-xl border p-5${
+                      ci === 0 ? " imm-cli-card" : ""
+                    }`}
                   >
                     <span className="bg-accent-soft text-accent-ink flex h-12 w-12 items-center justify-center rounded-full font-bold">
                       {c.n.charAt(0)}
@@ -259,7 +298,18 @@ export default function ImmersiveGestionale() {
                         key={i}
                         className="imm-ag-step text-foreground flex items-center gap-2 text-sm"
                       >
-                        <span className="bg-accent h-1.5 w-1.5 shrink-0 rounded-full" />
+                        {/* Check che "poppa" (scale 0→1) quando lo step è fatto */}
+                        <span className="imm-ag-check bg-accent text-accent-contrast flex h-4 w-4 shrink-0 items-center justify-center rounded-full">
+                          <svg viewBox="0 0 24 24" fill="none" className="h-2.5 w-2.5" aria-hidden>
+                            <path
+                              d="m5 13 4 4L19 7"
+                              stroke="currentColor"
+                              strokeWidth="3"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                            />
+                          </svg>
+                        </span>
                         {s}
                       </li>
                     ))}

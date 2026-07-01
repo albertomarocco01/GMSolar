@@ -18,8 +18,8 @@ import ImmersiveGestionale from "@/components/home/immersive/ImmersiveGestionale
  * fade dal nero su "Siti vetrina moderni"; ogni servizio riempie lo schermo e lo
  * scroll scrubba un walkthrough (frasi-intermezzo descrittive + cursore + pan
  * orizzontale dove serve). Transizioni verticali seamless tra prodotti.
- *   (fade dal nero) 01 Vetrina 3D → 02 Assistente → 03 Dashboard →
- *   04 Segnalazioni → 05 Integrazioni → 06 Ricarica EV → 07 Gestionale →
+ *   (fade dal nero) 01 Vetrina → 02 Dashboard → 03 Segnalazioni →
+ *   04 Assistente → 05 Gestionale → 06 Ricarica EV → 07 Integrazioni →
  *   firma + fade to black.
  */
 export default function HomePage() {
@@ -31,12 +31,12 @@ export default function HomePage() {
       <VelocitySkew />
 
       <VetrinaScene />
-      <ImmersiveAssistente />
       <ImmersiveDashboard />
       <ImmersiveSegnalazioni />
-      <ImmersiveIntegrazioni />
-      <ImmersiveRicarica />
+      <ImmersiveAssistente />
       <ImmersiveGestionale />
+      <ImmersiveRicarica />
+      <ImmersiveIntegrazioni />
 
       <FadeToBlackScene />
     </div>

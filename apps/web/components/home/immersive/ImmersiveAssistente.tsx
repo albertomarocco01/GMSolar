@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * @descrizione  Scena immersiva ASSISTENTE AI (servizio 02). Full-screen, alta
+ * @descrizione  Scena immersiva ASSISTENTE AI (servizio 04). Full-screen, alta
  *   fedeltà: lo scroll scrubba un walkthrough che riprende il legacy
  *   `CableFinder` — una PAGINA PRODOTTI (cavi di ricarica) con in basso una
  *   BARRA ASSISTENTE. Il cursore tocca la barra, il visitatore digita una
@@ -22,7 +22,18 @@
  */
 import { cn } from "@gmgroup/lib/utils";
 import { gsap } from "@gmgroup/lib/gsap";
-import { ImmersiveStage, Say, say, cursorTo, clickZoom, useImmersiveScene } from "./shared";
+import {
+  ImmersiveStage,
+  Say,
+  say,
+  cursorTo,
+  clickZoom,
+  useImmersiveScene,
+  pressButton,
+  typeInField,
+  drawPath,
+  maskReveal,
+} from "./shared";
 import { PRODUCTS, GENERATED, QUERY } from "./_assistente-data";
 
 const SHOP_NAV = ["Cavi", "Wallbox", "Adattatori", "Supporto"];
@@ -31,12 +42,12 @@ export default function ImmersiveAssistente() {
   const ref = useImmersiveScene((tl) => {
     // ── Stato iniziale (selettori scoped alla section da gsap.context) ─────────
     gsap.set(".imm-placeholder", { autoAlpha: 1 });
-    gsap.set(".imm-typed", { clipPath: "inset(0 100% 0 0)" });
     gsap.set(".imm-bar-ring", { autoAlpha: 0 });
     gsap.set(".imm-typing", { autoAlpha: 0, y: 8 });
     // L'interfaccia generata parte nascosta e leggermente sotto/rimpicciolita.
+    // (Le sue sezioni `.imm-genui-item` sono rivelate con maskReveal → restano a
+    //  autoAlpha 1 ma clippate; il wipe le scopre.)
     gsap.set(".imm-genui", { autoAlpha: 0, y: 30, scale: 0.96, transformOrigin: "50% 60%" });
-    gsap.set(".imm-genui-item", { autoAlpha: 0, y: 14 });
     tl.set(".imm-cursor", { left: "50%", top: "52%" });
 
     // ① Presenta la scena: un assistente dentro la pagina prodotti
@@ -46,22 +57,27 @@ export default function ImmersiveAssistente() {
     cursorTo(tl, ".imm-bar", { mode: "text" });
     tl.to(".imm-bar-ring", { autoAlpha: 1, duration: 0.35, ease: "power2.out" }, "<0.45");
 
-    // ③ Digitazione della richiesta (placeholder esce, testo rivelato a "steps")
+    // ③ Digitazione della richiesta carattere-per-carattere (kit: typeInField),
+    //    con punch-zoom della barra a metà digitazione.
     tl.to(".imm-placeholder", { autoAlpha: 0, duration: 0.2, ease: "power2.in" });
-    tl.to(".imm-typed", { clipPath: "inset(0 0% 0 0)", duration: 1.2, ease: "steps(30)" });
-    clickZoom(tl, ".imm-bar", { position: "<" }); // punch-zoom della barra durante il typing
+    typeInField(tl, ".imm-typed", { steps: 30, duration: 1.2 });
+    clickZoom(tl, ".imm-bar", { position: "<0.4" }); // punch-zoom della barra durante il typing
     say(tl, 1);
 
-    // ④ Invio → l'AI "ragiona" (cursore-mano sul tasto, press, typing dots)
+    // ④ Invio → l'AI "ragiona": press del tasto (kit: pressButton), dots + un
+    //    mini-grafico/spec che si DISEGNA durante la pausa di ragionamento.
     cursorTo(tl, ".imm-send", { mode: "hand" });
-    tl.to(".imm-send", { scale: 0.86, duration: 0.12, ease: "power2.in" }, ">-0.05");
-    tl.to(".imm-send", { scale: 1, duration: 0.22, ease: "back.out(2.4)" }, ">");
+    pressButton(tl, ".imm-send", { down: 0.86, downDur: 0.12, upDur: 0.22, back: 2.4, position: ">-0.05" });
     tl.to(".imm-typing", { autoAlpha: 1, y: 0, duration: 0.35, ease: "power2.out" }, ">0.1");
-    tl.to({}, { duration: 0.55 }); // pausa: "sta ragionando"
+    drawPath(tl, ".imm-think-path", { duration: 0.7, ease: "power2.inOut", position: ">0.05" });
+    tl.to({}, { duration: 0.4 }); // pausa: "sta ragionando"
 
     // ⑤ GENERA l'interfaccia: la griglia prodotti vola via e lascia il posto
     say(tl, 2);
     tl.to(".imm-typing", { autoAlpha: 0, y: 8, duration: 0.25, ease: "power2.in" });
+    // La barra perde il focus: l'anello accent si spegne (altrimenti a progress(1),
+    // sotto reduced-motion, resterebbe acceso senza interazione in corso).
+    tl.to(".imm-bar-ring", { autoAlpha: 0, duration: 0.25, ease: "power2.in" }, "<");
     // Griglia OUT: stagger che si dissolve verso l'alto. autoAlpha:0 →
     // visibility:hidden = fuori dall'albero a11y, ma il box resta (height lock).
     tl.to(".imm-prod", {
@@ -72,25 +88,28 @@ export default function ImmersiveAssistente() {
       stagger: { each: 0.05, from: "end" },
       ease: "power2.in",
     });
-    // Interfaccia generata IN (overlay assoluto) + contenuti in cascata.
+    // Interfaccia generata IN (overlay assoluto); le sezioni entrano con un WIPE
+    // direzionale (kit: maskReveal) invece del semplice fade+slide.
     tl.to(".imm-genui", { autoAlpha: 1, y: 0, scale: 1, duration: 0.75, ease: "expo.out" }, ">-0.15");
-    tl.to(
-      ".imm-genui-item",
-      { autoAlpha: 1, y: 0, duration: 0.5, stagger: 0.08, ease: "back.out(1.4)" },
-      "<0.18",
-    );
+    maskReveal(tl, ".imm-genui-item", { dir: "l", duration: 0.5, stagger: 0.07, position: "<0.18" });
 
-    // ⑥ Pausa finale
-    tl.to({}, { duration: 0.7 });
+    // ⑥ Il configuratore "funziona": il cursore preme la combinazione pre-scelta
+    //    (kit: pressButton) e un punch-zoom evidenzia il cluster.
+    cursorTo(tl, ".imm-config-pick", { mode: "hand" });
+    pressButton(tl, ".imm-config-pick", { down: 0.9, downDur: 0.1, upDur: 0.3, back: 2.6, position: ">-0.05" });
+    clickZoom(tl, ".imm-config-zoom", { position: "<" });
+
+    // ⑦ Pausa finale
+    tl.to({}, { duration: 0.6 });
   });
 
   return (
     <ImmersiveStage
       ref={ref}
-      heightVh={460}
+      heightVh={520}
       theme="platform"
       label="Assistente"
-      eyebrow="02 · Assistente AI di prodotto"
+      eyebrow="04 · Assistente AI di prodotto"
     >
       <div className="relative flex h-full flex-col overflow-hidden">
         {/* ── Header della pagina prodotti (sito vetrina / e-commerce) ────── */}
@@ -150,16 +169,33 @@ export default function ImmersiveAssistente() {
           ))}
         </div>
 
-        {/* ── Indicatore "sta ragionando…" (sopra la barra) ──────────────── */}
+        {/* ── Indicatore "sta ragionando…" (sopra la barra): dots + un mini-spec
+            che si DISEGNA durante la pausa di ragionamento (imm-think-path) ── */}
         <div className="imm-typing absolute bottom-28 left-1/2 z-10 -translate-x-1/2" aria-hidden>
-          <div className="bg-surface-2 border-border flex items-center gap-1 rounded-full border px-4 py-3 shadow-lg">
-            {[0, 1, 2].map((d) => (
-              <span
-                key={d}
-                className="bg-muted h-1.5 w-1.5 animate-bounce rounded-full"
-                style={{ animationDelay: `${d * 0.16}s` }}
+          <div className="bg-surface-2 border-border flex items-center gap-2.5 rounded-full border px-4 py-3 shadow-lg">
+            <span className="flex items-center gap-1">
+              {[0, 1, 2].map((d) => (
+                <span
+                  key={d}
+                  className="bg-muted h-1.5 w-1.5 animate-bounce rounded-full"
+                  style={{ animationDelay: `${d * 0.16}s` }}
+                />
+              ))}
+            </span>
+            <span className="bg-border h-4 w-px" />
+            <span className="text-muted text-[10px] font-semibold tracking-wide">
+              Genero l&apos;interfaccia
+            </span>
+            <svg viewBox="0 0 72 24" className="text-accent-ink h-5 w-16" fill="none" aria-hidden>
+              <path
+                className="imm-think-path"
+                d="M2 20 L14 12 L26 15 L38 6 L50 10 L70 4"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
               />
-            ))}
+            </svg>
           </div>
         </div>
 
@@ -179,8 +215,10 @@ export default function ImmersiveAssistente() {
               </p>
             </div>
 
-            {/* Corpo della vista generata */}
-            <div className="border-border bg-background grid min-h-0 flex-1 grid-cols-1 gap-4 overflow-hidden rounded-2xl border p-4 shadow-2xl sm:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)] sm:p-5">
+            {/* Corpo della vista generata. overflow-y-auto: su viewport bassi
+                (landscape/zoom) prezzo e CTA in fondo restano raggiungibili invece
+                di essere clippati (era overflow-hidden). */}
+            <div className="border-border bg-background grid min-h-0 flex-1 grid-cols-1 gap-4 overflow-y-auto rounded-2xl border p-4 shadow-2xl sm:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)] sm:p-5">
               {/* Colonna visiva: immagine prodotto + gallery (decorativa) */}
               <div className="imm-genui-item flex min-h-0 flex-col gap-2.5" aria-hidden>
                 <div className="bg-accent-soft flex h-24 items-center justify-center rounded-xl sm:h-auto sm:flex-1">
@@ -221,9 +259,11 @@ export default function ImmersiveAssistente() {
                   ))}
                 </div>
 
-                {/* Configuratore (mock): l'AI ha pre-selezionato la combinazione */}
-                <div className="mt-3 space-y-2">
-                  {GENERATED.options.map((opt) => (
+                {/* Configuratore (mock): l'AI ha pre-selezionato la combinazione.
+                    `.imm-config-zoom` = cluster per il punch-zoom; `.imm-config-pick`
+                    = la scelta che il cursore "preme" (prima opzione selezionata). */}
+                <div className="imm-config-zoom mt-3 space-y-2">
+                  {GENERATED.options.map((opt, oi) => (
                     <div key={opt.label} className="imm-genui-item">
                       <p className="text-muted text-[0.65rem] font-medium">{opt.label}</p>
                       <div className="mt-1 flex flex-wrap gap-1.5" aria-hidden>
@@ -235,6 +275,7 @@ export default function ImmersiveAssistente() {
                               i === opt.selected
                                 ? "border-accent bg-accent-soft text-accent-ink font-semibold"
                                 : "border-border text-muted",
+                              oi === 0 && i === opt.selected && "imm-config-pick",
                             )}
                           >
                             {v}

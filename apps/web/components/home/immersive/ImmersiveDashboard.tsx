@@ -10,7 +10,19 @@
  *   Reduced-motion: timeline portata a progress(1) → stato finale leggibile.
  */
 import { gsap } from "@gmgroup/lib/gsap";
-import { ImmersiveStage, Say, say, cursorTo, clickZoom, useImmersiveScene } from "./shared";
+import { useReducedMotion } from "@gmgroup/lib/motion";
+import {
+  ImmersiveStage,
+  Say,
+  say,
+  cursorTo,
+  clickZoom,
+  useImmersiveScene,
+  pressButton,
+  typeInField,
+  drawPath,
+  countUp,
+} from "./shared";
 
 // ── Dati statici ───────────────────────────────────────────────────────────────
 
@@ -65,27 +77,24 @@ const PLT = "#84cc16";
 // ── Componente ─────────────────────────────────────────────────────────────────
 
 export default function ImmersiveDashboard() {
+  // Reduced-motion: niente pan scrubbato → il binario a 4 pannelli diventa un
+  // carosello scrollabile in orizzontale (tutti i pannelli raggiungibili).
+  const reduced = useReducedMotion();
   const ref = useImmersiveScene((tl, section) => {
-    // Indicatore scorrevole nella sidebar
+    // Indicatore scorrevole nella sidebar. `() => navTop(i)`: valori FUNZIONE così
+    // `invalidateOnRefresh` li ri-misura su resize/cambio breakpoint (la sidebar è
+    // `hidden sm:block`: a build sotto sm gli offsetTop sono 0).
     const navItems = Array.from(section.querySelectorAll<HTMLElement>(".imm-nav-item"));
     const navTop = (i: number) => navItems[i]?.offsetTop ?? 0;
 
-    // Riferimenti DOM per i contatori KPI (scritti direttamente in onUpdate)
-    const kpiEls = KPI.map((_, i) => section.querySelector<HTMLElement>(`.imm-kpi-val-${i}`));
-
-    // Lunghezza reale del path sparkline
-    const sparkPath = section.querySelector<SVGPathElement>(".imm-spark-path");
-    const sparkLen = sparkPath?.getTotalLength() ?? 320;
-
     // ── Set iniziali ───────────────────────────────────────────────────────────
-    gsap.set(".imm-spark-path", { strokeDasharray: sparkLen, strokeDashoffset: sparkLen });
+    // Sparkline (draw) e campo titolo (typing) sono nascosti dai loro helper.
     gsap.set(".imm-bar", { scaleY: 0, transformOrigin: "bottom" });
     gsap.set(".imm-kpi-card", { autoAlpha: 0, y: 20 });
     gsap.set(".imm-ord-row", { autoAlpha: 0, x: -16 });
     gsap.set(".imm-new-card", { autoAlpha: 0, scale: 0.85 });
     gsap.set(".imm-img-fill", { autoAlpha: 0 });
-    gsap.set(".imm-typed", { clipPath: "inset(0 100% 0 0)" });
-    gsap.set(".imm-nav-ind", { top: navTop(0) });
+    tl.set(".imm-nav-ind", { top: () => navTop(0) });
     tl.set(".imm-cursor", { left: "50%", top: "50%" });
 
     // ── ① Contenuti ───────────────────────────────────────────────────────────
@@ -94,8 +103,7 @@ export default function ImmersiveDashboard() {
     // Cursore (mano) sull'area upload → click + punch-zoom del cluster card editor
     cursorTo(tl, ".imm-img-placeholder", { mode: "hand" });
     tl.to({}, { duration: 0.3 });
-    tl.to(".imm-img-placeholder", { scale: 0.96, duration: 0.12, ease: "power2.in" });
-    tl.to(".imm-img-placeholder", { scale: 1, duration: 0.22, ease: "back.out(2.2)" }, ">");
+    pressButton(tl, ".imm-img-placeholder", { down: 0.96, downDur: 0.12, upDur: 0.22, back: 2.2 });
     clickZoom(tl, ".imm-zoom-local", { position: "<" }); // punch al click (non tocca .imm-stage)
     // L'immagine placeholder si riempie
     tl.to(".imm-img-fill", { autoAlpha: 1, duration: 0.6, ease: "power2.out" }, "<0.1");
@@ -103,20 +111,19 @@ export default function ImmersiveDashboard() {
     // Cursore (caret) sul campo titolo → digitazione + punch-zoom durante il typing
     cursorTo(tl, ".imm-typed", { mode: "text" });
     tl.to({}, { duration: 0.25 });
-    tl.to(".imm-typed", { clipPath: "inset(0 0% 0 0)", duration: 0.85, ease: "steps(22)" }, "<0.1");
+    typeInField(tl, ".imm-typed", { steps: 22, duration: 0.85, position: "<0.1" });
     clickZoom(tl, ".imm-zoom-local", { position: "<" });
 
     // ── ② Prodotti ────────────────────────────────────────────────────────────
     say(tl, 1); // «Carichi foto e testi, aggiungi prodotti.»
     cursorTo(tl, navItems[1], { mode: "hand" }); // click "Prodotti" nella sidebar
-    tl.to(".imm-nav-ind", { top: navTop(1), duration: 0.45, ease: "power3.inOut" }, "<0.3");
+    tl.to(".imm-nav-ind", { top: () => navTop(1), duration: 0.45, ease: "power3.inOut" }, "<0.3");
     tl.to(".imm-track", { xPercent: -25, duration: 1.1, ease: "expo.inOut" }, "<0.1");
 
     // Cursore (mano) sul bottone "Aggiungi prodotto" e lo preme
     tl.to({}, { duration: 0.35 });
     cursorTo(tl, ".imm-add-btn", { mode: "hand" });
-    tl.to(".imm-add-btn", { scale: 0.93, duration: 0.1, ease: "power2.in" });
-    tl.to(".imm-add-btn", { scale: 1, duration: 0.18, ease: "back.out(2.5)" }, ">");
+    pressButton(tl, ".imm-add-btn", { down: 0.93, downDur: 0.1, upDur: 0.18, back: 2.5 });
     // La nuova card prodotto entra con back.out
     tl.to(
       ".imm-new-card",
@@ -127,7 +134,7 @@ export default function ImmersiveDashboard() {
     // ── ③ Visite ──────────────────────────────────────────────────────────────
     say(tl, 2); // «Vedi visite, utenti e ordini in tempo reale.»
     cursorTo(tl, navItems[2], { mode: "hand" }); // click "Visite"
-    tl.to(".imm-nav-ind", { top: navTop(2), duration: 0.45, ease: "power3.inOut" }, "<0.3");
+    tl.to(".imm-nav-ind", { top: () => navTop(2), duration: 0.45, ease: "power3.inOut" }, "<0.3");
     tl.to(".imm-track", { xPercent: -50, duration: 1.1, ease: "expo.inOut" }, "<0.1");
 
     // Card KPI entrano con back.out staggered
@@ -137,31 +144,26 @@ export default function ImmersiveDashboard() {
       "<0.25",
     );
     // Proxy counter: i 3 valori salgono in parallelo
-    const proxy = { v0: 0, v1: 0, v2: 0 };
-    tl.to(
-      proxy,
-      {
-        v0: KPI[0].target,
-        v1: KPI[1].target,
-        v2: KPI[2].target,
-        duration: 1.4,
-        ease: "power2.out",
-        onUpdate() {
-          if (kpiEls[0]) kpiEls[0].textContent = FMT.format(Math.round(proxy.v0));
-          if (kpiEls[1]) kpiEls[1].textContent = FMT.format(Math.round(proxy.v1));
-          if (kpiEls[2]) kpiEls[2].textContent = FMT.format(Math.round(proxy.v2));
-        },
-      },
-      "<0.3",
+    countUp(
+      tl,
+      KPI.map((k, i) => ({
+        el: `.imm-kpi-val-${i}`,
+        to: k.target,
+        format: (n: number) => FMT.format(Math.round(n)),
+      })),
+      { duration: 1.4, ease: "power2.out", position: "<0.3" },
     );
     // Sparkline si disegna da sinistra (dashoffset → 0)
-    tl.to(".imm-spark-path", { strokeDashoffset: 0, duration: 1.2, ease: "power2.inOut" }, "<0.4");
+    drawPath(tl, ".imm-spark-path", { duration: 1.2, ease: "power2.inOut", position: "<0.4" });
     // Barre crescono dal basso con stagger
     tl.to(".imm-bar", { scaleY: 1, duration: 0.6, stagger: 0.07, ease: "back.out(1.7)" }, "<0.3");
+    // Tocco: il cursore "apre" una card KPI (punch-zoom verso il dettaglio).
+    cursorTo(tl, ".imm-kpi-zoom", { mode: "hand" });
+    clickZoom(tl, ".imm-kpi-zoom", { position: ">-0.05", scale: 1.08 });
 
     // ── ④ Ordini ──────────────────────────────────────────────────────────────
     cursorTo(tl, navItems[3], { mode: "hand" }); // click "Ordini"
-    tl.to(".imm-nav-ind", { top: navTop(3), duration: 0.45, ease: "power3.inOut" }, "<0.3");
+    tl.to(".imm-nav-ind", { top: () => navTop(3), duration: 0.45, ease: "power3.inOut" }, "<0.3");
     tl.to(".imm-track", { xPercent: -75, duration: 1.1, ease: "expo.inOut" }, "<0.1");
     // Righe tabella entrano con slide+fade staggered
     tl.to(
@@ -174,7 +176,13 @@ export default function ImmersiveDashboard() {
   });
 
   return (
-    <ImmersiveStage ref={ref} heightVh={500} theme="platform" label="Dashboard multi-sito">
+    <ImmersiveStage
+      ref={ref}
+      heightVh={500}
+      theme="platform"
+      label="Dashboard multi-sito"
+      eyebrow="02 · Dashboard multi-sito"
+    >
       {/* Forza tema chiaro su tutta la scena — sovrascrive bg-background del wrapper */}
       <div className="flex h-full bg-white pt-10 text-slate-800">
         {/* ── Sidebar ────────────────────────────────────────────────────────── */}
@@ -219,7 +227,13 @@ export default function ImmersiveDashboard() {
         </aside>
 
         {/* ── Area principale ───────────────────────────────────────────────── */}
-        <div className="relative flex-1 overflow-hidden">
+        {/* Reduced-motion: overflow-x-auto → il binario a 4 pannelli si scorre a mano
+            (il pan scrubbato non c'è, vedi useReducedMotion sopra). */}
+        <div
+          className={`relative flex-1 ${
+            reduced ? "overflow-x-auto overflow-y-hidden" : "overflow-hidden"
+          }`}
+        >
           {/* Topbar */}
           <div className="flex h-12 items-center gap-3 border-b border-slate-200 bg-white/80 px-5 backdrop-blur">
             <span className="h-2 w-2 rounded-full bg-emerald-400" />
@@ -371,7 +385,9 @@ export default function ImmersiveDashboard() {
             </div>
 
             {/* ③ VISITE ─────────────────────────────────────────────────────── */}
-            <div className="w-1/4 shrink-0 overflow-hidden p-6">
+            {/* overflow-y-auto: su viewport molto bassi (landscape) le barre in fondo
+                restano raggiungibili invece di essere clippate. */}
+            <div className="w-1/4 shrink-0 overflow-y-auto p-6">
               <p className="mb-4 font-semibold text-slate-700">Visite · ultimi 30 giorni</p>
 
               {/* 3 card KPI: counter animato via proxy GSAP */}
@@ -379,7 +395,9 @@ export default function ImmersiveDashboard() {
                 {KPI.map(({ label }, i) => (
                   <div
                     key={label}
-                    className="imm-kpi-card rounded-xl border border-slate-200 bg-white p-4 shadow-sm"
+                    className={`imm-kpi-card rounded-xl border border-slate-200 bg-white p-4 shadow-sm${
+                      i === 0 ? " imm-kpi-zoom" : ""
+                    }`}
                   >
                     <p
                       className={`imm-kpi-val-${i} font-display text-2xl font-bold tabular-nums`}

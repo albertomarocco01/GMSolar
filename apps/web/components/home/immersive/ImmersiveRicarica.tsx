@@ -15,7 +15,18 @@
  *   Reduced-motion: gsap.set iniziale + tl.progress(1) → stato finale leggibile.
  */
 import { gsap } from "@gmgroup/lib/gsap";
-import { ImmersiveStage, Say, say, cursorTo, clickZoom, useImmersiveScene } from "./shared";
+import {
+  ImmersiveStage,
+  Say,
+  say,
+  cursorTo,
+  clickZoom,
+  useImmersiveScene,
+  pressButton,
+  typeInField,
+  countUp,
+  maskReveal,
+} from "./shared";
 
 /** Formattatori Intl — singleton fuori dal componente (nessuna riallocazione). */
 const fmtEur = new Intl.NumberFormat("it-IT", {
@@ -40,21 +51,21 @@ export default function ImmersiveRicarica() {
     // portare il fondo di un elemento a filo del viewport (come una chat reale).
     const viewport = section.querySelector<HTMLElement>(".imm-rc-viewport");
     const thread = section.querySelector<HTMLElement>(".imm-rc-thread");
-    const vh = viewport?.clientHeight ?? 0;
     const scrollTo = (sel: string): number => {
       const el = section.querySelector<HTMLElement>(sel);
       if (!el || !thread) return 0;
+      // vh + offset RI-LETTI ad ogni chiamata: sotto usiamo `y: () => scrollTo(...)`
+      // così invalidateOnRefresh li ricalcola su resize (il telefono è min(264px,42vw),
+      // quindi l'altezza del viewport chat scala con la larghezza).
+      const vh = viewport?.clientHeight ?? 0;
       const bottom = el.offsetTop + el.offsetHeight;
       return -Math.max(0, bottom - vh + 14); // 14px di respiro sotto
     };
 
-    // Proxy per i contatori testuali — onUpdate aggiorna il DOM durante lo scrub.
+    // Proxy per la % batteria (parte da 20, non da 0 → resta manuale; costo e
+    // durata partono da 0 e passano a countUp del kit più sotto).
     const pct = { v: 20 };
-    const cost = { v: 0 };
-    const mins = { v: 0 };
     const pctEl = section.querySelector<HTMLElement>(".imm-rc-pct");
-    const costEl = section.querySelector<HTMLElement>(".imm-rc-cost");
-    const minsEl = section.querySelector<HTMLElement>(".imm-rc-timer");
 
     // ── Stato iniziale ────────────────────────────────────────────────────────
     gsap.set(".imm-rc-thread", { y: 0 });
@@ -93,18 +104,13 @@ export default function ImmersiveRicarica() {
     // ── ① Frase introduttiva ──────────────────────────────────────────────────
     say(tl, 0); // «Un assistente di ricarica dentro l'app.»
 
-    // ── ② L'utente scrive nel campo (clip-path steps) e invia ─────────────────
+    // ── ② L'utente scrive nel campo (kit: typeInField) e invia ────────────────
     tl.to(".imm-rc-placeholder", { autoAlpha: 0, duration: 0.2, ease: "power2.out" });
-    tl.to(
-      ".imm-rc-input-text",
-      { clipPath: "inset(0 0% 0 0)", duration: 0.95, ease: "steps(28)" },
-      "<",
-    );
-    clickZoom(tl, ".imm-zoom-local", { position: "<" }); // punch-zoom della barra durante il typing
-    // Il cursore (mano) va sul tasto invia e fa "tap"
+    typeInField(tl, ".imm-rc-input-text", { steps: 28, duration: 0.95, position: "<" });
+    clickZoom(tl, ".imm-zoom-local", { position: "<0.3" }); // punch-zoom della barra durante il typing
+    // Il cursore (mano) va sul tasto invia e fa "tap" (kit: pressButton)
     cursorTo(tl, ".imm-rc-send", { mode: "hand" });
-    tl.to(".imm-rc-send", { scale: 0.86, duration: 0.12, ease: "power2.in" }, ">-0.05");
-    tl.to(".imm-rc-send", { scale: 1, duration: 0.2, ease: "back.out(2.4)" }, ">");
+    pressButton(tl, ".imm-rc-send", { down: 0.86, downDur: 0.12, upDur: 0.2, back: 2.4, position: ">-0.05" });
     // Il campo si svuota e il messaggio entra nel thread
     tl.to(
       ".imm-rc-input-text",
@@ -119,7 +125,7 @@ export default function ImmersiveRicarica() {
     );
     tl.to(
       ".imm-rc-thread",
-      { y: scrollTo(".imm-rc-user-1"), duration: 0.5, ease: "power2.inOut" },
+      { y: () => scrollTo(".imm-rc-user-1"), duration: 0.5, ease: "power2.inOut" },
       "<",
     );
 
@@ -130,7 +136,7 @@ export default function ImmersiveRicarica() {
     tl.to(".imm-rc-agent-1", { autoAlpha: 1, x: 0, duration: 0.5, ease: "back.out(1.6)" });
     tl.to(
       ".imm-rc-thread",
-      { y: scrollTo(".imm-rc-agent-1"), duration: 0.5, ease: "power2.inOut" },
+      { y: () => scrollTo(".imm-rc-agent-1"), duration: 0.5, ease: "power2.inOut" },
       "<0.1",
     );
 
@@ -142,25 +148,28 @@ export default function ImmersiveRicarica() {
     );
     tl.to(
       ".imm-rc-thread",
-      { y: scrollTo(".imm-rc-card-station"), duration: 0.6, ease: "power2.inOut" },
+      { y: () => scrollTo(".imm-rc-card-station"), duration: 0.6, ease: "power2.inOut" },
       "<",
     );
     // La rotta si disegna lungo il percorso
     tl.to(".imm-rc-route", { strokeDashoffset: 0, duration: 1.1, ease: "power2.inOut" }, "<0.2");
     // Il pin cade dall'alto con rimbalzo espressivo
     tl.to(".imm-rc-pin", { autoAlpha: 1, scale: 1, duration: 0.5, ease: "back.out(2.6)" }, ">-0.4");
-    // Ring sonar: si espande e si dissolve una volta (scrub-safe, no repeat)
+    // Sonar a PIÙ anelli: i due ring si espandono e si dissolvono sfalsati
+    // (scrub-safe, no repeat) → effetto radar attorno al pin.
     tl.fromTo(
       ".imm-rc-pin-ring",
       { scale: 1, opacity: 0.7 },
-      { scale: 2.8, opacity: 0, duration: 0.9, ease: "power2.out" },
+      { scale: 2.8, opacity: 0, duration: 0.9, ease: "power2.out", stagger: 0.18 },
       "<0.1",
     );
+    // Le statistiche della stazione si scoprono a WIPE (kit: maskReveal).
+    maskReveal(tl, ".imm-rc-stat", { dir: "t", duration: 0.4, stagger: 0.07, position: "<0.15" });
 
-    // ── ⑤ L'utente prenota lo stallo (cursore-mano "tap" sul bottone della card) ───
+    // ── ⑤ L'utente prenota lo stallo (cursore-mano "tap" + punch-zoom della card) ──
     cursorTo(tl, ".imm-rc-book-btn", { mode: "hand" });
-    tl.to(".imm-rc-book-btn", { scale: 0.94, duration: 0.12, ease: "power2.in" }, ">-0.05");
-    tl.to(".imm-rc-book-btn", { scale: 1, duration: 0.2, ease: "back.out(2.2)" }, ">");
+    clickZoom(tl, ".imm-rc-card-station", { position: ">-0.05", scale: 1.03 });
+    pressButton(tl, ".imm-rc-book-btn", { down: 0.94, downDur: 0.12, upDur: 0.2, back: 2.2, position: "<" });
     tl.to(
       ".imm-rc-user-2",
       { autoAlpha: 1, y: 0, duration: 0.45, ease: "back.out(1.7)" },
@@ -168,7 +177,7 @@ export default function ImmersiveRicarica() {
     );
     tl.to(
       ".imm-rc-thread",
-      { y: scrollTo(".imm-rc-user-2"), duration: 0.5, ease: "power2.inOut" },
+      { y: () => scrollTo(".imm-rc-user-2"), duration: 0.5, ease: "power2.inOut" },
       "<",
     );
 
@@ -177,7 +186,7 @@ export default function ImmersiveRicarica() {
     tl.to(".imm-rc-card-charge", { autoAlpha: 1, y: 0, scale: 1, duration: 0.6, ease: "expo.out" });
     tl.to(
       ".imm-rc-thread",
-      { y: scrollTo(".imm-rc-card-charge"), duration: 0.6, ease: "power2.inOut" },
+      { y: () => scrollTo(".imm-rc-card-charge"), duration: 0.6, ease: "power2.inOut" },
       "<",
     );
     // Barra batteria 20% → 80% in sincronia con il contatore
@@ -194,37 +203,36 @@ export default function ImmersiveRicarica() {
       },
       "<",
     );
-    // Ticker costo 0 → 6,40 € e durata 0 → 18 min in parallelo
-    tl.to(
-      cost,
+    // La % pulsa (scale) in sincrono con la barra → senso di "carica in corso".
+    // yoyo+repeat:1 = 1→1.12→1: stato finale scale 1 (ok reduced-motion).
+    tl.fromTo(
+      ".imm-rc-pct",
+      { scale: 1 },
       {
-        v: 6.4,
-        duration: 1.3,
+        scale: 1.12,
+        duration: 0.65,
         ease: "power1.inOut",
-        onUpdate() {
-          if (costEl) costEl.textContent = fmtEur.format(cost.v) + " €";
-        },
+        yoyo: true,
+        repeat: 1,
+        transformOrigin: "left center",
       },
       "<",
     );
-    tl.to(
-      mins,
-      {
-        v: 18,
-        duration: 1.3,
-        ease: "power1.inOut",
-        onUpdate() {
-          if (minsEl) minsEl.textContent = Math.round(mins.v) + " min";
-        },
-      },
-      "<",
+    // Ticker costo 0 → 6,40 € e durata 0 → 18 min in parallelo (kit: countUp)
+    countUp(
+      tl,
+      [
+        { el: ".imm-rc-cost", to: 6.4, format: (n) => fmtEur.format(n) + " €" },
+        { el: ".imm-rc-timer", to: 18, format: (n) => Math.round(n) + " min" },
+      ],
+      { duration: 1.3, ease: "power1.inOut", position: "<" },
     );
 
     // ── ⑦ Bolla finale + pausa di respiro ─────────────────────────────────────
     tl.to(".imm-rc-final", { autoAlpha: 1, y: 0, duration: 0.5, ease: "expo.out" }, ">0.1");
     tl.to(
       ".imm-rc-thread",
-      { y: scrollTo(".imm-rc-final"), duration: 0.5, ease: "power2.inOut" },
+      { y: () => scrollTo(".imm-rc-final"), duration: 0.5, ease: "power2.inOut" },
       "<",
     );
     tl.to({}, { duration: 0.5 });
@@ -233,8 +241,8 @@ export default function ImmersiveRicarica() {
   return (
     <ImmersiveStage
       ref={ref}
-      heightVh={500}
-      theme="mobility"
+      heightVh={520}
+      theme="platform"
       label="Ricarica"
       eyebrow="06 · App ricarica EV con AI"
     >
@@ -424,6 +432,11 @@ export default function ImmersiveRicarica() {
                     <div className="absolute" style={{ left: "84%", top: "24%" }} aria-hidden>
                       <div className="imm-rc-pin flex flex-col items-center">
                         <div className="relative">
+                          {/* Sonar a più anelli (stessa classe → fromTo con stagger) */}
+                          <div
+                            className="imm-rc-pin-ring border-accent absolute -inset-2 rounded-full border-2"
+                            style={{ opacity: 0 }}
+                          />
                           <div
                             className="imm-rc-pin-ring border-accent absolute -inset-2 rounded-full border-2"
                             style={{ opacity: 0 }}
@@ -449,7 +462,7 @@ export default function ImmersiveRicarica() {
                   {/* Statistiche stazione */}
                   <div className="grid grid-cols-4 gap-px">
                     {STATION_STATS.map((s) => (
-                      <div key={s.l} className="bg-surface px-1.5 py-2 text-center">
+                      <div key={s.l} className="imm-rc-stat bg-surface px-1.5 py-2 text-center">
                         <p className="text-muted text-[7.5px] font-semibold tracking-wide uppercase">
                           {s.l}
                         </p>

@@ -189,7 +189,9 @@ function RingCard({ face }: { face?: boolean }) {
       <div className="mt-2 flex items-center gap-4">
         <Ring value={98} className="h-16 w-16 shrink-0" />
         <div className="min-w-0">
-          <p className="font-display text-2xl font-bold tracking-tight tabular-nums">98</p>
+          <p className="vt-ring-val font-display text-2xl font-bold tracking-tight tabular-nums">
+            98
+          </p>
           <p className="text-xs text-white/65">su 100 · Lighthouse</p>
         </div>
       </div>
@@ -197,12 +199,15 @@ function RingCard({ face }: { face?: boolean }) {
   );
 }
 
-/* ---- Card 4 · mini-mockup del sito (chrome + skeleton) ------------------- */
+/* ---- Card 4 · mini-mockup del sito (chrome + skeleton) -------------------
+   I pezzi hanno classi `vt-mock-*`: in modalità animata la scena li fa
+   AUTO-ASSEMBLARE (entrano da offset diversi in stagger, back.out) e poi un
+   "click" sulla CTA. In modalità statica (reduced-motion) sono già composti. */
 function MockupCard({ face }: { face?: boolean }) {
   return (
     <Frame face={face} pose={POSES.mockup.pose} className="overflow-hidden p-0">
-      {/* chrome del browser */}
-      <div className="flex items-center gap-2 border-b border-white/10 bg-white/5 px-3 py-2">
+      {/* chrome del browser (barra header) */}
+      <div className="vt-mock-piece vt-mock-head flex items-center gap-2 border-b border-white/10 bg-white/5 px-3 py-2">
         <span className="flex gap-1" aria-hidden>
           <span className="h-2 w-2 rounded-full bg-white/40" />
           <span className="h-2 w-2 rounded-full bg-white/40" />
@@ -214,13 +219,19 @@ function MockupCard({ face }: { face?: boolean }) {
       </div>
       {/* skeleton del contenuto */}
       <div className="space-y-2.5 p-4">
-        <div className="bg-accent/80 h-10 rounded-lg" />
-        <div className="h-2.5 w-4/5 rounded-full bg-white/30" />
-        <div className="h-2.5 w-3/5 rounded-full bg-white/20" />
+        <div className="vt-mock-piece vt-mock-hero bg-accent/80 h-10 rounded-lg" />
+        <div className="vt-mock-piece vt-mock-row h-2.5 w-4/5 rounded-full bg-white/30" />
+        <div className="vt-mock-piece vt-mock-row h-2.5 w-3/5 rounded-full bg-white/20" />
         <div className="grid grid-cols-3 gap-2 pt-1">
-          <div className="h-8 rounded-md bg-white/15" />
-          <div className="h-8 rounded-md bg-white/15" />
-          <div className="h-8 rounded-md bg-white/15" />
+          <div className="vt-mock-piece vt-mock-cell h-8 rounded-md bg-white/15" />
+          <div className="vt-mock-piece vt-mock-cell h-8 rounded-md bg-white/15" />
+          <div className="vt-mock-piece vt-mock-cell h-8 rounded-md bg-white/15" />
+        </div>
+        {/* CTA: il "click" finale del walkthrough la preme (pressButton) */}
+        <div className="pt-0.5">
+          <span className="vt-mock-cta bg-accent text-accent-contrast inline-block rounded-md px-3 py-1.5 text-[11px] font-bold">
+            Scopri
+          </span>
         </div>
       </div>
     </Frame>
@@ -241,6 +252,7 @@ function Sparkline({ className }: { className?: string }) {
     >
       <path d={`${line} L100 36 L0 36 Z`} fill="currentColor" opacity="0.16" />
       <path
+        className="vt-spark-path"
         d={line}
         fill="none"
         stroke="currentColor"
@@ -267,6 +279,7 @@ function MiniBars({ className }: { className?: string }) {
         return (
           <rect
             key={i}
+            className="vt-bar"
             x={x}
             y={y}
             width={bw}
@@ -281,15 +294,19 @@ function MiniBars({ className }: { className?: string }) {
   );
 }
 
-/** Ring di progresso: traccia + arco accent (98%). */
+/** Ring di progresso: traccia + arco accent (98%). Dasharray SINGOLO (= intera
+ *  circonferenza) e la frazione visibile è data dal solo `strokeDashoffset`
+ *  (rest = c-shown): la scena può quindi "spazzare" l'arco 0→valore leggendo
+ *  l'offset di riposo e animandolo, senza conoscere la percentuale. */
 function Ring({ value, className }: { value: number; className?: string }) {
   const r = 16;
   const c = 2 * Math.PI * r;
-  const dash = (Math.min(100, Math.max(0, value)) / 100) * c;
+  const shown = (Math.min(100, Math.max(0, value)) / 100) * c;
   return (
     <svg viewBox="0 0 40 40" className={cn("text-accent", className)} aria-hidden>
       <circle cx="20" cy="20" r={r} fill="none" stroke="currentColor" strokeWidth="4" opacity="0.18" />
       <circle
+        className="vt-ring-arc"
         cx="20"
         cy="20"
         r={r}
@@ -297,7 +314,8 @@ function Ring({ value, className }: { value: number; className?: string }) {
         stroke="currentColor"
         strokeWidth="4"
         strokeLinecap="round"
-        strokeDasharray={`${dash} ${c}`}
+        strokeDasharray={c}
+        strokeDashoffset={c - shown}
         transform="rotate(-90 20 20)"
       />
     </svg>

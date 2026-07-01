@@ -3,17 +3,20 @@
 /**
  * @descrizione  Motore di SCORRIMENTO AUTOMATICO per la home scrollytelling.
  *   UN SOLO orologio: avanza dentro `gsap.ticker` (lo stesso che pilota Lenis e
- *   ScrollTrigger), a velocità in px/SECONDO via deltaTime → ritmo identico su
- *   60/120Hz. Il mouse REALE (o rotella/touch/tastiera) cede il controllo; dopo
- *   l'inattività riparte. I moduli chiedono pause "recitazione" via
- *   `autoscroll:hold`. Il fondo è uno stato NEUTRO e ripartibile (mai un lock da
- *   `lenis.limit` stale). La pill si nasconde da sola e riappare al movimento.
+ *   ScrollTrigger). Non fa creep costante: viaggia da un ANCHOR di riposo al
+ *   successivo (l'inizio di ogni scena), con ease-in in partenza + ease-out in
+ *   atterraggio, poi una SOSTA breve sul beat allineato e riparte. Così non si
+ *   ferma MAI a metà scena o dentro un hand-off: gli anchor cadono esattamente
+ *   dove l'entrata scena→scena è già completa. Il mouse REALE cede il controllo;
+ *   dopo l'inattività riparte verso l'anchor successivo (ricalcolato dalla
+ *   posizione corrente, mai dal punto morto). I moduli chiedono pause
+ *   "recitazione" via `autoscroll:hold`. La pill si nasconde da sola.
  *   Reduced-motion: non fa nulla (scroll nativo).
  * @indice
  * - AutoScroll → componente client da montare una volta sulla pagina home
  */
 import { useEffect, useRef, useState } from "react";
-import { gsap } from "@gmgroup/lib/gsap";
+import { gsap, ScrollTrigger } from "@gmgroup/lib/gsap";
 import { prefersReducedMotion, useReducedMotion } from "@gmgroup/lib/motion";
 
 /** Sottoinsieme dell'API Lenis che ci serve (no `any`). */
@@ -23,10 +26,20 @@ type LenisLike = {
   scrollTo: (target: number, opts?: { immediate?: boolean }) => void;
 };
 
-/** Velocità in px/SECONDO (indip. dal refresh rate). */
-const SPEED = 110;
-/** Inattività mouse prima che l'auto riparta (sala: il presentatore parla). */
-const IDLE_MS = 9000;
+// ── Knob (cadenza cinematografica) ───────────────────────────────────────────
+/** Velocità di crociera in px/SECONDO (indip. dal refresh rate). Ritarata su +170%
+ *  di altezza pagina introdotta in Fase 5 (~32k px): a 110 l'autoplay durava ~5 min. */
+const SPEED = 190;
+/** Pavimento di velocità nella zona di atterraggio: evita il crawl infinito. */
+const MIN_SPEED = 40;
+/** Ampiezza (px) dell'inviluppo ease-in/ease-out attorno a ogni anchor. */
+const LAND_ZONE = 280;
+/** Soglia (px) di "arrivo" all'anchor → clamp + sosta. */
+const ARRIVE_EPS = 2;
+/** Sosta breve (ms) su ogni anchor allineato prima di ripartire. */
+const DWELL_MS = 850;
+/** Inattività mouse prima che l'auto riparta (~2s: prima era 9s, troppo). */
+const IDLE_MS = 2000;
 /** Dopo quanto la pill si auto-nasconde. */
 const PILL_HIDE_MS = 3500;
 
@@ -40,6 +53,14 @@ export default function AutoScroll() {
   const lockedRef = useRef(false); // blocco VOLONTARIO (pill); l'idle non lo supera
   const atBottomRef = useRef(false);
   const holdUntilRef = useRef(0);
+  /** Resto sub-pixel accumulato tra i frame. Lenis riallinea `scroll` all'intero
+   *  scrollTop nativo ad ogni frame, quindi un passo < 1px verrebbe arrotondato via
+   *  e mai applicato: alla velocità di atterraggio (MIN_SPEED/60fps ≈ 0.4-0.7 px)
+   *  l'auto si bloccava a ~65px dall'anchor. Accumuliamo la frazione e avanziamo di
+   *  interi → moto garantito a ogni cadenza di refresh, velocità media preservata. */
+  const carryRef = useRef(0);
+  /** Anchor di riposo (posizioni scroll-Y assolute), ordinati crescenti. */
+  const anchorsRef = useRef<number[]>([]);
 
   const setAutoState = (v: boolean) => {
     autoRef.current = v;
@@ -54,6 +75,22 @@ export default function AutoScroll() {
 
     const getLenis = () => (window as unknown as { __lenis?: LenisLike }).__lenis;
 
+    // Anchor = inizio di ogni scena (le scene sono i <section> figli diretti di
+    // #top). A quel punto l'hand-off di ENTRATA è già completo (la scena è a
+    // scale 1): fermarsi qui = fermarsi su un beat di riposo, mai in transizione.
+    // Aggiungo il fondo pagina come anchor finale (fine demo → fade to black).
+    // Ricalcolato su resize e su ScrollTrigger.refresh (le scene lo emettono al
+    // mount), non ad ogni frame: le posizioni cambiano solo per reflow.
+    const computeAnchors = () => {
+      const scenes = Array.from(document.querySelectorAll<HTMLElement>("#top > section"));
+      const sy = window.scrollY;
+      const limit =
+        getLenis()?.limit || document.documentElement.scrollHeight - window.innerHeight;
+      const raw = scenes.map((el) => Math.round(el.getBoundingClientRect().top + sy));
+      raw.push(Math.round(limit));
+      anchorsRef.current = Array.from(new Set(raw.filter((v) => v >= 0))).sort((a, b) => a - b);
+    };
+
     // Avanzamento dentro il ticker GSAP: gira DOPO lenis.raf (registrato prima da
     // LenisProvider), quindi legge una posizione coerente nello stesso frame.
     const tick = (_time: number, deltaMs: number) => {
@@ -64,27 +101,74 @@ export default function AutoScroll() {
         document.visibilityState !== "visible" ||
         performance.now() < holdUntilRef.current
       ) {
+        carryRef.current = 0; // fermi/in sosta: niente resto da trascinare alla ripresa
         return;
       }
-      // limit SEMPRE riletto (ResizeObserver di Lenis lo aggiorna in modo async):
-      // così un valore transitoriamente piccolo NON produce un lock permanente.
-      const limit = lenis.limit || document.documentElement.scrollHeight - window.innerHeight;
-      // Velocità "che respira": lieve oscillazione → ritmo non lineare, non metronomico.
-      const breath = 0.78 + 0.44 * (0.5 + 0.5 * Math.sin(performance.now() * 0.0004));
-      const step = SPEED * breath * (Math.min(deltaMs, 50) / 1000); // clamp anti-salto
-      const next = lenis.scroll + step;
-      if (next >= limit - 1) {
-        atBottomRef.current = true;
-        if (autoRef.current) setAutoState(false); // fine demo: stop NEUTRO (niente lock)
-      } else {
-        atBottomRef.current = false;
-        lenis.scrollTo(next, { immediate: true });
+      const anchors = anchorsRef.current;
+      if (anchors.length === 0) {
+        computeAnchors();
+        return;
       }
+      const scroll = lenis.scroll;
+      // limit SEMPRE riletto (ResizeObserver di Lenis lo aggiorna in modo async).
+      const limit = lenis.limit || document.documentElement.scrollHeight - window.innerHeight;
+
+      // Primo anchor DAVANTI alla posizione corrente (l'auto va solo in avanti).
+      let idx = -1;
+      for (let i = 0; i < anchors.length; i++) {
+        if (anchors[i] > scroll + ARRIVE_EPS) {
+          idx = i;
+          break;
+        }
+      }
+      if (idx === -1) {
+        // Niente più anchor davanti: fine demo, stop NEUTRO (niente lock).
+        atBottomRef.current = true;
+        if (autoRef.current) setAutoState(false);
+        return;
+      }
+      atBottomRef.current = false;
+
+      const target = Math.min(anchors[idx], limit);
+      const from = idx > 0 ? anchors[idx - 1] : 0; // anchor di partenza (per l'ease-in)
+      const dist = target - scroll;
+
+      if (dist <= ARRIVE_EPS) {
+        // Atterrato: allinea di precisione e SOSTA (max: non accorcia un hold esterno).
+        lenis.scrollTo(target, { immediate: true });
+        holdUntilRef.current = Math.max(holdUntilRef.current, performance.now() + DWELL_MS);
+        carryRef.current = 0;
+        return;
+      }
+
+      // Inviluppo ease-in (dalla partenza) ∩ ease-out (verso l'arrivo) + respiro
+      // lieve → cadenza cinematografica, non metronomica.
+      const rampIn = LAND_ZONE > 0 ? Math.min(1, Math.max(0, scroll - from) / LAND_ZONE) : 1;
+      const rampOut = LAND_ZONE > 0 ? Math.min(1, dist / LAND_ZONE) : 1;
+      const shape = Math.min(rampIn, rampOut);
+      const breath = 0.9 + 0.1 * (0.5 + 0.5 * Math.sin(performance.now() * 0.0004));
+      const v = Math.max(MIN_SPEED, SPEED * shape * breath);
+      // Passo desiderato (px) + resto sub-pixel accumulato. Avanziamo di INTERI: sotto
+      // la soglia di 1px Lenis riarrotonderebbe a zero → il resto matura in frame futuri.
+      const desired = v * (Math.min(deltaMs, 50) / 1000) + carryRef.current; // clamp anti-salto
+      let step = Math.floor(desired);
+      carryRef.current = desired - step; // frazione riportata al frame successivo
+      if (step > dist) {
+        step = dist; // niente overshoot dell'anchor
+        carryRef.current = 0;
+      }
+      if (step > 0) lenis.scrollTo(scroll + step, { immediate: true });
     };
+
+    // Setup: primo calcolo (deferito così il layout delle scene è pronto) +
+    // ricalcolo su refresh/resize.
+    const raf0 = requestAnimationFrame(computeAnchors);
+    ScrollTrigger.addEventListener("refresh", computeAnchors);
+    window.addEventListener("resize", computeAnchors, { passive: true });
     gsap.ticker.add(tick);
 
     let idle: ReturnType<typeof setTimeout> | undefined;
-    /** Input utente → cede il controllo; idle → riprende (se non bloccato/non al fondo). */
+    /** Input utente → cede il controllo; idle → riprende (target ricalcolato nel tick). */
     const yield_ = () => {
       if (lockedRef.current) return;
       if (autoRef.current) setAutoState(false);
@@ -116,7 +200,7 @@ export default function AutoScroll() {
     const onHold = (e: Event) => {
       const ms = (e as CustomEvent<{ ms?: number }>).detail?.ms ?? 0;
       if (ms <= 0) return;
-      holdUntilRef.current = performance.now() + ms;
+      holdUntilRef.current = Math.max(holdUntilRef.current, performance.now() + ms);
       setHolding(true);
       if (holdEndTimer) clearTimeout(holdEndTimer);
       holdEndTimer = setTimeout(() => setHolding(false), ms);
@@ -132,7 +216,10 @@ export default function AutoScroll() {
     window.addEventListener("autoscroll:hold", onHold);
 
     return () => {
+      cancelAnimationFrame(raf0);
       gsap.ticker.remove(tick);
+      ScrollTrigger.removeEventListener("refresh", computeAnchors);
+      window.removeEventListener("resize", computeAnchors);
       if (idle) clearTimeout(idle);
       if (pillTimer) clearTimeout(pillTimer);
       if (holdEndTimer) clearTimeout(holdEndTimer);

@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * @descrizione  Scena immersiva SEGNALAZIONI (servizio 04). Full-screen, alta
+ * @descrizione  Scena immersiva SEGNALAZIONI (servizio 03). Full-screen, alta
  *   fedeltà, tema CHIARO, tono DESCRITTIVO. Lo scroll scrubba un walkthrough a
  *   DUE schermate affiancate con PAN ORIZZONTALE tra loro:
  *
@@ -19,7 +19,16 @@
  *   presente sulla Schermata A + «Segnalazione ricevuta ✓» visibile.
  */
 import { gsap } from "@gmgroup/lib/gsap";
-import { ImmersiveStage, Say, say, cursorTo, clickZoom, useImmersiveScene } from "./shared";
+import {
+  ImmersiveStage,
+  Say,
+  say,
+  cursorTo,
+  clickZoom,
+  useImmersiveScene,
+  pressButton,
+  typeInField,
+} from "./shared";
 
 // ── Dati Schermata A (pagina del gestionale) ─────────────────────────────────
 
@@ -53,8 +62,7 @@ export default function ImmersiveSegnalazioni() {
     // Il track parte sulla Schermata A. Link e richiesta del modulo partono
     // "vuoti" (clip-path). Toast, conferma e 4° bottone partono nascosti.
     gsap.set(".imm-track", { xPercent: 0 });
-    gsap.set(".imm-link-text", { clipPath: "inset(0 100% 0 0)" });
-    gsap.set(".imm-req-text", { clipPath: "inset(0 100% 0 0)" });
+    // Link e richiesta (typing) sono nascosti dai loro helper typeInField.
     gsap.set(".imm-copy-toast", { autoAlpha: 0, y: 48 });
     gsap.set(".imm-received-toast", { autoAlpha: 0, y: 48 });
     gsap.set(".imm-email-toast", { autoAlpha: 0, y: -28 });
@@ -67,10 +75,10 @@ export default function ImmersiveSegnalazioni() {
 
     // ② Schermata A → il cursore (mano) preme «Copia link»
     cursorTo(tl, ".imm-copy-link", { mode: "hand" });
-    tl.to(".imm-copy-link", { scale: 0.94, duration: 0.1, ease: "power2.in" }, ">0.25");
-    tl.to(".imm-copy-link", { scale: 1, duration: 0.4, ease: "back.out(3)" }, ">");
-    // Toast «Link pagina copiato» (entra dal basso)
+    pressButton(tl, ".imm-copy-link", { downDur: 0.1, upDur: 0.4, back: 3, position: ">0.25" });
+    // Toast «Link pagina copiato» (entra dal basso, con punch-zoom d'ingresso)
     tl.to(".imm-copy-toast", { autoAlpha: 1, y: 0, duration: 0.5, ease: "expo.out" }, ">0.05");
+    clickZoom(tl, ".imm-copy-toast", { position: "<0.12", scale: 1.05 });
 
     // ③ Frase: copi il link, scrivi cosa serve, invii
     say(tl, 1);
@@ -81,35 +89,31 @@ export default function ImmersiveSegnalazioni() {
 
     // ④ Il cursore (caret) incolla il link → il campo si riempie (reveal rapido = "paste")
     cursorTo(tl, ".imm-link-text", { mode: "text" });
-    tl.to(
-      ".imm-link-text",
-      { clipPath: "inset(0 0% 0 0)", duration: 0.4, ease: "steps(10)" },
-      ">0.1",
-    );
+    typeInField(tl, ".imm-link-text", { steps: 10, duration: 0.4, position: ">0.1" });
 
     // ⑤ Il cursore (caret) scrive la richiesta → digitazione carattere per carattere
     cursorTo(tl, ".imm-req-text", { mode: "text" });
-    tl.to(
-      ".imm-req-text",
-      { clipPath: "inset(0 0% 0 0)", duration: 1.4, ease: "steps(36)" },
-      ">0.15",
-    );
+    typeInField(tl, ".imm-req-text", { steps: 36, duration: 1.4, position: ">0.15" });
     clickZoom(tl, ".imm-zoom-local", { position: "<" }); // punch-zoom del modulo durante il typing
 
     // ⑥ Il cursore (mano) preme INVIA → pulse di conferma
     cursorTo(tl, ".imm-send-btn", { mode: "hand" });
-    tl.to(".imm-send-btn", { scale: 0.94, duration: 0.1, ease: "power2.in" }, ">0.25");
-    tl.to(".imm-send-btn", { scale: 1, duration: 0.45, ease: "back.out(3.5)" }, ">");
+    pressButton(tl, ".imm-send-btn", { downDur: 0.1, upDur: 0.45, back: 3.5, position: ">0.25" });
 
-    // ⑦ «Segnalazione ricevuta ✓» (toast globale, resta visibile)
+    // ⑦ «Segnalazione ricevuta ✓» (toast globale, resta visibile) + punch-zoom
     tl.to(".imm-received-toast", { autoAlpha: 1, y: 0, duration: 0.55, ease: "expo.out" }, ">0.1");
+    clickZoom(tl, ".imm-received-toast", { position: "<0.14", scale: 1.05 });
 
     // ⑧ Frase: la richiesta arriva e prende vita
     say(tl, 2);
 
     // ── PAN ORIZZONTALE → ritorno alla Schermata A ───────────────────────────
+    // PRIMA il pan (track torna a xPercent 0), POI il cursore: cursorTo misura
+    // `.imm-new-btn` via getBoundingClientRect quando è già ON-SCREEN. Se il cursore
+    // partisse insieme al pan ("<"), leggerebbe il bottone ancora fuori campo a
+    // sinistra e planerebbe nel vuoto (come fa correttamente il pan in andata).
+    tl.to(".imm-track", { xPercent: 0, duration: 1.1, ease: "expo.inOut" });
     cursorTo(tl, ".imm-new-btn", { mode: "hand" });
-    tl.to(".imm-track", { xPercent: 0, duration: 1.1, ease: "expo.inOut" }, "<");
 
     // ⑨ Il 4° bottone «Invia per email» APPARE (ease espressivo back.out)
     tl.to(
@@ -126,8 +130,7 @@ export default function ImmersiveSegnalazioni() {
     );
 
     // ⑩ Il bottone "funziona": pressione + mini toast «Email inviata»
-    tl.to(".imm-new-btn", { scale: 0.94, duration: 0.1, ease: "power2.in" }, ">0.05");
-    tl.to(".imm-new-btn", { scale: 1, duration: 0.4, ease: "back.out(3)" }, ">");
+    pressButton(tl, ".imm-new-btn", { downDur: 0.1, upDur: 0.4, back: 3, position: ">0.05" });
     tl.to(
       ".imm-email-toast",
       { autoAlpha: 1, y: 0, duration: 0.45, ease: "back.out(1.7)" },
@@ -143,7 +146,7 @@ export default function ImmersiveSegnalazioni() {
       heightVh={480}
       theme="platform"
       label="Segnalazioni"
-      eyebrow="04 · Segnalazioni"
+      eyebrow="03 · Segnalazioni"
     >
       {/* Viewport del pan: clippa la schermata fuori campo */}
       <div className="h-full overflow-hidden pt-12">
