@@ -2,27 +2,22 @@
 
 /**
  * @descrizione  MOTORE generico "video full-bleed + callout tecnici guidati dallo
- *   scroll". Due modalità:
- *     - scrub (default): video ALL-KEYFRAME pilotato dallo scroll (ScrubVideo →
- *       currentTime = progress·durata). Usato da solare e cavo EV.
- *     - free (`scrub={false}`): video in autoplay-loop LIBERO — per sorgenti NON
- *       all-keyframe (es. il drone dell'intro azienda). La regia scroll rivela
- *       comunque head/callout/cue; il video gira sotto.
- *   Sopra al video, chip di callout (SVG/HTML, NON incisi nel filmato) compaiono/
- *   scompaiono in sync coi beat; un cue "Scorri" ricompare all'inizio di OGNI scena
- *   (meccanica ripetuta) e sfuma appena parte lo scroll. Cambia solo la config, non
- *   il comportamento.
+ *   scroll": video ALL-KEYFRAME pilotato dallo scroll (ScrubVideo →
+ *   currentTime = progress·durata). Sopra al video, chip di callout (SVG/HTML,
+ *   NON incisi nel filmato) compaiono/scompaiono in sync coi beat; un cue "Scorri"
+ *   ricompare all'inizio di OGNI scena (meccanica ripetuta) e sfuma appena parte
+ *   lo scroll. Cambia solo la config, non il comportamento.
  *
  *   UNA ScrollTrigger scrubba una timeline NORMALIZZATA 0→1: l'onUpdate passa il
- *   progress al ScrubVideo (seek, solo in scrub) e muove la barra; i callout sono
- *   tween sul loro `at` (= frazione di durata del video). Regia attiva anche su
- *   mobile (solo scrub verticale → mobile-first ok). reduced-motion → scena
- *   STATICA: poster + callout impilati e leggibili.
+ *   progress al ScrubVideo (seek) e muove la barra; i callout sono tween sul loro
+ *   `at` (= frazione di durata del video). Regia attiva anche su mobile (solo
+ *   scrub verticale → mobile-first ok). reduced-motion → scena STATICA: poster +
+ *   callout impilati e leggibili.
  * @indice
- * - VideoScrubScene → engine riusabile (scrub | free); i wrapper lo configurano
+ * - VideoScrubScene → engine riusabile (scrub); i wrapper lo configurano
  * - type Callout → forma di un callout tecnico
  */
-import { useEffect, useRef } from "react";
+import { useRef } from "react";
 import { cn } from "@gmgroup/lib/utils";
 import { gsap, ScrollTrigger } from "@gmgroup/lib/gsap";
 import { useReducedMotion, useIsoLayoutEffect } from "@gmgroup/lib/motion";
@@ -59,9 +54,6 @@ export type VideoScrubSceneProps = {
   /** Alza un velo CHIARO sul finale — solo se la scena SEGUENTE è chiara (evita il
    *  flash bianco tra scene video scure consecutive). Default false (cut dark→dark). */
   exitToLight?: boolean;
-  /** false → video in autoplay-loop libero (sorgenti NON all-keyframe, es. drone).
-   *  Default true (scrub del currentTime). */
-  scrub?: boolean;
   /** id ancora opzionale (es. "vetrina" per i link /#vetrina di menu/kb). */
   id?: string;
 };
@@ -90,38 +82,12 @@ export default function VideoScrubScene({
   lede,
   callouts,
   exitToLight = false,
-  scrub = true,
   id,
 }: VideoScrubSceneProps) {
   const reduced = useReducedMotion();
   const stageRef = useRef<HTMLElement>(null);
-  const videoRef = useRef<ScrubVideoHandle>(null); // solo in scrub
-  const freeVideoRef = useRef<HTMLVideoElement>(null); // solo in free
+  const videoRef = useRef<ScrubVideoHandle>(null);
   const progressRef = useRef<HTMLDivElement>(null);
-
-  // Modalità FREE: avvio differito + pausa fuori-schermo del video (come il vecchio
-  // drone di VetrinaScene). `preload="none"` → non compete con l'LCP (= poster).
-  useEffect(() => {
-    if (scrub || reduced) return;
-    const v = freeVideoRef.current;
-    if (!v) return;
-    let timer = 0;
-    const io = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) void v.play().catch(() => {});
-        else v.pause();
-      },
-      { threshold: 0.05 },
-    );
-    const raf = requestAnimationFrame(() => {
-      timer = window.setTimeout(() => io.observe(v), 200);
-    });
-    return () => {
-      cancelAnimationFrame(raf);
-      clearTimeout(timer);
-      io.disconnect();
-    };
-  }, [scrub, reduced]);
 
   useIsoLayoutEffect(() => {
     const stage = stageRef.current;
@@ -204,7 +170,7 @@ export default function VideoScrubScene({
         scrub: 0.5,
         animation: tl,
         onUpdate: (self) => {
-          if (scrub) videoRef.current?.seek(self.progress); // il video segue lo scroll
+          videoRef.current?.seek(self.progress); // il video segue lo scroll
           if (progressRef.current) {
             progressRef.current.style.transform = `scaleX(${self.progress})`;
           }
@@ -215,7 +181,7 @@ export default function VideoScrubScene({
     }, stage);
 
     return () => ctx.revert();
-  }, [reduced, exitToLight, scrub]);
+  }, [reduced, exitToLight]);
 
   return (
     <section
@@ -238,23 +204,8 @@ export default function VideoScrubScene({
           className="absolute inset-0 -z-20 bg-linear-to-br from-[#0b1020] via-[#13210a] to-[#0b1020]"
         />
 
-        {/* Video: scrubbato (all-keyframe) o autoplay-loop libero (drone). */}
-        {scrub ? (
-          <ScrubVideo ref={videoRef} src={src} poster={poster} className="absolute inset-0 -z-10" />
-        ) : (
-          <video
-            ref={freeVideoRef}
-            className="absolute inset-0 -z-10 h-full w-full object-cover"
-            muted
-            loop={!reduced}
-            playsInline
-            preload="none"
-            poster={poster}
-            aria-hidden
-          >
-            <source src={src} type="video/mp4" />
-          </video>
-        )}
+        {/* Video scrubbato dallo scroll (sorgente ALL-KEYFRAME obbligatoria). */}
+        <ScrubVideo ref={videoRef} src={src} poster={poster} className="absolute inset-0 -z-10" />
 
         <VetrinaFilmGrade gradeOpacity={0.3} vignetteOpacity={0.55} grainOpacity={0.06} />
 

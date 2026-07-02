@@ -1,14 +1,15 @@
 "use client";
 
 /**
- * @descrizione  Scena "impianto solare" — gemello digitale del fotovoltaico e ULTIMO
- *   video del capitolo azienda (subito dopo l'intro drone). Non è più seguita dal
- *   cavo EV: apre direttamente i servizi. Poiché la scena successiva (l'Assistente)
- *   è CHIARA, alza un velo chiaro sul finale (`exitToLight`) → ingresso pulito, senza
- *   flash scuro. Config del motore VideoScrubScene: il video solare (all-keyframe)
- *   viene scrubbato dallo scroll mentre i callout raccontano l'arco NARRATIVO:
- *   impianto chiavi in mano → cos'è il modulo → efficienza → inverter → accumulo →
- *   produzione reale (dal progetto all'energia, zoom via via più tecnico).
+ * @descrizione  Scena "impianto solare" — gemello digitale del fotovoltaico e PRIMA
+ *   scena della home: la presentazione apre in fade dal nero direttamente qui.
+ *   Porta l'ancora `id="vetrina"` (target dei link /#vetrina, es. kb dell'assistente).
+ *   Poiché la scena successiva (l'Assistente) è CHIARA, alza un velo chiaro sul
+ *   finale (`exitToLight`) → ingresso pulito, senza flash scuro. Config del motore
+ *   VideoScrubScene: il video solare (all-keyframe) viene scrubbato dallo scroll
+ *   mentre i callout raccontano l'arco NARRATIVO: impianto chiavi in mano → cos'è
+ *   il modulo → efficienza → inverter → accumulo → produzione reale (dal progetto
+ *   all'energia, zoom via via più tecnico).
  * @indice
  * - SolarTwinScene → config solare di VideoScrubScene
  */
@@ -28,6 +29,7 @@ const CALLOUTS: Callout[] = [
 export default function SolarTwinScene() {
   return (
     <VideoScrubScene
+      id="vetrina"
       src="/assets/solar-twin.mp4"
       poster="/assets/solar-twin-poster.webp"
       ariaLabel="Fotovoltaico — gemello digitale (video scrollytelling)"

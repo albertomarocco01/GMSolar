@@ -71,3 +71,21 @@ Posizioni attuali (per i builder):
 - Console: 0 errori. Smoke test dev server: OK (server su porta 3000).
 
 ## Note per fasi successive (append dai report)
+
+### Fase 1 (B-P1, B-P2)
+
+- **B-P1 → P3:** conservare `id="vetrina"` sul `<section>` della scena Solare
+  (kb.ts:33 linka `/#vetrina`). VideoScrubScene ora è scrub-only con UN solo
+  consumatore (SolarTwinScene): se P3 lo elimina → pulizia a cascata
+  VetrinaFilmGrade + VetrinaIcons + commento stale `SuspendedCards.tsx:33`
+  ("vedi VetrinaScene") + verifica consumatori ScrollCue/Callout.
+- **B-P2 → P9:** ImmersiveIntegrazioni ha ora (righe ~181-215, dentro
+  `if (!reduced)` del build) un blocco da PRESERVARE nella riscrittura:
+  `floats = tiles.map(gsap.to repeat:-1)` + listener `presentation:pausechange`
+  che fa pause()/resume() + sync iniziale da attributo `data-presentation-paused`
+  + cleanup via `floats[0]?.eventCallback("onInterrupt", removeEventListener)`.
+- **B-P2 → P3:** la micro-demo `repeat:-1` del cue Solare dovrà fare
+  pause/resume sullo stesso evento (stesso pattern).
+- **B-P2:** pausa video liberi implementata GENERICAMENTE in AutoScroll
+  (handler su `#top video` non-paused); nessun video libero esiste più in home.
+- **Ordine capitoli P12:** 01 = scena Solare.

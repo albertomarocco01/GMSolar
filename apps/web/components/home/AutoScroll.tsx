@@ -10,7 +10,14 @@
  *   dove l'entrata scena→scena è già completa. Il mouse REALE cede il controllo;
  *   dopo l'inattività riparte verso l'anchor successivo (ricalcolato dalla
  *   posizione corrente, mai dal punto morto). La pill si nasconde da sola.
- *   Reduced-motion: non fa nulla (scroll nativo).
+ *   La pausa VOLONTARIA (click) è GLOBALE: oltre a fermare l'auto-scroll,
+ *   (a) mette `data-presentation-paused` su <html> → uno <style> scoped qui
+ *   sotto congela TUTTI i keyframe CSS della home (#top); (b) emette l'evento
+ *   `presentation:pausechange` → i tween GSAP infiniti delle scene (repeat:-1)
+ *   e gli eventuali <video> in riproduzione libera si fermano/riprendono.
+ *   I video SCRUBBATI e le timeline scrubbate seguono solo lo scroll → in
+ *   pausa si fermano da soli, non vanno toccati.
+ *   Reduced-motion: non fa nulla (scroll nativo, attributo mai impostato).
  * @indice
  * - AutoScroll → componente client da montare una volta sulla pagina home
  */
@@ -204,6 +211,41 @@ export default function AutoScroll() {
       }
     };
 
+    // PAUSA GLOBALE: attributo su <html> (congela i keyframe CSS della home via
+    // lo <style> scoped in fondo) + evento per chi anima FUORI dallo scroll
+    // (tween repeat:-1 delle scene, video liberi). Le timeline/video scrubbati
+    // seguono solo lo scroll → si fermano da soli, nessun segnale necessario.
+    const setGlobalPause = (isPaused: boolean) => {
+      document.documentElement.toggleAttribute("data-presentation-paused", isPaused);
+      window.dispatchEvent(
+        new CustomEvent("presentation:pausechange", { detail: { paused: isPaused } }),
+      );
+    };
+
+    // Video in riproduzione LIBERA (non scrubbata) dentro la home: pause() alla
+    // pausa e play() alla ripresa, SOLO su quelli che stavano davvero suonando.
+    // I video di ScrubVideo non vanno mai in play() stabile (solo un "prime"
+    // play→pause di pochi ms al primo avvicinamento) → risultano `paused` e il
+    // filtro li esclude da solo: restano pilotati dallo scroll, come da regia.
+    const pausedVideos: HTMLVideoElement[] = [];
+    const onPauseChange = (e: Event) => {
+      const isPaused = Boolean((e as CustomEvent<{ paused: boolean }>).detail?.paused);
+      if (isPaused) {
+        document.querySelectorAll<HTMLVideoElement>("#top video").forEach((v) => {
+          if (!v.paused && !v.ended) {
+            v.pause();
+            pausedVideos.push(v);
+          }
+        });
+      } else {
+        // splice(0): svuota la lista e riprende solo ciò che avevamo fermato noi.
+        pausedVideos.splice(0).forEach((v) => {
+          if (v.isConnected) void v.play().catch(() => {});
+        });
+      }
+    };
+    window.addEventListener("presentation:pausechange", onPauseChange);
+
     // Pausa VOLONTARIA: un click ferma tutto (l'idle non la supera); un altro riparte.
     const togglePause = () => {
       if (lockedRef.current) {
@@ -211,10 +253,12 @@ export default function AutoScroll() {
         setPaused(false);
         atBottomRef.current = false;
         setAutoState(true);
+        setGlobalPause(false);
       } else {
         lockedRef.current = true;
         setPaused(true);
         setAutoState(false);
+        setGlobalPause(true);
       }
     };
     togglePauseRef.current = togglePause;
@@ -251,6 +295,13 @@ export default function AutoScroll() {
     window.addEventListener("presentation:replay", onReplay);
 
     return () => {
+      // Pausa globale: se smontati mentre in pausa, prima si RIATTIVA tutto
+      // (l'evento parte con onPauseChange ancora agganciato → i video liberi
+      // ripartono; le scene riprendono i loro tween), poi si toglie comunque
+      // l'attributo così nessun keyframe CSS resta congelato "orfano".
+      if (lockedRef.current) setGlobalPause(false);
+      document.documentElement.removeAttribute("data-presentation-paused");
+      window.removeEventListener("presentation:pausechange", onPauseChange);
       cancelAnimationFrame(raf0);
       gsap.ticker.remove(tick);
       ScrollTrigger.removeEventListener("refresh", computeAnchors);
@@ -276,6 +327,20 @@ export default function AutoScroll() {
 
   return (
     <>
+      {/* PAUSA GLOBALE — stile SCOPED (niente globals condivisi): con l'attributo
+          su <html> congela tutti i keyframe CSS della home (#top), inclusi
+          ::before/::after (animate-pulse, animate-bounce, sc-dot/sc-arrow,
+          auto-float…). Le transition NON sono toccate (l'overlay di pausa usa
+          transition-opacity e deve poter apparire). Sotto reduced-motion il
+          componente ritorna null → né <style> né attributo esistono mai. */}
+      <style>{`
+        html[data-presentation-paused] #top *,
+        html[data-presentation-paused] #top *::before,
+        html[data-presentation-paused] #top *::after {
+          animation-play-state: paused !important;
+        }
+      `}</style>
+
       {/* Pill-hint in basso: come prendere il controllo. Sparisce in pausa (parla l'overlay). */}
       <div
         className={`pointer-events-none fixed inset-x-0 bottom-5 z-40 flex justify-center transition-opacity duration-500 ${

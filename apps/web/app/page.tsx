@@ -2,9 +2,7 @@ import IntroOverlay from "@/components/home/IntroOverlay";
 import AutoScroll from "@/components/home/AutoScroll";
 import CinematicGrain from "@/components/home/CinematicGrain";
 import VelocitySkew from "@/components/home/VelocitySkew";
-import VetrinaScene from "@/components/home/scenes/VetrinaScene";
 import SolarTwinScene from "@/components/home/scenes/SolarTwinScene";
-import EvCableScene from "@/components/home/scenes/EvCableScene";
 import ClosingScene from "@/components/home/scenes/ClosingScene";
 
 // Scene-prodotto IMMERSIVE (full-screen, scrub, cursore + intermezzi descrittivi).
@@ -17,13 +15,13 @@ import ImmersiveGestionale from "@/components/home/immersive/ImmersiveGestionale
 
 /**
  * Home = presentazione IMMERSIVA full-screen, chromeless, tema chiaro. Si apre in
- * fade dal nero sull'intro AZIENDA GM Solar; ogni servizio riempie lo schermo e lo
- * scroll scrubba un walkthrough (frasi-intermezzo descrittive + cursore + pan
- * orizzontale dove serve). Transizioni verticali seamless tra prodotti.
- *   Capitolo AZIENDA (video, scuro): GM Solar/azienda (drone) → Solare (impianto,
- *   gemello digitale). Poi INTERAZIONE: Assistente. Poi CONTROLLO (i capi):
- *   Dashboard → Gestionale → Segnalazioni. Poi lo STACCO EV (video cavo, scuro)
- *   introduce il capitolo ricarica: Ricarica EV → Integrazioni → chiusura GM Solar.
+ * fade dal nero DIRETTAMENTE sulla scena solare (video scrubbato del fotovoltaico);
+ * ogni servizio riempie lo schermo e lo scroll scrubba un walkthrough (frasi-
+ * intermezzo descrittive + cursore + pan orizzontale dove serve). Transizioni
+ * verticali seamless tra prodotti.
+ *   Apertura (video, scuro): Solare (impianto, gemello digitale). Poi INTERAZIONE:
+ *   Assistente. Poi CONTROLLO (i capi): Dashboard → Gestionale → Segnalazioni.
+ *   Poi il capitolo ricarica: Ricarica EV → Integrazioni → chiusura GM Solar.
  */
 export default function HomePage() {
   return (
@@ -33,8 +31,7 @@ export default function HomePage() {
       <CinematicGrain />
       <VelocitySkew />
 
-      {/* Capitolo AZIENDA — video scuri (GM Solar/drone → impianto solare) */}
-      <VetrinaScene />
+      {/* APERTURA — video solare scuro (impianto, gemello digitale) */}
       <SolarTwinScene />
 
       {/* INTERAZIONE — come le persone usano il sito */}
@@ -45,10 +42,7 @@ export default function HomePage() {
       <ImmersiveGestionale />
       <ImmersiveSegnalazioni />
 
-      {/* STACCO EV — video scuro (cavo) che introduce il capitolo ricarica */}
-      <EvCableScene />
-
-      {/* App dedicata + integrazioni */}
+      {/* Capitolo ricarica: app dedicata + integrazioni */}
       <ImmersiveRicarica />
       <ImmersiveIntegrazioni />
 

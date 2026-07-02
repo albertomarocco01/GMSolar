@@ -14,7 +14,9 @@
  *   azzerato, dettaglio chiuso, ricerca vuota) → così lo stato finale è un muro
  *   completo e leggibile, corretto anche in reduced-motion (il kit porta la
  *   timeline a progress(1)). Il float continuo, sfalsato e indipendente dallo
- *   scroll, parte SOLO se l'utente non ha richiesto meno movimento.
+ *   scroll, parte SOLO se l'utente non ha richiesto meno movimento; essendo
+ *   fuori dalla timeline scrubbata, ascolta `presentation:pausechange` (pausa
+ *   globale di AutoScroll) per fermarsi/riprendere insieme al resto della home.
  *
  * Usa il kit condiviso `./shared`.
  */
@@ -178,7 +180,10 @@ export default function ImmersiveIntegrazioni() {
     // Anima SOLO `y`: entrata (scale/autoAlpha) e filtro (autoAlpha) usano altre
     // proprietà, quindi le animazioni non si sovrascrivono.
     if (!reduced) {
-      tiles.forEach((tile, i) => {
+      // Tween raccolti in un array: essendo repeat:-1 FUORI dalla timeline
+      // scrubbata, sono gli unici moti qui che la PAUSA GLOBALE della
+      // presentazione (click → AutoScroll) non fermerebbe da sola.
+      const floats = tiles.map((tile, i) =>
         gsap.to(tile, {
           y: "-=8",
           duration: 1.6 + (i % 5) * 0.2,
@@ -186,8 +191,27 @@ export default function ImmersiveIntegrazioni() {
           repeat: -1,
           yoyo: true,
           delay: (i % 6) * 0.18,
-        });
-      });
+        }),
+      );
+
+      // PAUSA GLOBALE: AutoScroll emette `presentation:pausechange` al click di
+      // pausa/ripresa → i float si congelano e ripartono dallo stato in cui erano.
+      const onPauseChange = (e: Event) => {
+        const paused = Boolean((e as CustomEvent<{ paused: boolean }>).detail?.paused);
+        floats.forEach((t) => (paused ? t.pause() : t.resume()));
+      };
+      window.addEventListener("presentation:pausechange", onPauseChange);
+      // Montaggio a presentazione GIÀ in pausa (es. remount): parte congelato.
+      if (document.documentElement.hasAttribute("data-presentation-paused")) {
+        floats.forEach((t) => t.pause());
+      }
+      // Cleanup nel revert del gsap.context: `build` non ha un canale di ritorno,
+      // ma il revert del kit KILLA i float — che, infiniti, non completano mai →
+      // scatta `onInterrupt` ed è lì che togliamo il listener. Sentinella sul
+      // primo tween (delay 0, sempre attivo); removeEventListener è idempotente.
+      floats[0]?.eventCallback("onInterrupt", () =>
+        window.removeEventListener("presentation:pausechange", onPauseChange),
+      );
     }
   });
 
