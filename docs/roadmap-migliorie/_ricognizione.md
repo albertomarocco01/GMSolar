@@ -89,3 +89,52 @@ Posizioni attuali (per i builder):
 - **B-P2:** pausa video liberi implementata GENERICAMENTE in AutoScroll
   (handler su `#top video` non-paused); nessun video libero esiste più in home.
 - **Ordine capitoli P12:** 01 = scena Solare.
+
+### Fase 2 (B-P3, B-P4, B-P5, B-P7, B-P8, B-P9, B-P10)
+
+- **B-P5 → P6, FIRMA ESATTA bottone da riusare alla lettera:**
+  ```jsx
+  <button
+    className="imm-report-btn bg-accent-soft text-accent-ink flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold"
+    tabIndex={-1}
+    aria-hidden
+  >
+    <MessageSquareWarning className="h-3.5 w-3.5" aria-hidden />
+    Segnala un problema
+  </button>
+  ```
+  (import lucide-react). A fine timeline il cursore fa `cursorTo(tl, ".imm-report-btn", { mode: "hand" })` + hold, NESSUN press.
+- **B-P5 → P11:** Dashboard: pan `.imm-track` xPercent -25/-50/-75 (3 tween expo.inOut → whip);
+  typing su `.imm-title-new` (in `.imm-title-field`, clickZoom `.imm-zoom-local` parallelo);
+  punch su `.imm-publish-btn`; KPI countUp `.imm-kpi-val-0..3`. Nuovi selettori:
+  `.imm-page-hero`, `.imm-page-active`, `.imm-replace-btn`, `.imm-img-new`, `.imm-title-old`,
+  `.imm-toast`, `.imm-report-btn`. Say 0–5. heightVh 560. Card «Hero homepage» con foto
+  `impianto-2026.jpg` + badge «Pubblicata» (speculare per il difetto mock di P6).
+- **B-P7 → P6:** pattern flip rotateY `.imm-ag-old`/`.imm-ag-new` conservato identico
+  (gsap.set transformPerspective 400 + rotationY -90 righe ~85–90, tween ~143–151).
+- **B-P7 → P11:** Gestionale: whip su `.imm-track` (pan xPercent -50 riga ~111); push-in
+  `.imm-query` (in `.imm-zoom-local`); rack focus `.imm-ag-drawer` (~288); micro-dutch su
+  ultimo `.imm-ag-step`/`.imm-ag-check`; punch flip `.imm-ag-old`/`.imm-ag-new` (~346/348).
+  Etichette UI rinominate «Assistente AI» (selettore `.imm-ai-btn` invariato).
+- **B-P8 → P11:** Ricarica: nessun tag persistente residuo; `.imm-rc-send` = target punch.
+- **B-P9 → P11:** Integrazioni: `.imm-int-wall` = bgTarget rackFocus; `.imm-int-row` ×3 = pan
+  carrellata (label "carrellata", ease none); `.imm-int-wa` = tile WhatsApp (usa pressButton:
+  se P11 aggiunge punch camera, togliere il press per la regola no-somma); `.imm-int-chat` =
+  chat (label "chat"); bolle `.imm-int-msg-1/2/3`, `.imm-int-typing`. ⚠ fine timeline
+  DIVERSA tra reduced (chat aperta) e non-reduced (chat richiusa): `cameraReset` in ENTRAMBI
+  i rami o prima del branch. Say: solo 0 (veil) e 1 (caption).
+- **B-P3 → P11:** Solare: overshoot card su `.vt-card`, timeline position 0.78,
+  back.out(1.6); container `.vt-cards-scene`; sezione `section#vetrina`.
+- **B-P3 → P12:** frase popup = blocco `.st-say` (const FRASE), slot enter 0.004–0.049 /
+  exit 0.13–0.18 → diventa ChapterCard 01 «Siti vetrina» (sottotitolo = FRASE);
+  `data-chapter` A MANO su `<section id="vetrina">` in ENTRAMBE le varianti (regia+reduced).
+  Altri hook: `.st-cue`, `.st-exit-veil`, `.sc-dot` (ora GSAP-driven), FakeSiteHeader.
+  Video rimappato: `seek(progress/0.8)` clampato (VIDEO_END=0.8, ultimo frame fermo dopo).
+- **B-P4:** foto in `/assets/products/` (3 Unsplash + 4 Pexels, tutte ≤104KB); selettori
+  P11 invariati (`.imm-bar` 380, `.imm-send` 393, `.imm-config-pick` 340).
+- **B-P10 → P12:** trama a puntini rimossa da ClosingScene; pattern radial-gradient di
+  riferimento per ChapterCard recuperabile da `git show fb182c8:apps/web/components/home/scenes/ClosingScene.tsx`
+  (~riga 46): `radial-gradient(color-mix(in oklab, var(--accent) 20%, transparent) 1px, transparent 1.4px)`,
+  backgroundSize 22px 22px. Wordmark chiusura = «GM Solar» (grafia brand repo, non «GM SOLAR»).
+- **Nota cosmetica aperta:** commento AutoScroll.tsx:332 cita ancora `sc-dot` tra i keyframe
+  CSS congelati (ora GSAP-driven) — innocuo, ritocco eventuale in F6.

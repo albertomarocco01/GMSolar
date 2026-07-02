@@ -1,10 +1,10 @@
 "use client";
 
 /**
- * @descrizione  Beat "vetrina di componenti" della scena VETRINA, rivelato DOPO
- *   il pan orizzontale (la homepage scorre a sinistra). Card premium "sospese"
- *   — vetro chiaro su video cinematografico, ombre morbide, accent lime — che
- *   mostrano la QUALITÀ del design: una stat con sparkline, un mini bar-chart,
+ * @descrizione  Beat FINALE della scena SOLARE (finto sito, vedi SolarTwinScene):
+ *   card premium "sospese" — vetro chiaro su video cinematografico, ombre
+ *   morbide, accent lime — che entrano in stagger sull'ultimo tratto del video
+ *   e mostrano la QUALITÀ del design: una stat con sparkline, un mini bar-chart,
  *   un ring di performance e un'anteprima di sito. Solo SVG inline + transform:
  *   zero dipendenze 3D/grafici, leggero anche su mobile.
  *
@@ -29,8 +29,8 @@ function vars(v: Record<string, string>): React.CSSProperties {
 type Pose = { pos: string; pose: string; dur: string; delay: string };
 
 const POSES: Record<"stat" | "bars" | "ring" | "mockup", Pose> = {
-  // Posizioni (md+) pensate per NON collidere con l'etichetta in alto a sinistra
-  // del pannello vetrina (vedi VetrinaScene `.vt-showcase-head`).
+  // Posizioni (md+) in % del contenitore: nella scena solare il contenitore è
+  // l'HERO sotto l'header del finto sito → le card non coprono mai l'header.
   stat: {
     pos: "md:left-[5%] md:top-[32%] md:w-[16rem] lg:w-[19rem]",
     pose: "rotateY(16deg) rotateX(6deg) translateZ(40px)",
@@ -200,9 +200,9 @@ function RingCard({ face }: { face?: boolean }) {
 }
 
 /* ---- Card 4 · mini-mockup del sito (chrome + skeleton) -------------------
-   I pezzi hanno classi `vt-mock-*`: in modalità animata la scena li fa
-   AUTO-ASSEMBLARE (entrano da offset diversi in stagger, back.out) e poi un
-   "click" sulla CTA. In modalità statica (reduced-motion) sono già composti. */
+   I pezzi (classi `vt-mock-*`) sono GIÀ composti: oggi nessuna scena li anima
+   singolarmente (la card entra intera via `.vt-card`); le classi restano come
+   hook di regia per eventuali walkthrough futuri. */
 function MockupCard({ face }: { face?: boolean }) {
   return (
     <Frame face={face} pose={POSES.mockup.pose} className="overflow-hidden p-0">
@@ -227,7 +227,7 @@ function MockupCard({ face }: { face?: boolean }) {
           <div className="vt-mock-piece vt-mock-cell h-8 rounded-md bg-white/15" />
           <div className="vt-mock-piece vt-mock-cell h-8 rounded-md bg-white/15" />
         </div>
-        {/* CTA: il "click" finale del walkthrough la preme (pressButton) */}
+        {/* CTA mock (decorativa; hook `.vt-mock-cta` per eventuali regie future) */}
         <div className="pt-0.5">
           <span className="vt-mock-cta bg-accent text-accent-contrast inline-block rounded-md px-3 py-1.5 text-[11px] font-bold">
             Scopri

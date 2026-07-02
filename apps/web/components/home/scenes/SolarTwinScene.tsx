@@ -1,43 +1,330 @@
 "use client";
 
 /**
- * @descrizione  Scena "impianto solare" — gemello digitale del fotovoltaico e PRIMA
- *   scena della home: la presentazione apre in fade dal nero direttamente qui.
- *   Porta l'ancora `id="vetrina"` (target dei link /#vetrina, es. kb dell'assistente).
- *   Poiché la scena successiva (l'Assistente) è CHIARA, alza un velo chiaro sul
- *   finale (`exitToLight`) → ingresso pulito, senza flash scuro. Config del motore
- *   VideoScrubScene: il video solare (all-keyframe) viene scrubbato dallo scroll
- *   mentre i callout raccontano l'arco NARRATIVO: impianto chiavi in mano → cos'è
- *   il modulo → efficienza → inverter → accumulo → produzione reale (dal progetto
- *   all'energia, zoom via via più tecnico).
+ * @descrizione  Scena "SITI VETRINA" — PRIMA scena della home: la presentazione
+ *   apre in fade dal nero direttamente qui. È l'anteprima di un sito vetrina
+ *   premium: un FINTO SITO (header con logo, nav mock e CTA) il cui hero è il
+ *   video solare ALL-KEYFRAME (`/assets/solar-twin.mp4`) scrubbato dallo scroll.
+ *   Regia: frase popup d'apertura in stile "veil" immersive (replicata qui — la
+ *   scena NON usa ImmersiveStage) sui primissimi px di scroll → scrub del video
+ *   avanti/indietro → card 3D premium (SuspendedCards) in stagger sul finale,
+ *   con il video fermo sull'ultimo frame. Il cue "Scorri" grande in basso a
+ *   sinistra parte con una MICRO-DEMO in loop (proxy → seek del video + dot del
+ *   mousino in sync) che si uccide al primo scroll reale e rispetta la pausa
+ *   globale della presentazione (`presentation:pausechange`).
+ *   Porta l'ancora `id="vetrina"` (target dei link /#vetrina, es. kb assistente).
+ *   Poiché la scena successiva (Assistente) è CHIARA, alza un velo chiaro sul
+ *   finale → ingresso pulito, senza flash scuro.
+ *   reduced-motion → variante statica impilata e leggibile: header finto +
+ *   poster + frase statica + SuspendedCards animated={false}.
  * @indice
- * - SolarTwinScene → config solare di VideoScrubScene
+ * - SolarTwinScene → scena autonoma (sticky + ScrollTrigger scrub + micro-demo)
+ * - FakeSiteHeader → header mock del finto sito (decorativo, nessun link reale)
  */
-import VideoScrubScene, { type Callout } from "./VideoScrubScene";
+import { useRef } from "react";
+import { gsap, ScrollTrigger } from "@gmgroup/lib/gsap";
+import { useReducedMotion, useIsoLayoutEffect } from "@gmgroup/lib/motion";
+import ScrubVideo, { type ScrubVideoHandle } from "../ScrubVideo";
+import ScrollCue from "../ScrollCue";
+import SuspendedCards from "../vetrina/SuspendedCards";
 
-// Arco: installazione/impianto → modulo (cosa sono) → specifiche → zoom tecnico →
-// risultato (produzione). Mock internamente coerenti.
-const CALLOUTS: Callout[] = [
-  { at: 0.26, hold: 0.06, x: "7%", y: "20%", kicker: "Impianto chiavi in mano", value: "6,6 kWp", sub: "15 moduli · 30° · Sud" },
-  { at: 0.37, hold: 0.06, x: "52%", y: "16%", kicker: "Modulo", value: "440 Wp", sub: "Monocristallino PERC" },
-  { at: 0.48, hold: 0.06, x: "9%", y: "56%", kicker: "Efficienza modulo", value: "22,1%" },
-  { at: 0.59, hold: 0.06, x: "52%", y: "50%", kicker: "Inverter ibrido", value: "6 kW", sub: "MPPT · 97,5%" },
-  { at: 0.7, hold: 0.06, x: "11%", y: "70%", kicker: "Accumulo", value: "13,5 kWh", sub: "SoC 85%" },
-  { at: 0.81, hold: 0.13, x: "50%", y: "66%", kicker: "Produzione oggi", value: "28,4 kWh", sub: "Autoconsumo 72% · −3,4 t CO₂/anno" },
-];
+// Derivati ALL-KEYFRAME obbligatori: il seek è istantaneo SOLO con questi.
+const SRC = "/assets/solar-twin.mp4";
+const POSTER = "/assets/solar-twin-poster.webp";
+
+const ARIA_LABEL = "Siti vetrina — anteprima di un sito con hero video scrollytelling";
+const FRASE = "Creiamo siti web moderni con una forte narrativa di scrollytelling video.";
+
+/** Il video esaurisce la sua durata a questo progress di scroll: l'ultimo tratto
+ *  (l'entrata delle card 3D) scorre con il video FERMO sull'ultimo frame. */
+const VIDEO_END = 0.8;
+/** Escursione (in frazione di video) della micro-demo del cue: avanti/indietro. */
+const DEMO_SPAN = 0.06;
+/** Corsa verticale (px) del dot dentro il mousino, in sync con la micro-demo. */
+const DEMO_DOT_TRAVEL = 20;
 
 export default function SolarTwinScene() {
+  const reduced = useReducedMotion();
+  const stageRef = useRef<HTMLElement>(null);
+  const videoRef = useRef<ScrubVideoHandle>(null);
+  const progressRef = useRef<HTMLDivElement>(null);
+
+  useIsoLayoutEffect(() => {
+    const stage = stageRef.current;
+    if (!stage || reduced) return;
+
+    /** Smonta i listener globali della micro-demo. Assegnata dentro il ctx;
+     *  chiamata sia alla kill (primo scroll) sia nel cleanup dell'effect. */
+    let disposeDemo: () => void = () => {};
+
+    const ctx = gsap.context(() => {
+      // Stato iniziale: frase popup e card nascoste; cue visibile; velo giù.
+      gsap.set(".st-say", { autoAlpha: 0, scale: 1.08, y: 26 });
+      gsap.set(".st-cue", { autoAlpha: 1 });
+      gsap.set(".vt-card", { autoAlpha: 0, y: 30, scale: 0.92 });
+      gsap.set(".st-exit-veil", { autoAlpha: 0 });
+
+      // Timeline NORMALIZZATA a durata 1 (spacer): le posizioni dei tween
+      // coincidono con il progress dello scroll. Nessun repeat:-1 qui dentro.
+      const tl = gsap.timeline({ defaults: { ease: "none" } });
+      tl.to({}, { duration: 1 }, 0);
+
+      // FRASE POPUP d'apertura — stessi valori del veil immersive (shared.tsx):
+      // entra teatrale sui primissimi px di scroll, tiene un beat, poi sfuma
+      // (back.in) lasciando il finto sito pulito.
+      tl.to(
+        ".st-say",
+        { autoAlpha: 1, scale: 1, y: 0, duration: 0.045, ease: "expo.out" },
+        0.004,
+      );
+      tl.to(
+        ".st-say",
+        { autoAlpha: 0, scale: 0.96, y: -24, duration: 0.05, ease: "back.in(1.4)" },
+        0.13,
+      );
+
+      // Cue "Scorri": sfuma appena parte lo scroll.
+      tl.to(".st-cue", { autoAlpha: 0, duration: 0.04, ease: "power2.in" }, 0.05);
+
+      // FINALE — card 3D premium in stagger sull'ultimo tratto (~0.78→0.95),
+      // con il video sotto fermo sull'ultimo frame (vedi VIDEO_END).
+      tl.to(
+        ".vt-card",
+        { autoAlpha: 1, y: 0, scale: 1, duration: 0.09, ease: "back.out(1.6)", stagger: 0.025 },
+        0.78,
+      );
+
+      // Velo chiaro d'uscita → la scena successiva (Assistente) è chiara.
+      tl.to(".st-exit-veil", { autoAlpha: 1, duration: 0.08, ease: "power2.in" }, 0.92);
+
+      // Guardia di sviluppo: un tween oltre lo spacer allunga la timeline e
+      // ScrollTrigger rimapperebbe TUTTI i beat in anticipo sul frame video.
+      if (process.env.NODE_ENV !== "production" && tl.duration() > 1) {
+        console.warn(
+          `[SolarTwinScene] timeline ${tl.duration().toFixed(3)} > 1: beat rimappati in anticipo`,
+        );
+      }
+
+      // ── MICRO-DEMO del cue: tween repeat:-1 FUORI dalla timeline scrubbata ──
+      // Un proxy va 0→DEMO_SPAN→0 (sine.inOut, ~2.5s a ciclo): a ogni update
+      // porta il VIDEO avanti e indietro (seek) e muove il dot del mousino in
+      // sync (stessa durata/ease) → si vede che il video segue il gesto di
+      // scroll. Si UCCIDE definitivamente al primo scroll reale; rispetta la
+      // pausa globale via `presentation:pausechange`.
+      const dot = stage.querySelector<HTMLElement>(".st-cue .sc-dot");
+      const proxy = { p: 0 };
+      const demo = gsap.to(proxy, {
+        p: DEMO_SPAN,
+        duration: 1.25,
+        ease: "sine.inOut",
+        repeat: -1,
+        yoyo: true,
+        // Montaggio a presentazione GIÀ in pausa (es. remount): parte congelata.
+        paused: document.documentElement.hasAttribute("data-presentation-paused"),
+        onUpdate: () => {
+          videoRef.current?.seek(proxy.p);
+          if (dot) gsap.set(dot, { y: (proxy.p / DEMO_SPAN) * DEMO_DOT_TRAVEL });
+        },
+      });
+
+      // PAUSA GLOBALE (click → AutoScroll): congela/riprende la demo dallo
+      // stato in cui era. Dopo la kill il listener resta no-op finché la
+      // dispose non lo rimuove (removeEventListener è idempotente).
+      const onPauseChange = (e: Event) => {
+        const paused = Boolean((e as CustomEvent<{ paused: boolean }>).detail?.paused);
+        if (paused) demo.pause();
+        else demo.resume();
+      };
+      window.addEventListener("presentation:pausechange", onPauseChange);
+
+      // Primo scroll REALE (wheel/touch, o progress oltre soglia nell'onUpdate
+      // dello ScrollTrigger — copre anche l'auto-scroll) → demo uccisa: da qui
+      // in poi il seek appartiene SOLO allo ScrollTrigger.
+      let demoAlive = true;
+      const killDemo = () => {
+        if (!demoAlive) return;
+        demoAlive = false;
+        demo.kill();
+        // Dot a riposo: se si torna in cima (scrub indietro) il cue ricompare pulito.
+        if (dot) gsap.set(dot, { y: 0 });
+        disposeDemo();
+      };
+      disposeDemo = () => {
+        window.removeEventListener("presentation:pausechange", onPauseChange);
+        window.removeEventListener("wheel", killDemo);
+        window.removeEventListener("touchstart", killDemo);
+      };
+      window.addEventListener("wheel", killDemo, { passive: true });
+      window.addEventListener("touchstart", killDemo, { passive: true });
+
+      ScrollTrigger.create({
+        trigger: stage,
+        start: "top top",
+        end: "bottom bottom",
+        scrub: 0.5,
+        animation: tl,
+        onUpdate: (self) => {
+          if (self.progress > 0.01) killDemo();
+          // Il video esaurisce la corsa a VIDEO_END → ultimo frame fermo sotto le card.
+          videoRef.current?.seek(Math.min(1, self.progress / VIDEO_END));
+          if (progressRef.current) {
+            progressRef.current.style.transform = `scaleX(${self.progress})`;
+          }
+        },
+      });
+
+      ScrollTrigger.refresh();
+    }, stage);
+
+    return () => {
+      disposeDemo();
+      ctx.revert();
+    };
+  }, [reduced]);
+
+  /* ---- reduced-motion: variante statica impilata, leggibile ---- */
+  if (reduced) {
+    return (
+      <section
+        id="vetrina"
+        aria-label={ARIA_LABEL}
+        className="bg-background text-foreground relative isolate"
+      >
+        <FakeSiteHeader />
+        <div className="mx-auto w-full max-w-5xl px-6 py-12">
+          {/* Poster statico al posto del video scrubbato */}
+          <img
+            src={POSTER}
+            alt=""
+            aria-hidden
+            className="border-border w-full rounded-2xl border object-cover"
+          />
+          {/* Frase d'apertura come testo statico */}
+          <p className="font-display mt-10 text-center text-3xl font-bold tracking-tight text-balance sm:text-4xl">
+            {FRASE}
+          </p>
+          {/* Card premium in griglia piatta. Pannello scuro: le card sono in
+              vetro chiaro (testo bianco) pensato per fondi scuri/video. */}
+          <div className="mt-10 rounded-3xl bg-[#0b1020] p-6">
+            <SuspendedCards animated={false} />
+          </div>
+        </div>
+      </section>
+    );
+  }
+
+  /* ---- regia: finto sito sticky con hero video scrubbato ---- */
   return (
-    <VideoScrubScene
+    <section
+      ref={stageRef}
       id="vetrina"
-      src="/assets/solar-twin.mp4"
-      poster="/assets/solar-twin-poster.webp"
-      ariaLabel="Fotovoltaico — gemello digitale (video scrollytelling)"
-      eyebrow="Impianto fotovoltaico"
-      title="Il tuo impianto, dato per dato."
-      lede="Dalla posa dei moduli alla produzione reale: ogni numero del fotovoltaico GM Solar, mentre scorri."
-      callouts={CALLOUTS}
-      exitToLight
-    />
+      aria-label={ARIA_LABEL}
+      className="relative isolate h-[320svh]"
+    >
+      <div className="sticky top-0 flex h-svh flex-col overflow-hidden">
+        {/* FINTO SITO — header di sito vetrina (decorativo) */}
+        <FakeSiteHeader />
+
+        {/* HERO del finto sito: video scrubbato full-bleed sotto l'header */}
+        <div className="relative flex-1 overflow-hidden text-white">
+          {/* Fallback branded scuro (contrasto garantito se il video non parte) */}
+          <div
+            aria-hidden
+            className="absolute inset-0 -z-20 bg-linear-to-br from-[#0b1020] via-[#13210a] to-[#0b1020]"
+          />
+          {/* Video scrubbato dallo scroll (sorgente ALL-KEYFRAME obbligatoria) */}
+          <ScrubVideo ref={videoRef} src={SRC} poster={POSTER} className="absolute inset-0 -z-10" />
+
+          {/* Scrim leggero di contrasto */}
+          <div aria-hidden className="absolute inset-0 bg-black/20" />
+          <div
+            aria-hidden
+            className="absolute inset-x-0 bottom-0 h-1/3 bg-linear-to-t from-black/45 to-transparent"
+          />
+
+          {/* FINALE — card 3D premium. Vivono DENTRO l'hero (sotto l'header):
+              non possono coprirlo. Entrano in stagger dalla timeline (.vt-card). */}
+          <div className="absolute inset-0 z-20">
+            <SuspendedCards animated />
+          </div>
+
+          {/* Cue "Scorri" grande in basso a sinistra: il dot del mousino è
+              pilotato dalla micro-demo (GSAP), non da keyframe CSS. */}
+          <div className="st-cue pointer-events-none absolute bottom-8 left-[6vw] z-30">
+            <ScrollCue reduced={reduced} />
+          </div>
+        </div>
+
+        {/* FRASE POPUP d'apertura — replica dello stile "veil" delle scene
+            immersive (full-screen, copre anche l'header): velo chiaro sfocato
+            + frase grande centrata. GSAP anima il contenitore esterno. */}
+        <div
+          className="st-say pointer-events-none absolute inset-0 z-40 flex items-center justify-center"
+          style={{ opacity: 0 }}
+          aria-hidden
+        >
+          <div className="bg-background/85 absolute inset-0 backdrop-blur-sm" />
+          <p className="font-display text-foreground relative max-w-3xl px-6 text-center text-3xl font-bold tracking-tight text-balance sm:text-5xl">
+            {FRASE}
+          </p>
+        </div>
+
+        {/* Barra di avanzamento accent (scaleX = progress) */}
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-x-0 bottom-0 z-30 h-[3px] bg-white/15"
+        >
+          <div
+            ref={progressRef}
+            className="bg-accent h-full w-full origin-left"
+            style={{
+              transform: "scaleX(0)",
+              boxShadow: "0 0 14px 2px color-mix(in oklab, var(--accent) 55%, transparent)",
+            }}
+          />
+        </div>
+
+        {/* Velo chiaro d'uscita → la scena successiva (Assistente) è chiara */}
+        <div
+          aria-hidden
+          className="st-exit-veil bg-background pointer-events-none absolute inset-0 z-50"
+          style={{ opacity: 0 }}
+        />
+      </div>
+    </section>
+  );
+}
+
+/**
+ * Header mock del finto sito vetrina: logo (quadratino accent + wordmark),
+ * nav mock e CTA «Richiedi preventivo». TUTTO decorativo: nessun link reale
+ * (solo <span>/<div> con aria-hidden) — è scenografia, non navigazione.
+ */
+function FakeSiteHeader() {
+  return (
+    <div
+      aria-hidden
+      className="border-border bg-background/90 relative z-30 flex h-14 shrink-0 items-center justify-between border-b px-6 backdrop-blur md:px-[4vw]"
+    >
+      {/* Logo */}
+      <div className="flex items-center gap-2.5">
+        <span className="bg-accent h-4 w-4 rounded-[5px]" />
+        <span className="font-display text-foreground text-base font-bold tracking-tight">
+          GM Solar
+        </span>
+      </div>
+      {/* Nav mock + CTA */}
+      <div className="flex items-center gap-8">
+        <div className="text-muted hidden items-center gap-7 text-sm font-medium md:flex">
+          <span>Impianti</span>
+          <span>Accumulo</span>
+          <span>Ricarica</span>
+          <span>Contatti</span>
+        </div>
+        <span className="bg-accent text-accent-contrast rounded-full px-4 py-1.5 text-sm font-semibold">
+          Richiedi preventivo
+        </span>
+      </div>
+    </div>
   );
 }

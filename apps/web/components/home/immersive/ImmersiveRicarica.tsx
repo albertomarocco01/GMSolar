@@ -1,9 +1,10 @@
 "use client";
 
 /**
- * @descrizione  Scena immersiva RICARICA EV (06 · App ricarica EV con AI).
+ * @descrizione  Scena immersiva RICARICA EV (06 · App con assistente AI integrato).
  *   Full-screen sticky-scrub: un MOCKUP SMARTPHONE centrato (sfondo mappa tenue)
- *   con una chat-agent. Lo scroll scrubba l'interazione ripresa dal legacy
+ *   con una chat-agent. La scena si presenta come "un'app con assistente AI
+ *   integrato". Lo scroll scrubba l'interazione ripresa dal legacy
  *   `EvAgentApp`/`DeviceSimulator` — assistente di ricarica di bordo:
  *     ① l'utente scrive «Devo ricaricare lungo la A1 verso Milano» (clip-path);
  *     ② l'agente risponde con generative-UI: card stazione (distanza, kW) +
@@ -99,14 +100,9 @@ export default function ImmersiveRicarica() {
     });
     gsap.set(".imm-rc-battery-fill", { scaleX: 0.2, transformOrigin: "left center" });
     gsap.set(".imm-rc-final", { autoAlpha: 0, y: 12 });
-    // Tag "web app dell'azienda": parte nascosto, entra dopo il velo iniziale.
-    gsap.set(".imm-webapp-tag", { autoAlpha: 0, y: -8 });
 
     // ── ① Frase introduttiva ──────────────────────────────────────────────────
-    say(tl, 0); // «Un assistente di ricarica dentro l'app.»
-    // Il tag entra (fade+rise) appena la frase-velo esce → resta poi persistente.
-    // Sotto reduced-motion (progress(1)) finisce visibile.
-    tl.to(".imm-webapp-tag", { autoAlpha: 1, y: 0, duration: 0.4, ease: "power2.out" });
+    say(tl, 0); // «Un'app con assistente AI integrato.»
 
     // ── ② L'utente scrive nel campo (kit: typeInField) e invia ────────────────
     tl.to(".imm-rc-placeholder", { autoAlpha: 0, duration: 0.2, ease: "power2.out" });
@@ -260,7 +256,7 @@ export default function ImmersiveRicarica() {
       heightVh={520}
       theme="platform"
       label="Ricarica"
-      eyebrow="06 · App ricarica EV con AI"
+      eyebrow="06 · App con assistente AI integrato"
     >
       {/* Sfondo pagina: griglia mappa tenue (accent) su tono chiaro */}
       <div
@@ -274,18 +270,6 @@ export default function ImmersiveRicarica() {
         }}
         aria-hidden
       />
-
-      {/* Tag persistente: annuncia che è la WEB APP di ricarica dell'azienda.
-          Sopra il mock, sotto le frasi (Say è z-40). Entra dopo il velo iniziale;
-          pointer-events-none = puramente informativo. */}
-      <div
-        className="imm-webapp-tag border-border bg-background/90 pointer-events-none absolute top-14 left-5 z-30 flex items-center gap-2 rounded-full border px-3 py-1.5 shadow-sm backdrop-blur"
-        style={{ opacity: 0 }}
-        aria-hidden
-      >
-        <span className="bg-accent h-2 w-2 rounded-full" aria-hidden />
-        <span className="text-foreground text-xs font-semibold">Web app · GM Charge</span>
-      </div>
 
       {/* ── Mockup smartphone centrato ──────────────────────────────────────── */}
       <div className="absolute inset-0 flex items-center justify-center pt-10">
@@ -603,7 +587,7 @@ export default function ImmersiveRicarica() {
       </div>
 
       {/* Frasi-intermezzo DESCRITTIVE — tono neutro, spiegano, non vendono */}
-      <Say i={0}>Un assistente di ricarica dentro l&apos;app.</Say>
+      <Say i={0}>Un&apos;app con assistente AI integrato.</Say>
       <Say i={1} variant="caption">
         Trova la colonnina giusta sul tuo percorso.
       </Say>

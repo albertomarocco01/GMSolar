@@ -2,21 +2,22 @@
 
 /**
  * @descrizione  Scena immersiva INTEGRAZIONI (07 · Integrazioni). Tema CHIARO,
- *   tono DESCRITTIVO. Un MURO DI LOGHI dei sistemi collegabili, ora INTERATTIVO:
- *   ① entrano 6 tile "in vetrina"; ② «e molti altri» rivela le restanti in
- *   cascata; ③ una barra di ricerca scrive una query («pagamenti», kit:
- *   typeInField) che FILTRA il muro (le non-pertinenti sfumano, le pertinenti
- *   risaltano + badge); ④ il cursore apre il DETTAGLIO di un'integrazione
- *   (cursorTo + clickZoom). Le icone sono loghi brand reali da `simple-icons`,
- *   resi nel colore ufficiale del brand dentro tile neutre (token).
+ *   tono DESCRITTIVO. Il focus visivo è il MOVIMENTO: una CARRELLATA di loghi
+ *   su 3 righe orizzontali (6 per riga) che scorrono in direzioni alternate,
+ *   pilotate dalla timeline scrubbata (ease "none" → deterministiche avanti e
+ *   indietro), mentre le tile compaiono a ondata. La scena culmina in un
+ *   ESEMPIO CONCRETO: il cursore clicca la tile WhatsApp e si apre una chat
+ *   mock in stile WhatsApp (header nel verde ufficiale del brand, bolle di
+ *   notifica una alla volta). Le icone sono loghi brand reali da `simple-icons`,
+ *   resi nel colore ufficiale (`#${icon.hex}`) dentro tile neutre (token).
  *
- *   La sequenza si CHIUDE ripristinando la griglia piena e pulita (filtro
- *   azzerato, dettaglio chiuso, ricerca vuota) → così lo stato finale è un muro
- *   completo e leggibile, corretto anche in reduced-motion (il kit porta la
- *   timeline a progress(1)). Il float continuo, sfalsato e indipendente dallo
- *   scroll, parte SOLO se l'utente non ha richiesto meno movimento; essendo
- *   fuori dalla timeline scrubbata, ascolta `presentation:pausechange` (pausa
- *   globale di AutoScroll) per fermarsi/riprendere insieme al resto della home.
+ *   Reduced-motion: il kit porta la timeline a progress(1) → la RICHIUSURA
+ *   della chat vive SOLO nel percorso animato (ramo `!reduced`), così lo stato
+ *   finale ridotto è "tutte le tile visibili + chat aperta e leggibile", senza
+ *   nulla a metà. Il float continuo per-tile (solo `y`, loop infinito, fuori
+ *   dallo scroll) parte solo se l'utente non ha richiesto meno movimento;
+ *   essendo fuori dalla timeline scrubbata, ascolta `presentation:pausechange`
+ *   (pausa globale di AutoScroll) per fermarsi/riprendere insieme alla home.
  *
  * Usa il kit condiviso `./shared`.
  */
@@ -42,143 +43,125 @@ import {
   siWoocommerce,
   siZapier,
 } from "simple-icons";
-import {
-  ImmersiveStage,
-  Say,
-  say,
-  cursorTo,
-  clickZoom,
-  useImmersiveScene,
-  typeInField,
-} from "./shared";
+import { ImmersiveStage, Say, say, cursorTo, pressButton, useImmersiveScene } from "./shared";
 
 // ─── Dati statici ────────────────────────────────────────────────────────────
 
 /** Forma minima di un'icona di `simple-icons` usata da questa scena. */
 type BrandIcon = { path: string; hex: string; title: string };
 
-/** Tile del muro: logo + categoria (serve al filtro della ricerca). */
-type Tile = { icon: BrandIcon; cat: string };
-
 /**
- * Il "muro" di integrazioni. I PRIMI 6 sono "in vetrina" (entrano per primi);
- * le due voci "Pagamenti" (Stripe, PayPal) sono il match della query «pagamenti».
+ * La CARRELLATA: 3 righe da 6 loghi. WhatsApp sta nella riga centrale, vicino
+ * al centro, così il click e la chat che si apre restano nel cuore dell'inquadratura.
  */
-const TILES: Tile[] = [
-  { icon: siWhatsapp, cat: "Messaggistica" },
-  { icon: siGmail, cat: "Email" },
-  { icon: siStripe, cat: "Pagamenti" },
-  { icon: siShopify, cat: "E-commerce" },
-  { icon: siGooglesheets, cat: "Documenti" },
-  { icon: siHubspot, cat: "CRM" },
-  { icon: siTelegram, cat: "Messaggistica" },
-  { icon: siInstagram, cat: "Social" },
-  { icon: siMeta, cat: "Social" },
-  { icon: siDiscord, cat: "Messaggistica" },
-  { icon: siGooglecalendar, cat: "Documenti" },
-  { icon: siNotion, cat: "Documenti" },
-  { icon: siTrello, cat: "Documenti" },
-  { icon: siAirtable, cat: "Documenti" },
-  { icon: siPaypal, cat: "Pagamenti" },
-  { icon: siWoocommerce, cat: "E-commerce" },
-  { icon: siMailchimp, cat: "Marketing" },
-  { icon: siZapier, cat: "Automazione" },
+const ROWS: BrandIcon[][] = [
+  [siGmail, siStripe, siShopify, siGooglesheets, siHubspot, siTelegram],
+  [siInstagram, siMeta, siWhatsapp, siDiscord, siGooglecalendar, siNotion],
+  [siTrello, siAirtable, siPaypal, siWoocommerce, siMailchimp, siZapier],
 ];
 
-/** Integrazione aperta al click (mock deterministico): Stripe · Pagamenti. */
-const DETAIL = {
-  icon: siStripe,
-  cat: "Pagamenti",
-  caps: ["Incassi", "Abbonamenti", "Fatture"],
+/** Direzione del pan per riga: la riga centrale va in contro-movimento. */
+const rowDir = (i: number) => (i === 1 ? -1 : 1);
+
+/** Chat mock deterministica (orari fissi, testo fisso): esempio WhatsApp. */
+const CHAT = {
+  name: "GM Solar",
+  msg1: "⚡ Ricarica completata — 12,6 kWh · Colonnina Torino Nord",
+  msg2: "Ricevuta n. 0421 disponibile nell'app.",
+  reply: "Grazie! 👍",
+  t1: "14:32",
+  t2: "14:33",
 };
 
 // ─── Componente ──────────────────────────────────────────────────────────────
 
 export default function ImmersiveIntegrazioni() {
   const ref = useImmersiveScene((tl, section) => {
-    // Rispettiamo la preferenza di sistema senza dipendenze esterne: il float
-    // continuo (loop infinito, fuori dallo scroll) parte solo se NON ridotto.
+    // Rispettiamo la preferenza di sistema senza dipendenze esterne: decide sia
+    // il float continuo sia il ramo di RICHIUSURA della chat (vedi beat ④).
     const reduced =
       typeof window !== "undefined" &&
       window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-    // Le tile sono elementi reali → le animo per riferimento (no selettori
-    // scoped) così l'entrata a ondate e il filtro possono partizionarle.
+    // Elementi reali → animati per riferimento: le righe portano il pan della
+    // carrellata, le tile l'entrata a ondata + il float; il filtro "dim" al
+    // click esclude la tile WhatsApp (che resta protagonista).
+    const rows = Array.from(section.querySelectorAll<HTMLElement>(".imm-int-row"));
     const tiles = Array.from(section.querySelectorAll<HTMLElement>(".imm-tile"));
-    const featured = tiles.slice(0, 6);
-    const rest = tiles.slice(6);
-    const matches = Array.from(section.querySelectorAll<HTMLElement>(".imm-tile-pay"));
-    const nonMatches = tiles.filter((t) => !matches.includes(t));
+    const wa = section.querySelector<HTMLElement>(".imm-int-wa");
+    const others = tiles.filter((t) => t !== wa);
 
-    // ── Stato iniziale: tile rimpicciolite/invisibili; ricerca e dettaglio spenti ──
+    // ── Stato iniziale: tile rimpicciolite/invisibili; righe già "fuori asse"
+    //    nel verso di partenza del pan; chat e bolle spente ──
     gsap.set(tiles, { scale: 0.6, autoAlpha: 0 });
-    gsap.set(".imm-int-badge", { autoAlpha: 0, scale: 0.8 });
-    gsap.set(".imm-int-detail", { autoAlpha: 0, scale: 0.9, y: 8, transformOrigin: "50% 50%" });
+    rows.forEach((row, i) => gsap.set(row, { xPercent: 8 * rowDir(i), willChange: "transform" }));
+    gsap.set(".imm-int-chat", { autoAlpha: 0, scale: 0.9, y: 12, transformOrigin: "50% 50%" });
+    gsap.set([".imm-int-msg-1", ".imm-int-msg-2", ".imm-int-msg-3"], { autoAlpha: 0, y: 10 });
+    gsap.set(".imm-int-typing", { autoAlpha: 0 });
 
-    // ── ① Le prime 6 tile "in vetrina" entrano (scale + autoAlpha, rimbalzo) ──
-    say(tl, 0); // «Ci integriamo con i sistemi che usi ogni giorno.»
-    tl.to(featured, {
-      scale: 1,
-      autoAlpha: 1,
-      duration: 0.5,
-      stagger: { each: 0.06, from: "start" },
-      ease: "back.out(1.8)",
+    // ── ① CARRELLATA: le righe scorrono in direzioni alternate (riga 1: 8→-8,
+    //    riga 2: -8→8, riga 3: 8→-8; ease "none" su TUTTO il beat → il moto è
+    //    lineare e scrub-safe) mentre le tile compaiono a ondata dal centro ──
+    say(tl, 0); // «Ci integriamo con i sistemi di tutti i giorni.»
+    tl.addLabel("carrellata");
+    rows.forEach((row, i) => {
+      tl.to(row, { xPercent: -8 * rowDir(i), duration: 2.6, ease: "none" }, "carrellata");
     });
-
-    // ── ② «e molti altri» → il resto del muro entra in cascata ───────────────
-    say(tl, 1); // «…e con molti altri.»
-    tl.to(rest, {
-      scale: 1,
-      autoAlpha: 1,
-      duration: 0.5,
-      stagger: { each: 0.035, from: "start" },
-      ease: "back.out(1.7)",
-    });
-
-    // ── ③ Ricerca: il cursore scrive una query (typeInField) e il muro FILTRA ──
-    say(tl, 2); // «Cerca quello che ti serve: l'elenco si filtra.»
-    cursorTo(tl, ".imm-int-search", { mode: "text" });
-    tl.to(".imm-int-placeholder", { autoAlpha: 0, duration: 0.2, ease: "power2.in" });
-    typeInField(tl, ".imm-int-query", { steps: 12, duration: 0.7 });
-    clickZoom(tl, ".imm-int-search", { position: "<0.2" }); // punch-zoom della barra durante il typing
-    // Le non-pertinenti sfumano; le pertinenti (Pagamenti) risaltano + badge.
-    tl.to(nonMatches, { autoAlpha: 0.18, duration: 0.5, ease: "power2.out" }, ">0.05");
-    tl.to(matches, { scale: 1.1, duration: 0.4, ease: "back.out(2)" }, "<");
-    tl.to(".imm-int-badge", { autoAlpha: 1, scale: 1, duration: 0.4, ease: "back.out(1.8)" }, "<");
-
-    // ── ④ Il cursore apre il DETTAGLIO dell'integrazione ─────────────────────
-    say(tl, 3); // «Un click e la colleghi.»
-    cursorTo(tl, ".imm-int-open", { mode: "hand" });
-    // Punch inline che torna a 1.1 (la scala del filtro ancora attivo): clickZoom
-    // finirebbe a scale 1 e la tile cliccata resterebbe più PICCOLA di PayPal
-    // finché il filtro non si azzera al beat ⑤.
-    tl.set(".imm-int-open", { transformOrigin: "50% 50%", willChange: "transform" }, ">-0.05");
-    tl.to(".imm-int-open", { scale: 1.26, duration: 0.28, ease: "power2.out" });
-    tl.to(".imm-int-open", { scale: 1.1, duration: 0.34, ease: "power2.inOut" });
     tl.to(
-      ".imm-int-detail",
-      { autoAlpha: 1, scale: 1, y: 0, duration: 0.5, ease: "back.out(1.5)" },
-      ">-0.1",
+      tiles,
+      {
+        scale: 1,
+        autoAlpha: 1,
+        duration: 0.5,
+        // Ondata radiale deterministica: le tile sono in DOM in ordine di riga
+        // (3×6), quindi il grid-stagger dal centro produce un'onda concentrica.
+        stagger: { each: 0.07, grid: [3, 6], from: "center" },
+        ease: "back.out(1.7)",
+      },
+      "carrellata+=0.1",
     );
-    tl.to({}, { duration: 0.5 });
 
-    // ── ⑤ Chiusura: dettaglio chiuso + filtro azzerato → griglia piena e pulita
-    //     (stato finale leggibile anche in reduced-motion, che salta a progress(1)). ──
-    tl.to(".imm-int-detail", { autoAlpha: 0, scale: 0.9, y: 8, duration: 0.3, ease: "power2.in" });
-    tl.to(nonMatches, { autoAlpha: 1, duration: 0.4, ease: "power2.out" }, "<");
-    tl.to(matches, { scale: 1, duration: 0.3, ease: "power2.out" }, "<");
-    tl.to(".imm-int-badge", { autoAlpha: 0, duration: 0.3 }, "<");
+    // ── ② ESEMPIO WHATSAPP: il cursore clicca la tile, il resto sfuma, si apre
+    //    la chat mock centrata ──
+    cursorTo(tl, ".imm-int-wa", { mode: "hand" }); // parte a pan concluso (append in coda)
+    pressButton(tl, ".imm-int-wa");
+    tl.to(others, { autoAlpha: 0.25, duration: 0.5, ease: "power2.out" }, ">-0.2");
     tl.to(
-      ".imm-int-query",
-      { clipPath: "inset(0 100% 0 0)", duration: 0.3, ease: "power2.in" },
-      "<",
+      ".imm-int-chat",
+      { autoAlpha: 1, scale: 1, y: 0, duration: 0.55, ease: "back.out(1.5)" },
+      "<0.1",
     );
-    tl.to(".imm-int-placeholder", { autoAlpha: 1, duration: 0.3 }, "<");
-    tl.to({}, { duration: 0.4 });
+    tl.addLabel("chat", "<"); // inizio apertura chat: àncora per le bolle
+
+    // ── ③ Sequenza bolle (fade+rise, una alla volta) con caption in parallelo ──
+    say(tl, 1); // «Per esempio: le notifiche ti arrivano su WhatsApp.»
+    tl.to(".imm-int-msg-1", { autoAlpha: 1, y: 0, duration: 0.4, ease: "power2.out" }, "chat+=0.7");
+    tl.to(".imm-int-typing", { autoAlpha: 1, duration: 0.25, ease: "power2.out" }, ">0.35");
+    tl.to(".imm-int-typing", { autoAlpha: 0, duration: 0.2, ease: "power2.in" }, ">0.55");
+    tl.to(".imm-int-msg-2", { autoAlpha: 1, y: 0, duration: 0.4, ease: "power2.out" }, "<0.05");
+    tl.to(".imm-int-msg-3", { autoAlpha: 1, y: 0, duration: 0.4, ease: "power2.out" }, ">0.4");
+    tl.to({}, { duration: 0.6 }); // hold: tempo di lettura della conversazione
+
+    // ── ④ CHIUSURA — solo nel percorso animato. Con reduced-motion il kit salta
+    //    a progress(1) e lo stato finale richiesto è "chat aperta e leggibile":
+    //    lì la chat NON si richiude, ma le tile tornano comunque a piena opacità
+    //    (niente elementi a metà). ──
+    if (!reduced) {
+      tl.to(
+        ".imm-int-chat",
+        { autoAlpha: 0, scale: 0.92, y: 12, duration: 0.35, ease: "power2.in" },
+        ">0.3",
+      );
+      tl.to(others, { autoAlpha: 1, duration: 0.45, ease: "power2.out" }, "<");
+      tl.to({}, { duration: 0.5 }); // respiro finale sulla carrellata piena e pulita
+    } else {
+      tl.to(others, { autoAlpha: 1, duration: 0.3 }, ">");
+    }
 
     // ── Float continuo sfalsato (motion-safe, indipendente dallo scroll) ─────
-    // Anima SOLO `y`: entrata (scale/autoAlpha) e filtro (autoAlpha) usano altre
-    // proprietà, quindi le animazioni non si sovrascrivono.
+    // Anima SOLO `y`: entrata (scale/autoAlpha), dim (autoAlpha) e pan delle
+    // righe (xPercent su ALTRI elementi) usano altre proprietà/nodi, quindi le
+    // animazioni non si sovrascrivono.
     if (!reduced) {
       // Tween raccolti in un array: essendo repeat:-1 FUORI dalla timeline
       // scrubbata, sono gli unici moti qui che la PAUSA GLOBALE della
@@ -224,108 +207,118 @@ export default function ImmersiveIntegrazioni() {
       eyebrow="07 · Integrazioni"
     >
       <div className="relative flex h-full flex-col items-center justify-center px-6 py-16 sm:px-10">
-        {/* Barra di ricerca: la query si "scrive" (clip-path) e filtra il muro */}
-        <div className="mb-8 w-full max-w-md" aria-hidden>
-          <div className="imm-int-search border-border bg-surface flex h-11 items-center gap-2.5 rounded-full border px-4 shadow-sm">
-            <svg
-              viewBox="0 0 24 24"
-              fill="none"
-              className="text-muted h-4 w-4 shrink-0"
-              aria-hidden
-            >
-              <circle cx="11" cy="11" r="7" stroke="currentColor" strokeWidth="2" />
-              <path d="m20 20-3-3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-            </svg>
-            <div className="relative flex h-6 min-w-0 flex-1 items-center overflow-hidden text-sm">
-              <span className="imm-int-placeholder text-muted absolute left-0 whitespace-nowrap">
-                Cerca un&apos;integrazione…
-              </span>
-              <span className="imm-int-query text-foreground absolute left-0 font-medium whitespace-nowrap">
-                pagamenti
-              </span>
-            </div>
-            <span
-              className="imm-int-badge bg-accent text-accent-contrast shrink-0 rounded-full px-2 py-0.5 text-xs font-bold"
-              style={{ opacity: 0 }}
-            >
-              2 risultati
-            </span>
-          </div>
-        </div>
-
-        {/* MURO DI LOGHI — griglia responsive 3 / 4 / 6 colonne */}
-        <div className="grid w-full max-w-4xl grid-cols-3 gap-3 sm:grid-cols-4 sm:gap-4 lg:grid-cols-6 lg:gap-5">
-          {TILES.map(({ icon, cat }) => (
-            <div
-              key={icon.title}
-              className={cn(
-                "imm-tile border-border bg-surface flex items-center justify-center rounded-xl border p-3 shadow-sm sm:rounded-2xl sm:p-4",
-                cat === "Pagamenti" && "imm-tile-pay",
-                icon === DETAIL.icon && "imm-int-open",
-              )}
-              style={{ opacity: 0 }}
-            >
-              {/* Logo nel colore ufficiale del brand (hex di simple-icons). */}
-              <svg
-                viewBox="0 0 24 24"
-                role="img"
-                aria-label={icon.title}
-                className="h-7 w-7 sm:h-8 sm:w-8"
-                focusable="false"
-              >
-                <title>{icon.title}</title>
-                <path d={icon.path} fill={`#${icon.hex}`} />
-              </svg>
+        {/* CARRELLATA DI LOGHI — 3 righe orizzontali da 6 tile, pan alternato */}
+        <div className="imm-int-wall flex w-full flex-col items-center gap-4 sm:gap-5">
+          {ROWS.map((row, r) => (
+            <div key={r} className="imm-int-row flex justify-center gap-4 sm:gap-5">
+              {row.map((icon) => (
+                <div
+                  key={icon.title}
+                  className={cn(
+                    "imm-tile border-border bg-surface flex h-20 w-20 shrink-0 items-center justify-center rounded-2xl border shadow-sm sm:h-24 sm:w-24",
+                    icon === siWhatsapp && "imm-int-wa",
+                  )}
+                  style={{ opacity: 0 }}
+                >
+                  {/* Logo nel colore ufficiale del brand (hex di simple-icons). */}
+                  <svg
+                    viewBox="0 0 24 24"
+                    role="img"
+                    aria-label={icon.title}
+                    className="h-9 w-9 sm:h-10 sm:w-10"
+                    focusable="false"
+                  >
+                    <title>{icon.title}</title>
+                    <path d={icon.path} fill={`#${icon.hex}`} />
+                  </svg>
+                </div>
+              ))}
             </div>
           ))}
         </div>
 
-        {/* Dettaglio dell'integrazione (si apre al click, poi si richiude) */}
+        {/* CHAT WHATSAPP (mock) — si apre al click sulla tile; wrapper flex per il
+            centraggio così GSAP anima scale/y senza pestare i translate CSS */}
         <div
-          className="imm-int-detail border-border bg-background absolute top-1/2 left-1/2 z-30 w-64 -translate-x-1/2 -translate-y-1/2 rounded-2xl border p-4 shadow-2xl"
-          style={{ opacity: 0 }}
+          className="pointer-events-none absolute inset-0 z-30 flex items-center justify-center"
           aria-hidden
         >
-          <div className="flex items-center gap-3">
-            <span
-              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl"
-              style={{ background: `#${DETAIL.icon.hex}1a` }}
+          <div
+            className="imm-int-chat border-border bg-background w-[340px] overflow-hidden rounded-2xl border shadow-2xl"
+            style={{ opacity: 0 }}
+          >
+            {/* Header nel verde UFFICIALE del brand (hex da simple-icons, mai hardcodato) */}
+            <div
+              className="flex items-center gap-3 px-4 py-3"
+              style={{ background: `#${siWhatsapp.hex}` }}
             >
-              <svg viewBox="0 0 24 24" className="h-6 w-6" aria-hidden>
-                <path d={DETAIL.icon.path} fill={`#${DETAIL.icon.hex}`} />
-              </svg>
-            </span>
-            <div className="min-w-0">
-              <p className="text-foreground font-semibold">{DETAIL.icon.title}</p>
-              <p className="text-muted text-xs">{DETAIL.cat}</p>
-            </div>
-          </div>
-          <div className="mt-3 flex flex-wrap gap-1.5">
-            {DETAIL.caps.map((c) => (
               <span
-                key={c}
-                className="bg-surface-2 text-muted rounded-full px-2 py-0.5 text-[0.65rem] font-medium"
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white text-sm font-bold"
+                style={{ color: `#${siWhatsapp.hex}` }}
               >
-                {c}
+                GM
               </span>
-            ))}
-          </div>
-          <div className="bg-accent text-accent-contrast mt-3 rounded-lg py-2 text-center text-sm font-semibold">
-            Collega
+              <div className="min-w-0 leading-tight">
+                <p className="text-sm font-semibold text-white">{CHAT.name}</p>
+                <p className="text-xs text-white/80">online</p>
+              </div>
+              <svg viewBox="0 0 24 24" className="ml-auto h-5 w-5 shrink-0" aria-hidden>
+                <path d={siWhatsapp.path} fill="#ffffff" />
+              </svg>
+            </div>
+
+            {/* Corpo chat su fondo chiaro (token): bolle in entrata a sinistra,
+                risposta del cliente a destra */}
+            <div className="bg-surface-2 flex flex-col gap-2 px-3 py-4">
+              {/* ① Notifica in entrata dal sistema */}
+              <div
+                className="imm-int-msg-1 border-border bg-surface max-w-[85%] self-start rounded-xl rounded-tl-sm border px-3 py-2 shadow-sm"
+                style={{ opacity: 0 }}
+              >
+                <p className="text-foreground text-xs">{CHAT.msg1}</p>
+                <p className="text-muted mt-1 text-right text-[0.6rem]">{CHAT.t1}</p>
+              </div>
+
+              {/* ② Typing-dots e seconda bolla nella STESSA cella: l'indicatore
+                  sfuma e lascia il posto al messaggio, senza buchi nel layout */}
+              <div className="relative max-w-[85%] self-start">
+                <div
+                  className="imm-int-typing border-border bg-surface text-muted absolute top-0 left-0 flex items-center gap-1 rounded-xl rounded-tl-sm border px-3 py-2.5 shadow-sm"
+                  style={{ opacity: 0 }}
+                >
+                  <span className="h-1.5 w-1.5 rounded-full bg-current" />
+                  <span className="h-1.5 w-1.5 rounded-full bg-current" />
+                  <span className="h-1.5 w-1.5 rounded-full bg-current" />
+                </div>
+                <div
+                  className="imm-int-msg-2 border-border bg-surface rounded-xl rounded-tl-sm border px-3 py-2 shadow-sm"
+                  style={{ opacity: 0 }}
+                >
+                  <p className="text-foreground text-xs">{CHAT.msg2}</p>
+                  <p className="text-muted mt-1 text-right text-[0.6rem]">{CHAT.t1}</p>
+                </div>
+              </div>
+
+              {/* ③ Risposta del cliente: bolla verde tenue derivata dal hex brand */}
+              <div
+                className="imm-int-msg-3 max-w-[85%] self-end rounded-xl rounded-tr-sm px-3 py-2 shadow-sm"
+                style={{ opacity: 0, background: `#${siWhatsapp.hex}26` }}
+              >
+                <p className="text-foreground text-xs">{CHAT.reply}</p>
+                <p className="text-muted mt-1 flex items-center justify-end gap-1 text-[0.6rem]">
+                  {CHAT.t2}
+                  <span style={{ color: `#${siWhatsapp.hex}` }}>✓✓</span>
+                </p>
+              </div>
+            </div>
           </div>
         </div>
       </div>
 
       {/* ── Frasi-intermezzo DESCRITTIVE ─────────────────────────────────────── */}
-      <Say i={0}>Ci integriamo con i sistemi che usi ogni giorno.</Say>
+      <Say i={0}>Ci integriamo con i sistemi di tutti i giorni.</Say>
       <Say i={1} variant="caption">
-        …e con molti altri.
-      </Say>
-      <Say i={2} variant="caption">
-        Cerca quello che ti serve: l&apos;elenco si filtra.
-      </Say>
-      <Say i={3} variant="caption">
-        Un click e la colleghi.
+        Per esempio: le notifiche ti arrivano su WhatsApp.
       </Say>
     </ImmersiveStage>
   );
