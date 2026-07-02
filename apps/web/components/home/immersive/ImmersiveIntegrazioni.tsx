@@ -112,7 +112,6 @@ export default function ImmersiveIntegrazioni() {
     gsap.set(tiles, { scale: 0.6, autoAlpha: 0 });
     gsap.set(".imm-int-badge", { autoAlpha: 0, scale: 0.8 });
     gsap.set(".imm-int-detail", { autoAlpha: 0, scale: 0.9, y: 8, transformOrigin: "50% 50%" });
-    tl.set(".imm-cursor", { left: "50%", top: "18%" });
 
     // ── ① Le prime 6 tile "in vetrina" entrano (scale + autoAlpha, rimbalzo) ──
     say(tl, 0); // «Ci integriamo con i sistemi che usi ogni giorno.»

@@ -174,6 +174,29 @@ export default function VideoScrubScene({
         );
       }
 
+      // Guardia: header sfuma a ~0.22 (entra 0.02+0.06, esce 0.16+0.06) — un
+      // callout più precoce ci si sovrappone. E due callout non devono mai
+      // essere visibili insieme (finestra = [at, min(at+hold,0.95)+0.05 uscita]).
+      if (process.env.NODE_ENV !== "production") {
+        if (callouts[0] && callouts[0].at < 0.24) {
+          console.warn(
+            `[VideoScrubScene] callouts[0].at=${callouts[0].at} < 0.24: si sovrappone all'intestazione`,
+            { src },
+          );
+        }
+        for (let i = 0; i < callouts.length - 1; i++) {
+          const cur = callouts[i];
+          const next = callouts[i + 1];
+          const curExit = Math.min(cur.at + cur.hold, 0.95) + 0.05;
+          if (curExit > next.at) {
+            console.warn(
+              `[VideoScrubScene] callout[${i}] (uscita ~${curExit.toFixed(3)}) si sovrappone a callout[${i + 1}] (at=${next.at}) `,
+              { src },
+            );
+          }
+        }
+      }
+
       ScrollTrigger.create({
         trigger: stage,
         start: "top top",

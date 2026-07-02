@@ -38,6 +38,24 @@ import { PRODUCTS, GENERATED, QUERY } from "./_assistente-data";
 
 const SHOP_NAV = ["Cavi", "Wallbox", "Adattatori", "Supporto"];
 
+// Wash accent per card (3 varianti alternate per indice) — profondità alle card
+// senza foto reali. color-mix su --accent → resta tematizzato sul lime attivo.
+const CARD_WASH = [
+  "linear-gradient(135deg, color-mix(in oklab, var(--accent) 18%, transparent), color-mix(in oklab, var(--accent) 4%, transparent))",
+  "radial-gradient(120% 120% at 78% 22%, color-mix(in oklab, var(--accent) 22%, transparent), transparent 68%)",
+  "linear-gradient(210deg, color-mix(in oklab, var(--accent) 8%, transparent), color-mix(in oklab, var(--accent) 20%, transparent))",
+];
+
+// Rating mock per card: varia leggermente così il catalogo non sembra copia-incolla.
+const RATINGS = [
+  { score: "4,8", count: "120+ recensioni" },
+  { score: "4,7", count: "86 recensioni" },
+  { score: "4,9", count: "210+ recensioni" },
+  { score: "4,6", count: "54 recensioni" },
+  { score: "4,8", count: "132 recensioni" },
+  { score: "5,0", count: "41 recensioni" },
+];
+
 export default function ImmersiveAssistente() {
   const ref = useImmersiveScene((tl) => {
     // ── Stato iniziale (selettori scoped alla section da gsap.context) ─────────
@@ -48,7 +66,6 @@ export default function ImmersiveAssistente() {
     // (Le sue sezioni `.imm-genui-item` sono rivelate con maskReveal → restano a
     //  autoAlpha 1 ma clippate; il wipe le scopre.)
     gsap.set(".imm-genui", { autoAlpha: 0, y: 30, scale: 0.96, transformOrigin: "50% 60%" });
-    tl.set(".imm-cursor", { left: "50%", top: "52%" });
 
     // ① Presenta la scena: un assistente dentro la pagina prodotti
     say(tl, 0);
@@ -162,13 +179,19 @@ export default function ImmersiveAssistente() {
         </div>
 
         <div className="imm-grid grid grid-cols-2 content-start gap-3 overflow-hidden px-6 pt-3 pb-44 sm:grid-cols-3">
-          {PRODUCTS.map((p) => (
+          {PRODUCTS.map((p, i) => (
             <article
               key={p.id}
               className="imm-prod border-border bg-surface relative flex flex-col overflow-hidden rounded-xl border"
             >
-              <div className="bg-surface-2 relative flex h-16 items-center justify-center">
-                <PlugIcon className="text-muted h-7 w-7" />
+              {/* Area visiva: wash accent per-card (alternato per indice) +
+                  illustrazione cavo→connettore Tipo 2 con curvatura variata, così
+                  le card non sembrano tutte identiche. */}
+              <div
+                className="relative flex h-24 items-center justify-center overflow-hidden"
+                style={{ background: CARD_WASH[i % CARD_WASH.length] }}
+              >
+                <CableIcon variant={i} className="text-accent-ink h-16 w-24" />
                 {p.bestSeller && (
                   <span className="bg-accent text-accent-contrast absolute top-2 left-2 rounded-full px-2 py-0.5 text-[0.6rem] font-bold">
                     Best seller
@@ -180,6 +203,14 @@ export default function ImmersiveAssistente() {
                   {p.name}
                 </p>
                 <p className="text-muted mt-1 text-[0.65rem]">{p.use}</p>
+                {/* Rating (mock statico) — credibilità e-commerce. */}
+                <div className="mt-1.5 flex items-center gap-1 text-[0.62rem]">
+                  <StarIcon className="text-accent-ink h-3 w-3" />
+                  <span className="text-foreground font-semibold">
+                    {RATINGS[i % RATINGS.length].score}
+                  </span>
+                  <span className="text-muted">· {RATINGS[i % RATINGS.length].count}</span>
+                </div>
                 <div className="mt-2 flex flex-wrap gap-1">
                   <Chip>{p.phase}</Chip>
                   <Chip>{p.shape}</Chip>
@@ -240,21 +271,31 @@ export default function ImmersiveAssistente() {
                 (landscape/zoom) prezzo e CTA in fondo restano raggiungibili invece
                 di essere clippati (era overflow-hidden). */}
             <div className="border-border bg-background grid min-h-0 flex-1 grid-cols-1 gap-4 overflow-y-auto rounded-2xl border p-4 shadow-2xl sm:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)] sm:p-5">
-              {/* Colonna visiva: immagine prodotto + gallery (decorativa) */}
+              {/* Colonna visiva: "foto prodotto" illustrata (wallbox + cavo
+                  attorcigliato + connettore Tipo 2) su gradiente token, con gallery
+                  di thumbnail, ognuna variante mini dell'illustrazione. Decorativa. */}
               <div className="imm-genui-item flex min-h-0 flex-col gap-2.5" aria-hidden>
-                <div className="bg-accent-soft flex h-24 items-center justify-center rounded-xl sm:h-auto sm:flex-1">
-                  <PlugIcon className="text-accent-ink h-14 w-14" />
+                <div
+                  className="text-accent-ink flex h-24 items-center justify-center overflow-hidden rounded-xl sm:h-auto sm:flex-1"
+                  style={{
+                    background:
+                      "radial-gradient(130% 120% at 30% 22%, color-mix(in oklab, var(--accent) 20%, transparent), color-mix(in oklab, var(--accent) 5%, transparent) 70%, transparent)",
+                  }}
+                >
+                  <ProductArtwork className="h-full max-h-40 w-auto" />
                 </div>
                 <div className="hidden grid-cols-4 gap-2 sm:grid">
                   {[0, 1, 2, 3].map((i) => (
                     <div
                       key={i}
                       className={cn(
-                        "flex h-11 items-center justify-center rounded-lg border",
-                        i === 0 ? "border-accent bg-accent-soft" : "border-border bg-surface-2",
+                        "flex h-11 items-center justify-center overflow-hidden rounded-lg border",
+                        i === 0
+                          ? "border-accent bg-accent-soft text-accent-ink"
+                          : "border-border bg-surface-2 text-muted",
                       )}
                     >
-                      <PlugIcon className="text-muted h-4 w-4" />
+                      <MiniArt variant={i} className="h-6 w-6" />
                     </div>
                   ))}
                 </div>
@@ -378,21 +419,136 @@ function Chip({ children }: { children: React.ReactNode }) {
   );
 }
 
-function PlugIcon({ className }: { className?: string }) {
+function StarIcon({ className }: { className?: string }) {
   return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.7"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className={className}
-      aria-hidden
-    >
-      <path d="M9 2v4M15 2v4" />
-      <path d="M6 6h12v4a6 6 0 0 1-12 0V6Z" />
-      <path d="M12 16v6" />
+    <svg viewBox="0 0 24 24" fill="currentColor" className={className} aria-hidden>
+      <path d="M12 2.5l2.9 6.1 6.6.8-4.9 4.6 1.3 6.6L12 18.9 6.1 20.6l1.3-6.6L2.5 9.4l6.6-.8L12 2.5z" />
+    </svg>
+  );
+}
+
+/* Illustrazione cavo→connettore Tipo 2 per le card della griglia shop. La
+   curvatura/orientamento varia per `variant` così le card non sembrano identiche. */
+const CABLE_VARIANTS = [
+  { cable: "M6 40 C 26 40 24 18 42 18", hx: 50, hy: 18 },
+  { cable: "M6 8 C 26 8 24 26 42 26", hx: 50, hy: 26 },
+  { cable: "M6 24 C 24 24 28 40 42 36", hx: 50, hy: 36 },
+];
+
+function CableIcon({ variant = 0, className }: { variant?: number; className?: string }) {
+  const v = CABLE_VARIANTS[variant % CABLE_VARIANTS.length];
+  return (
+    <svg viewBox="0 0 64 48" fill="none" className={className} aria-hidden>
+      {/* Cavo curvo */}
+      <path d={v.cable} stroke="currentColor" strokeWidth="3.4" strokeLinecap="round" opacity="0.5" />
+      {/* Testa connettore Tipo 2: cerchio con pin */}
+      <circle
+        cx={v.hx}
+        cy={v.hy}
+        r="9.5"
+        fill="currentColor"
+        fillOpacity="0.12"
+        stroke="currentColor"
+        strokeWidth="1.8"
+      />
+      <g fill="currentColor">
+        <circle cx={v.hx - 3.4} cy={v.hy - 2.6} r="1.5" />
+        <circle cx={v.hx + 3.4} cy={v.hy - 2.6} r="1.5" />
+        <circle cx={v.hx} cy={v.hy + 0.4} r="1.9" />
+        <circle cx={v.hx - 3} cy={v.hy + 3.8} r="1.3" />
+        <circle cx={v.hx + 3} cy={v.hy + 3.8} r="1.3" />
+      </g>
+    </svg>
+  );
+}
+
+/* "Foto prodotto" illustrata per la vista generata: wallbox + cavo attorcigliato
+   + connettore Tipo 2, con tocchi accent. Puro SVG (nessuna foto reale). */
+function ProductArtwork({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 200 160" fill="none" className={className} aria-hidden>
+      {/* Aloni accent morbidi (highlight) — var() valido solo via style */}
+      <circle cx="46" cy="40" r="30" style={{ fill: "var(--accent)" }} fillOpacity="0.14" />
+      <circle cx="166" cy="128" r="22" style={{ fill: "var(--accent)" }} fillOpacity="0.1" />
+      {/* Corpo wallbox */}
+      <rect
+        x="66"
+        y="26"
+        width="68"
+        height="98"
+        rx="16"
+        fill="currentColor"
+        fillOpacity="0.06"
+        stroke="currentColor"
+        strokeWidth="3"
+      />
+      {/* Schermo + righe */}
+      <rect x="82" y="42" width="36" height="24" rx="6" stroke="currentColor" strokeWidth="2.4" />
+      <line x1="88" y1="52" x2="112" y2="52" stroke="currentColor" strokeWidth="2" strokeLinecap="round" opacity="0.6" />
+      <line x1="88" y1="58" x2="104" y2="58" stroke="currentColor" strokeWidth="2" strokeLinecap="round" opacity="0.4" />
+      {/* LED di stato (accent) */}
+      <circle cx="100" cy="86" r="6" style={{ fill: "var(--accent)" }} />
+      {/* Presa sul wallbox */}
+      <circle cx="100" cy="106" r="7" stroke="currentColor" strokeWidth="2.4" />
+      {/* Cavo attorcigliato dal wallbox alla testa */}
+      <path
+        d="M100 124 C 100 150 156 150 156 120 C 156 100 128 108 150 92"
+        stroke="currentColor"
+        strokeWidth="4"
+        strokeLinecap="round"
+        opacity="0.55"
+      />
+      {/* Testa connettore Tipo 2 al termine del cavo */}
+      <g transform="translate(150 86)">
+        <circle r="13" fill="currentColor" fillOpacity="0.12" stroke="currentColor" strokeWidth="2.6" />
+        <g fill="currentColor">
+          <circle cx="-4.6" cy="-3.6" r="2" />
+          <circle cx="4.6" cy="-3.6" r="2" />
+          <circle cx="0" cy="0.6" r="2.6" />
+          <circle cx="-4" cy="5.2" r="1.8" />
+          <circle cx="4" cy="5.2" r="1.8" />
+        </g>
+      </g>
+    </svg>
+  );
+}
+
+/* Mini-variante dell'illustrazione per le thumbnail della gallery generata:
+   0 cavo · 1 wallbox · 2 testa connettore · 3 saetta. */
+function MiniArt({ variant = 0, className }: { variant?: number; className?: string }) {
+  const v = variant % 4;
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden>
+      {v === 0 && (
+        <path
+          d="M7 4 C 7 10 17 8 17 13 C 17 18 9 17 9 21"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+        />
+      )}
+      {v === 1 && (
+        <g stroke="currentColor" strokeWidth="1.8">
+          <rect x="6" y="3" width="12" height="18" rx="3" />
+          <rect x="9" y="6" width="6" height="5" rx="1.5" />
+          <circle cx="12" cy="16" r="2" />
+        </g>
+      )}
+      {v === 2 && (
+        <g>
+          <circle cx="12" cy="12" r="8" stroke="currentColor" strokeWidth="1.8" />
+          <g fill="currentColor">
+            <circle cx="9" cy="10" r="1.2" />
+            <circle cx="15" cy="10" r="1.2" />
+            <circle cx="12" cy="13" r="1.5" />
+            <circle cx="9.5" cy="15.2" r="1" />
+            <circle cx="14.5" cy="15.2" r="1" />
+          </g>
+        </g>
+      )}
+      {v === 3 && (
+        <path d="M13 2 L5 13 h6 l-1 9 9-12 h-6 l1-8z" fill="currentColor" fillOpacity="0.85" />
+      )}
     </svg>
   );
 }

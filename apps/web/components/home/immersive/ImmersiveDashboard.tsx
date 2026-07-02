@@ -28,11 +28,11 @@ import {
 
 const NAV = ["Contenuti", "Prodotti", "Visite", "Ordini"] as const;
 
-/** KPI schermata Visite. */
+/** KPI schermata Visite. `dir`/`delta` = trend mock rispetto al periodo prima. */
 const KPI = [
-  { label: "Visite", target: 18_340 },
-  { label: "Utenti unici", target: 11_290 },
-  { label: "Conversioni", target: 342 },
+  { label: "Visite", target: 18_340, dir: "up", delta: "12%" },
+  { label: "Utenti unici", target: 11_290, dir: "up", delta: "8%" },
+  { label: "Conversioni", target: 342, dir: "down", delta: "3%" },
 ] as const;
 
 /**
@@ -91,10 +91,9 @@ export default function ImmersiveDashboard() {
     gsap.set(".imm-new-card", { autoAlpha: 0, scale: 0.85 });
     gsap.set(".imm-img-fill", { autoAlpha: 0 });
     tl.set(".imm-nav-ind", { top: () => navTop(0) });
-    tl.set(".imm-cursor", { left: "50%", top: "50%" });
 
     // ── ① Contenuti ───────────────────────────────────────────────────────────
-    say(tl, 0); // «Una regìa unica per tutti i tuoi siti.»
+    say(tl, 0); // «La dashboard: il tuo business, in tempo reale.»
 
     // Cursore (mano) sull'area upload → click + punch-zoom del cluster card editor
     cursorTo(tl, ".imm-img-placeholder", { mode: "hand" });
@@ -375,7 +374,7 @@ export default function ImmersiveDashboard() {
 
               {/* 3 card KPI: counter animato via proxy GSAP */}
               <div className="mb-4 grid grid-cols-3 gap-3">
-                {KPI.map(({ label }, i) => (
+                {KPI.map(({ label, dir, delta }, i) => (
                   <div
                     key={label}
                     className={`imm-kpi-card border-border bg-surface rounded-xl border p-4 shadow-sm ${
@@ -388,6 +387,15 @@ export default function ImmersiveDashboard() {
                       0
                     </p>
                     <p className="text-muted mt-0.5 text-xs">{label}</p>
+                    {/* Trend mock: freccia + delta (su = accent, giù = muted). */}
+                    <p
+                      className={`mt-1 flex items-center gap-0.5 text-[0.65rem] font-semibold ${
+                        dir === "up" ? "text-accent-ink" : "text-muted"
+                      }`}
+                    >
+                      <span aria-hidden>{dir === "up" ? "▲" : "▼"}</span>
+                      {delta}
+                    </p>
                   </div>
                 ))}
               </div>
@@ -424,6 +432,9 @@ export default function ImmersiveDashboard() {
 
               {/* Barre giornaliere: scaleY 0→1 dal basso con stagger */}
               <div className="border-border bg-surface rounded-xl border p-4 shadow-sm">
+                <p className="text-muted mb-2 text-[11px] font-semibold tracking-wider uppercase">
+                  Visite per giorno
+                </p>
                 <div className="flex h-20 items-end gap-1.5">
                   {BARS.map((h, i) => (
                     <span
@@ -433,6 +444,14 @@ export default function ImmersiveDashboard() {
                       }`}
                       style={{ height: `${h}%` }}
                     />
+                  ))}
+                </div>
+                {/* Etichette giorno (mock statico) */}
+                <div className="text-muted mt-1.5 flex gap-1.5 text-[9px] font-medium">
+                  {["L", "M", "M", "G", "V", "S", "D"].map((d, i) => (
+                    <span key={i} className="flex-1 text-center">
+                      {d}
+                    </span>
                   ))}
                 </div>
               </div>
@@ -469,6 +488,14 @@ export default function ImmersiveDashboard() {
                     </div>
                   ))}
                 </div>
+
+                {/* Totale periodo (mock statico) — somma degli importi sopra. */}
+                <div className="border-border bg-surface-2 flex items-center justify-between border-t px-4 py-2.5">
+                  <span className="text-muted text-xs font-semibold tracking-wide uppercase">
+                    Totale periodo
+                  </span>
+                  <span className="text-foreground font-mono text-sm font-bold">16.889 €</span>
+                </div>
               </div>
             </div>
           </div>
@@ -477,7 +504,7 @@ export default function ImmersiveDashboard() {
 
       {/* Frasi-intermezzo DESCRITTIVE (spiegano, non vendono).
           Prima frase = veil (annuncia la scena); le altre = caption lower-third. */}
-      <Say i={0}>Una regìa unica per tutti i tuoi siti.</Say>
+      <Say i={0}>La dashboard: il tuo business, in tempo reale.</Say>
       <Say i={1} variant="caption">
         Carichi foto e testi, aggiungi prodotti.
       </Say>

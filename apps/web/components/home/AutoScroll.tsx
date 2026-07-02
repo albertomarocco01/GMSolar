@@ -32,15 +32,15 @@ type LenisLike = {
 // ── Knob (cadenza cinematografica) ───────────────────────────────────────────
 /** Velocità di crociera in px/SECONDO (indip. dal refresh rate). Ritarata su +170%
  *  di altezza pagina introdotta in Fase 5 (~32k px): a 110 l'autoplay durava ~5 min. */
-const SPEED = 190;
+const SPEED = 210;
 /** Pavimento di velocità nella zona di atterraggio: evita il crawl infinito. */
-const MIN_SPEED = 40;
+const MIN_SPEED = 110;
 /** Ampiezza (px) dell'inviluppo ease-in/ease-out attorno a ogni anchor. */
-const LAND_ZONE = 280;
+const LAND_ZONE = 180;
 /** Soglia (px) di "arrivo" all'anchor → clamp + sosta. */
 const ARRIVE_EPS = 2;
 /** Sosta breve (ms) su ogni anchor allineato prima di ripartire. */
-const DWELL_MS = 850;
+const DWELL_MS = 550;
 /** Inattività mouse prima che l'auto riparta (~2s: prima era 9s, troppo). */
 const IDLE_MS = 2000;
 /** Inattività su TOUCH prima che l'auto riparta (più respiro: si legge col dito fermo). */
@@ -56,7 +56,6 @@ export default function AutoScroll() {
 
   const autoRef = useRef(true);
   const lockedRef = useRef(false); // pausa VOLONTARIA (click o pill); l'idle non la supera
-  const replayingRef = useRef(false); // rewind "Rivedi" in corso: ignora input/idle
   const togglePauseRef = useRef<() => void>(() => {}); // esposto alla pill (definito nell'effect)
   const atBottomRef = useRef(false);
   const holdUntilRef = useRef(0);
@@ -179,11 +178,11 @@ export default function AutoScroll() {
     let idle: ReturnType<typeof setTimeout> | undefined;
     /** Input utente → cede il controllo; idle → riprende (target ricalcolato nel tick). */
     const yield_ = (idleMs: number = IDLE_MS) => {
-      if (lockedRef.current || replayingRef.current) return;
+      if (lockedRef.current) return;
       if (autoRef.current) setAutoState(false);
       if (idle) clearTimeout(idle);
       idle = setTimeout(() => {
-        if (!lockedRef.current && !replayingRef.current && !atBottomRef.current) setAutoState(true);
+        if (!lockedRef.current && !atBottomRef.current) setAutoState(true);
       }, idleMs);
     };
 
@@ -207,7 +206,6 @@ export default function AutoScroll() {
 
     // Pausa VOLONTARIA: un click ferma tutto (l'idle non la supera); un altro riparte.
     const togglePause = () => {
-      if (replayingRef.current) return;
       if (lockedRef.current) {
         lockedRef.current = false;
         setPaused(false);
@@ -229,27 +227,13 @@ export default function AutoScroll() {
       togglePause();
     };
 
-    // "Rivedi la presentazione": rewind SMOOTH fino in cima, poi riparte l'auto.
-    // Durante il rewind l'auto è spento (sennò il tick lo contrasterebbe) e
-    // replayingRef blinda idle/input.
+    // "Rivedi la presentazione": un rewind smooth di ~30k px scrubberebbe ogni
+    // ScrollTrigger all'indietro → un lungo jank. Un reload dalla cima è più
+    // pulito ed è comunque una "replay" fedele: la pagina riapre già con
+    // IntroOverlay + autoplay armati.
     const onReplay = () => {
-      const lenis = getLenis();
-      replayingRef.current = true;
-      lockedRef.current = false;
-      setPaused(false);
-      atBottomRef.current = false;
-      setAutoState(false);
-      const finish = () => {
-        replayingRef.current = false;
-        atBottomRef.current = false;
-        setAutoState(true);
-        flashPill();
-      };
-      if (lenis) lenis.scrollTo(0, { duration: 2.2, onComplete: finish });
-      else {
-        window.scrollTo({ top: 0, behavior: "smooth" });
-        finish();
-      }
+      window.history.scrollRestoration = "manual";
+      window.location.reload();
     };
 
     const opts: AddEventListenerOptions = { passive: true };

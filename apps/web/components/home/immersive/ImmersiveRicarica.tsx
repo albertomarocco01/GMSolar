@@ -99,10 +99,14 @@ export default function ImmersiveRicarica() {
     });
     gsap.set(".imm-rc-battery-fill", { scaleX: 0.2, transformOrigin: "left center" });
     gsap.set(".imm-rc-final", { autoAlpha: 0, y: 12 });
-    tl.set(".imm-cursor", { left: "50%", top: "82%" });
+    // Tag "web app dell'azienda": parte nascosto, entra dopo il velo iniziale.
+    gsap.set(".imm-webapp-tag", { autoAlpha: 0, y: -8 });
 
     // ── ① Frase introduttiva ──────────────────────────────────────────────────
     say(tl, 0); // «Un assistente di ricarica dentro l'app.»
+    // Il tag entra (fade+rise) appena la frase-velo esce → resta poi persistente.
+    // Sotto reduced-motion (progress(1)) finisce visibile.
+    tl.to(".imm-webapp-tag", { autoAlpha: 1, y: 0, duration: 0.4, ease: "power2.out" });
 
     // ── ② L'utente scrive nel campo (kit: typeInField) e invia ────────────────
     tl.to(".imm-rc-placeholder", { autoAlpha: 0, duration: 0.2, ease: "power2.out" });
@@ -270,6 +274,18 @@ export default function ImmersiveRicarica() {
         }}
         aria-hidden
       />
+
+      {/* Tag persistente: annuncia che è la WEB APP di ricarica dell'azienda.
+          Sopra il mock, sotto le frasi (Say è z-40). Entra dopo il velo iniziale;
+          pointer-events-none = puramente informativo. */}
+      <div
+        className="imm-webapp-tag border-border bg-background/90 pointer-events-none absolute top-14 left-5 z-30 flex items-center gap-2 rounded-full border px-3 py-1.5 shadow-sm backdrop-blur"
+        style={{ opacity: 0 }}
+        aria-hidden
+      >
+        <span className="bg-accent h-2 w-2 rounded-full" aria-hidden />
+        <span className="text-foreground text-xs font-semibold">Web app · GM Charge</span>
+      </div>
 
       {/* ── Mockup smartphone centrato ──────────────────────────────────────── */}
       <div className="absolute inset-0 flex items-center justify-center pt-10">

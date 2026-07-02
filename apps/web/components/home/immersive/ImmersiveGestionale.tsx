@@ -86,7 +86,6 @@ export default function ImmersiveGestionale() {
       transformPerspective: 400,
       transformOrigin: "50% 50%",
     });
-    tl.set(".imm-cursor", { left: "50%", top: "55%" });
     tl.set(".imm-nav-ind", { top: () => navTop(0) });
 
     // ── ① Panoramica — le KPI entrano, poi le barre crescono dal basso ────────

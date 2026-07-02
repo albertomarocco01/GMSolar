@@ -18,11 +18,11 @@ import VideoScrubScene, { type Callout } from "./VideoScrubScene";
 // Dati d'azienda MOCK (deterministici) che raccontano GM Solar mentre il drone
 // sorvola l'impianto. Ordine = pacing uniforme, da ritarare sui beat reali.
 const CALLOUTS: Callout[] = [
-  { at: 0.12, hold: 0.15, x: "7%", y: "20%", kicker: "Chi siamo", value: "GM Solar", sub: "Fotovoltaico · accumulo · ricarica" },
-  { at: 0.32, hold: 0.14, x: "52%", y: "18%", kicker: "Impianti installati", value: "+250", sub: "residenziale & business" },
-  { at: 0.5, hold: 0.14, x: "9%", y: "56%", kicker: "Potenza gestita", value: "3,2 MWp" },
-  { at: 0.66, hold: 0.14, x: "52%", y: "52%", kicker: "Autoconsumo medio", value: "72%", sub: "con accumulo" },
-  { at: 0.82, hold: 0.16, x: "11%", y: "68%", kicker: "CO₂ evitata", value: "−1.100 t", sub: "ogni anno" },
+  { at: 0.26, hold: 0.08, x: "7%", y: "20%", kicker: "Chi siamo", value: "GM Solar", sub: "Fotovoltaico · accumulo · ricarica" },
+  { at: 0.39, hold: 0.08, x: "52%", y: "18%", kicker: "Impianti installati", value: "+250", sub: "residenziale & business" },
+  { at: 0.52, hold: 0.08, x: "9%", y: "56%", kicker: "Potenza gestita", value: "3,2 MWp" },
+  { at: 0.65, hold: 0.08, x: "52%", y: "52%", kicker: "Autoconsumo medio", value: "72%", sub: "con accumulo" },
+  { at: 0.78, hold: 0.15, x: "11%", y: "68%", kicker: "CO₂ evitata", value: "−1.100 t", sub: "ogni anno" },
 ];
 
 export default function VetrinaScene() {

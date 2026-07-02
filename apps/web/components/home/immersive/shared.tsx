@@ -123,6 +123,7 @@ export function cursorTo(
     return tl.to(".imm-cursor", {
       left: target as string,
       top: optsOrTop,
+      autoAlpha: 1, // entra in campo al 1° movimento (vedi Cursor: parte nascosto)
       duration: 0.9,
       ease: "power2.inOut",
     });
@@ -133,6 +134,7 @@ export function cursorTo(
   return tl.to(".imm-cursor", {
     duration,
     ease: "power2.inOut",
+    autoAlpha: 1, // entra in campo al 1° movimento (vedi Cursor: parte nascosto)
     left: () => (section ? (cursorDest(section, target)?.left ?? cursorCurrent(section).left) : 0),
     top: () => (section ? (cursorDest(section, target)?.top ?? cursorCurrent(section).top) : 0),
     onStart() {
@@ -340,6 +342,9 @@ export function useImmersiveScene(build: (tl: gsap.core.Timeline, section: HTMLE
       if (section.querySelector(".imm-say--caption")) {
         gsap.set(".imm-say--caption", { autoAlpha: 0, y: 16 });
       }
+      // Cursore nascosto finché non parte il 1° movimento; scrubbando indietro
+      // oltre il 1° cursorTo torna qui (autoAlpha 0) → mai visibile sul velo.
+      gsap.set(".imm-cursor", { autoAlpha: 0 });
       const tl = gsap.timeline({ defaults: { ease: "power3.out" } });
       tl.data = section; // gli helper (cursorTo) misurano i target in QUESTA scena
       build(tl, section);
@@ -487,7 +492,10 @@ export function Cursor() {
   return (
     <div
       className="imm-cursor group/cur pointer-events-none absolute z-30"
-      style={{ left: "50%", top: "55%" }}
+      // Parcheggiato al bordo DESTRO e nascosto: entra in campo solo al primo
+      // movimento (cursorTo fa il fade-in), come la mano di un presentatore. Così
+      // non compare mai dentro la frase del velo full-screen (che precede il 1° cursorTo).
+      style={{ left: "92%", top: "60%", opacity: 0 }}
       data-cursor-mode="arrow"
       aria-hidden
     >

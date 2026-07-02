@@ -68,7 +68,6 @@ export default function ImmersiveSegnalazioni() {
     gsap.set(".imm-email-toast", { autoAlpha: 0, y: -28 });
     gsap.set(".imm-new-btn", { autoAlpha: 0, scale: 0.8 });
     gsap.set(".imm-new-btn-ring", { autoAlpha: 0, scale: 0.85 });
-    tl.set(".imm-cursor", { left: "50%", top: "55%" });
 
     // ① Frase: si segnala in un attimo
     say(tl, 0);
