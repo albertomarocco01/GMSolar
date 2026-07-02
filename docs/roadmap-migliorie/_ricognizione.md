@@ -138,3 +138,18 @@ Posizioni attuali (per i builder):
   backgroundSize 22px 22px. Wordmark chiusura = «GM Solar» (grafia brand repo, non «GM SOLAR»).
 - **Nota cosmetica aperta:** commento AutoScroll.tsx:332 cita ancora `sc-dot` tra i keyframe
   CSS congelati (ora GSAP-driven) — innocuo, ritocco eventuale in F6.
+
+### Fase 3 (B-P6)
+
+- Ordine scene DEFINITIVO in page.tsx: SolarTwin → Assistente → Dashboard → Segnalazioni →
+  Gestionale → Ricarica → Integrazioni → Closing.
+- **B-P6 → P11:** Segnalazioni: punch «Segnala un problema» → `.imm-report-wrap` (wrapper
+  zoom; il bottone stesso è già scalato da pressButton); rack focus modulo → `.imm-seg-drawer`
+  (drawer con xPercent — NON scalarlo) / `.imm-zoom-form` (cluster interno libero per scale);
+  lock typing → `.imm-seg-desc`; push-in fix + pull-back → `.imm-seg-card` + `.imm-img-fix`.
+  Altri: `.imm-seg-page`, `.imm-seg-send`, `.imm-seg-toast` (flip `.imm-seg-old`/`.imm-seg-new`),
+  `.imm-fix-toast`. Scelto DRAWER (no track a 2 schermate). heightVh=480.
+- **B-P6 → P12:** Say 0 veil «Qualcosa non va? Lo segnali da dove sei.», 1 «Il link della
+  pagina si compila da solo.», 2 «Il team riceve, sistema, e tu vedi il fix.». La scena non
+  usa `.imm-track`. Eyebrow passati alle scene ora SFASATI rispetto al nuovo ordine (03/04/05):
+  irrilevante (prop non renderizzata), P12 li rimuove e usa CHAPTERS.

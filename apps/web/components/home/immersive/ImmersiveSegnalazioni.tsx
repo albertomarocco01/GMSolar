@@ -1,23 +1,32 @@
 "use client";
 
 /**
- * @descrizione  Scena immersiva SEGNALAZIONI (servizio 03). Full-screen, alta
- *   fedeltà, tema CHIARO, tono DESCRITTIVO. Lo scroll scrubba un walkthrough a
- *   DUE schermate affiancate con PAN ORIZZONTALE tra loro:
+ * @descrizione  Scena immersiva SEGNALAZIONI (servizio 03) — viene SUBITO dopo
+ *   la Dashboard e ne riparte: Schermata A = la STESSA dashboard in versione
+ *   compatta (sidebar, topbar con il bottone «Segnala un problema» — identico
+ *   `imm-report-btn` della scena precedente) ma con un DIFETTO mock visibile:
+ *   nella card «Hero homepage» l'immagine è ROTTA (riquadro grigio con icona
+ *   immagine spezzata + badge rosso «Immagine non trovata») — lo speculare
+ *   della card pubblicata con «impianto-2026.jpg» nella scena Dashboard.
  *
- *   • Schermata A — un GESTIONALE con toolbar a 3 funzioni («Esporta», «Filtra»,
- *     «Stampa») e una pagina dati sotto. Il cursore preme «Copia link» → toast
- *     «Link pagina copiato».
- *   • PAN → Schermata B — il MODULO DI SEGNALAZIONE: il cursore incolla il link
- *     (il campo si riempie), scrive la richiesta (clip-path steps) e preme INVIA
- *     → «Segnalazione ricevuta ✓».
- *   • PAN → ritorno alla Schermata A: il 4° bottone «Invia per email» APPARE
- *     (back.out), si illumina e "funziona" (pulse + mini toast «Email inviata»).
+ *   • Beat ① — veil «Qualcosa non va? Lo segnali da dove sei.» Il cursore
+ *     (mano) preme «Segnala un problema» (pressButton + clickZoom).
+ *   • Beat ② — si apre il DRAWER del modulo: il campo «Pagina» è GIÀ COMPILATO
+ *     (`gmsolar.it/dashboard/contenuti` in font-mono) con badge «Rilevata in
+ *     automatico ✓» — NESSUN copia/incolla. Il cursore (caret) digita SOLO la
+ *     descrizione, preme «Invia segnalazione» → toast «Segnalazione ricevuta ✓»
+ *     con badge stato «In lavorazione».
+ *   • Beat ③ — IL FIX: il drawer si richiude, il badge di stato FLIPPA in 3D
+ *     «In lavorazione» → «Risolta ✓» (pattern rotateY del Gestionale), la foto
+ *     corretta SOSTITUISCE l'immagine rotta con un wipe (maskReveal) e compare
+ *     il mini-toast «Fix pubblicato ✓».
  *
  *   Usa il kit condiviso `./shared`. Camera/skew ereditati dallo stage.
- *   Reduced-motion (kit → tl.progress(1)): stato finale leggibile = 4° bottone
- *   presente sulla Schermata A + «Segnalazione ricevuta ✓» visibile.
+ *   Reduced-motion (kit → tl.progress(1)): stato finale leggibile = modulo
+ *   inviato (toast «Segnalazione ricevuta ✓») + difetto RISOLTO (immagine ok,
+ *   badge «Risolta ✓», mini-toast «Fix pubblicato ✓»); drawer richiuso.
  */
+import { Check, ImageOff, MessageSquareWarning } from "lucide-react";
 import { gsap } from "@gmgroup/lib/gsap";
 import {
   ImmersiveStage,
@@ -28,115 +37,91 @@ import {
   useImmersiveScene,
   pressButton,
   typeInField,
+  maskReveal,
 } from "./shared";
 
-// ── Dati Schermata A (pagina del gestionale) ─────────────────────────────────
+// ── Dati mock (deterministici) ───────────────────────────────────────────────
 
-const TOOLBAR = ["Esporta", "Filtra", "Stampa"] as const;
+/** Voci sidebar — replica compatta della Dashboard (attiva: «Contenuti»). */
+const NAV = ["Contenuti", "Prodotti", "Visite", "Ordini"] as const;
 
-const RIGHE = [
-  { c: "Rossi S.r.l.", v: "62.000 €", s: "Attivo" },
-  { c: "Bianchi S.p.A.", v: "12.500 €", s: "Attivo" },
-  { c: "Ferrari Group", v: "87.000 €", s: "In trattativa" },
-  { c: "Conti S.r.l.", v: "34.200 €", s: "Attivo" },
+/** Pagine del sito (come nella scena Dashboard; la hero è quella difettosa). */
+const PAGINE = [
+  { nome: "Hero homepage", hero: true },
+  { nome: "Chi siamo", hero: false },
+  { nome: "Impianti realizzati", hero: false },
 ] as const;
 
-// Link "incollato" nel modulo e testo della richiesta digitato carattere/carattere.
-const LINK_PAGINA = "gestionale.demo/clienti";
+/** URL rilevato IN AUTOMATICO dal modulo (il cliente non copia nulla). */
+const PAGINA_RILEVATA = "gmsolar.it/dashboard/contenuti";
 
-// ── Icona check (riusata nei toast) ──────────────────────────────────────────
-
-function Check({ className }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 16 16" fill="currentColor" className={className} aria-hidden>
-      <path d="M13.78 4.22a.75.75 0 0 1 0 1.06l-7.25 7.25a.75.75 0 0 1-1.06 0L2.22 9.28a.75.75 0 1 1 1.06-1.06L6 10.94l6.72-6.72a.75.75 0 0 1 1.06 0z" />
-    </svg>
-  );
-}
+/** "Foto" corretta che sostituisce l'immagine rotta: lo stesso gradient della
+ *  «impianto-2026.jpg» pubblicata nella scena Dashboard → continuità visiva. */
+const GRAD_FOTO_FIX =
+  "repeating-linear-gradient(-45deg, color-mix(in oklab, var(--accent) 12%, transparent) 0px, color-mix(in oklab, var(--accent) 12%, transparent) 3px, transparent 3px, transparent 12px), linear-gradient(135deg, color-mix(in oklab, var(--accent) 30%, transparent), color-mix(in oklab, var(--accent) 52%, transparent))";
 
 // ── Componente ────────────────────────────────────────────────────────────────
 
 export default function ImmersiveSegnalazioni() {
   const ref = useImmersiveScene((tl) => {
     // ── Stato iniziale ───────────────────────────────────────────────────────
-    // Il track parte sulla Schermata A. Link e richiesta del modulo partono
-    // "vuoti" (clip-path). Toast, conferma e 4° bottone partono nascosti.
-    gsap.set(".imm-track", { xPercent: 0 });
-    // Link e richiesta (typing) sono nascosti dai loro helper typeInField.
-    gsap.set(".imm-copy-toast", { autoAlpha: 0, y: 48 });
-    gsap.set(".imm-received-toast", { autoAlpha: 0, y: 48 });
-    gsap.set(".imm-email-toast", { autoAlpha: 0, y: -28 });
-    gsap.set(".imm-new-btn", { autoAlpha: 0, scale: 0.8 });
-    gsap.set(".imm-new-btn-ring", { autoAlpha: 0, scale: 0.85 });
+    // Il difetto (immagine rotta) è visibile dal frame 0; la foto corretta
+    // `.imm-img-fix` è coperta dal maskReveal (fromTo + immediateRender).
+    // Drawer chiuso fuori campo a destra; toast nascosti; flip di stato pronto
+    // («In lavorazione» in piano, «Risolta ✓» girata via a -90°).
+    gsap.set(".imm-seg-drawer", { xPercent: 100 });
+    gsap.set(".imm-seg-toast", { autoAlpha: 0, y: 48 });
+    gsap.set(".imm-fix-toast", { autoAlpha: 0, y: -28 });
+    gsap.set(".imm-seg-old", { transformPerspective: 400, transformOrigin: "50% 50%" });
+    gsap.set(".imm-seg-new", {
+      autoAlpha: 0,
+      rotationY: -90,
+      transformPerspective: 400,
+      transformOrigin: "50% 50%",
+    });
 
-    // ① Frase: si segnala in un attimo
-    say(tl, 0);
+    // ── Beat ① — qualcosa non va: si segnala da dove si è ────────────────────
+    say(tl, 0); // «Qualcosa non va? Lo segnali da dove sei.»
+    cursorTo(tl, ".imm-report-btn", { mode: "hand" });
+    tl.to({}, { duration: 0.2 });
+    pressButton(tl, ".imm-report-btn", { down: 0.93, downDur: 0.1, upDur: 0.35, back: 2.6 });
+    // Punch sul wrapper (non sul bottone: pressButton ne sta già animando la scale)
+    clickZoom(tl, ".imm-report-wrap", { position: "<", scale: 1.1 });
 
-    // ② Schermata A → il cursore (mano) preme «Copia link»
-    cursorTo(tl, ".imm-copy-link", { mode: "hand" });
-    pressButton(tl, ".imm-copy-link", { downDur: 0.1, upDur: 0.4, back: 3, position: ">0.25" });
-    // Toast «Link pagina copiato» (entra dal basso, con punch-zoom d'ingresso)
-    tl.to(".imm-copy-toast", { autoAlpha: 1, y: 0, duration: 0.5, ease: "expo.out" }, ">0.05");
-    clickZoom(tl, ".imm-copy-toast", { position: "<0.12", scale: 1.05 });
+    // ── Beat ② — il modulo: link auto-rilevato, si scrive solo la descrizione ─
+    tl.to(".imm-seg-drawer", { xPercent: 0, duration: 0.9, ease: "expo.out" }, ">-0.05");
+    // Enfasi sul campo «Pagina» GIÀ compilato (nessun copia/incolla)
+    clickZoom(tl, ".imm-seg-page", { position: ">0.1", scale: 1.06 });
+    say(tl, 1); // «Il link della pagina si compila da solo.»
 
-    // ③ Frase: copi il link, scrivi cosa serve, invii
-    say(tl, 1);
+    // Il cursore (caret) digita SOLO la descrizione del problema
+    cursorTo(tl, ".imm-seg-desc", { mode: "text" });
+    typeInField(tl, ".imm-seg-desc", { steps: 35, duration: 1.3, position: ">0.15" });
+    clickZoom(tl, ".imm-zoom-form", { position: "<" }); // push-in locale durante il typing
 
-    // ── PAN ORIZZONTALE → Schermata B (modulo di segnalazione) ───────────────
-    tl.to(".imm-copy-toast", { autoAlpha: 0, y: 48, duration: 0.4, ease: "power2.in" });
-    tl.to(".imm-track", { xPercent: -50, duration: 1.1, ease: "expo.inOut" }, "<0.1");
+    // «Invia segnalazione» → pressione + toast di ricezione con stato
+    cursorTo(tl, ".imm-seg-send", { mode: "hand" });
+    pressButton(tl, ".imm-seg-send", { downDur: 0.1, upDur: 0.45, back: 3.5, position: ">0.2" });
+    tl.to(".imm-seg-toast", { autoAlpha: 1, y: 0, duration: 0.55, ease: "expo.out" }, ">0.1");
+    clickZoom(tl, ".imm-seg-toast", { position: "<0.14", scale: 1.05 });
 
-    // ④ Il cursore (caret) incolla il link → il campo si riempie (reveal rapido = "paste")
-    cursorTo(tl, ".imm-link-text", { mode: "text" });
-    typeInField(tl, ".imm-link-text", { steps: 10, duration: 0.4, position: ">0.1" });
-
-    // ⑤ Il cursore (caret) scrive la richiesta → digitazione carattere per carattere
-    cursorTo(tl, ".imm-req-text", { mode: "text" });
-    typeInField(tl, ".imm-req-text", { steps: 36, duration: 1.4, position: ">0.15" });
-    clickZoom(tl, ".imm-zoom-local", { position: "<" }); // punch-zoom del modulo durante il typing
-
-    // ⑥ Il cursore (mano) preme INVIA → pulse di conferma
-    cursorTo(tl, ".imm-send-btn", { mode: "hand" });
-    pressButton(tl, ".imm-send-btn", { downDur: 0.1, upDur: 0.45, back: 3.5, position: ">0.25" });
-
-    // ⑦ «Segnalazione ricevuta ✓» (toast globale, resta visibile) + punch-zoom
-    tl.to(".imm-received-toast", { autoAlpha: 1, y: 0, duration: 0.55, ease: "expo.out" }, ">0.1");
-    clickZoom(tl, ".imm-received-toast", { position: "<0.14", scale: 1.05 });
-
-    // ⑧ Frase: la richiesta arriva e prende vita
-    say(tl, 2);
-
-    // ── PAN ORIZZONTALE → ritorno alla Schermata A ───────────────────────────
-    // PRIMA il pan (track torna a xPercent 0), POI il cursore: cursorTo misura
-    // `.imm-new-btn` via getBoundingClientRect quando è già ON-SCREEN. Se il cursore
-    // partisse insieme al pan ("<"), leggerebbe il bottone ancora fuori campo a
-    // sinistra e planerebbe nel vuoto (come fa correttamente il pan in andata).
-    tl.to(".imm-track", { xPercent: 0, duration: 1.1, ease: "expo.inOut" });
-    cursorTo(tl, ".imm-new-btn", { mode: "hand" });
-
-    // ⑨ Il 4° bottone «Invia per email» APPARE (ease espressivo back.out)
+    // ── Beat ③ — IL FIX: si torna alla dashboard e il difetto è risolto ───────
+    tl.to(".imm-seg-drawer", { xPercent: 100, duration: 0.8, ease: "expo.inOut" }, ">0.25");
+    // Il badge di stato flippa in 3D: «In lavorazione» gira via, «Risolta ✓» entra
+    tl.to(".imm-seg-old", { rotationY: 90, autoAlpha: 0, duration: 0.3, ease: "power2.in" }, ">0.1");
     tl.to(
-      ".imm-new-btn",
-      { autoAlpha: 1, scale: 1, duration: 0.65, ease: "back.out(2.4)" },
-      ">-0.15",
+      ".imm-seg-new",
+      { rotationY: 0, autoAlpha: 1, duration: 0.45, ease: "back.out(1.4)" },
+      "<0.05",
     );
-    // Highlight: un anello pulsa e svanisce attorno al nuovo bottone
-    tl.fromTo(
-      ".imm-new-btn-ring",
-      { autoAlpha: 0.9, scale: 0.85 },
-      { autoAlpha: 0, scale: 1.35, duration: 0.7, ease: "power2.out" },
-      ">0.02",
-    );
+    // La foto corretta copre l'immagine rotta con un wipe da sinistra
+    maskReveal(tl, ".imm-img-fix", { dir: "l", duration: 0.8, position: ">0.15" });
+    clickZoom(tl, ".imm-seg-card", { position: "<0.1", scale: 1.04 }); // enfasi sulla card riparata
+    // Mini-toast di conferma del fix
+    tl.to(".imm-fix-toast", { autoAlpha: 1, y: 0, duration: 0.45, ease: "back.out(1.7)" }, ">0.05");
+    say(tl, 2); // «Il team riceve, sistema, e tu vedi il fix.»
 
-    // ⑩ Il bottone "funziona": pressione + mini toast «Email inviata»
-    pressButton(tl, ".imm-new-btn", { downDur: 0.1, upDur: 0.4, back: 3, position: ">0.05" });
-    tl.to(
-      ".imm-email-toast",
-      { autoAlpha: 1, y: 0, duration: 0.45, ease: "back.out(1.7)" },
-      ">0.05",
-    );
-
-    tl.to({}, { duration: 0.6 });
+    tl.to({}, { duration: 0.6 }); // hold finale
   });
 
   return (
@@ -147,219 +132,253 @@ export default function ImmersiveSegnalazioni() {
       label="Segnalazioni"
       eyebrow="03 · Segnalazioni"
     >
-      {/* Viewport del pan: clippa la schermata fuori campo */}
-      <div className="h-full overflow-hidden pt-12">
-        <div className="imm-track flex h-[calc(100%-3rem)]" style={{ width: "200%" }}>
-          {/* ════════════ SCHERMATA A · Gestionale ════════════ */}
-          <div className="w-1/2 shrink-0 overflow-hidden p-6 sm:p-8">
-            <div className="border-border bg-surface flex h-full flex-col overflow-hidden rounded-2xl border shadow-sm">
-              {/* Header pagina + bottone «Copia link» */}
-              <div className="border-border flex items-center justify-between gap-4 border-b px-6 py-4">
-                <div className="min-w-0">
-                  <div className="text-foreground flex items-center gap-2 font-semibold">
-                    <span className="bg-accent h-4 w-4 rounded-[5px]" />
-                    Anagrafica clienti
-                  </div>
-                  <p className="text-muted mt-0.5 text-sm">148 record · aggiornata oggi</p>
-                </div>
+      {/* ════ Schermata A · la dashboard (compatta) con il difetto ════ */}
+      <div className="bg-background text-foreground flex h-full pt-10">
+        {/* Sidebar compatta — replica della Dashboard, voce «Contenuti» attiva */}
+        <aside className="border-border bg-surface hidden w-44 shrink-0 border-r p-4 sm:block">
+          <div className="text-foreground mb-6 flex items-center gap-2 px-2 font-semibold">
+            <span className="bg-accent h-4 w-4 rounded-[5px]" />
+            Dashboard
+          </div>
+          <nav className="space-y-1">
+            {NAV.map((n, i) => (
+              <div
+                key={n}
+                className={`rounded-lg px-3 py-2.5 text-sm font-medium ${
+                  i === 0 ? "bg-accent-soft text-foreground" : "text-muted"
+                }`}
+              >
+                {n}
+              </div>
+            ))}
+          </nav>
+        </aside>
+
+        {/* Area principale: topbar + pannello «Contenuti» + drawer segnalazione */}
+        <div className="relative flex-1 overflow-hidden">
+          {/* Topbar — con lo STESSO bottone «Segnala un problema» della Dashboard */}
+          <div className="border-border bg-background/80 flex h-12 items-center gap-3 border-b px-5 backdrop-blur">
+            <span className="h-2 w-2 rounded-full bg-emerald-400" />
+            <span className="text-muted text-xs font-semibold">3 siti connessi</span>
+            <div className="ml-auto flex items-center gap-1.5">
+              {/* Wrapper per il punch-zoom: pressButton anima la scale del bottone */}
+              <span className="imm-report-wrap inline-flex">
                 <button
-                  type="button"
-                  className="imm-copy-link border-border bg-surface-2 text-foreground inline-flex shrink-0 items-center gap-1.5 rounded-lg border px-3 py-1.5 text-sm font-medium"
-                  aria-label="Copia link della pagina"
+                  className="imm-report-btn bg-accent-soft text-accent-ink flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold"
+                  tabIndex={-1}
+                  aria-hidden
                 >
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden>
-                    <path
-                      d="M10 13a5 5 0 0 0 7 0l2-2a5 5 0 0 0-7-7l-1 1m-1 8a5 5 0 0 1-7 0 5 5 0 0 1 0-7l2-2a5 5 0 0 1 7 0"
-                      stroke="currentColor"
-                      strokeWidth="1.7"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                  </svg>
-                  Copia link
+                  <MessageSquareWarning className="h-3.5 w-3.5" aria-hidden />
+                  Segnala un problema
                 </button>
+              </span>
+            </div>
+          </div>
+
+          {/* Pannello «Contenuti» compatto: lista pagine + editor con il difetto */}
+          <div className="h-[calc(100%-3rem)] overflow-hidden p-5">
+            <div className="mx-auto max-w-4xl">
+              <div className="mb-3 flex items-center justify-between">
+                <p className="text-foreground font-semibold">Contenuti del sito</p>
+                {/* Breadcrumb = la stessa pagina che il modulo rileva in automatico */}
+                <span className="text-muted font-mono text-xs">{PAGINA_RILEVATA}</span>
               </div>
 
-              {/* Toolbar: 3 funzioni + (a fine animazione) la 4ª */}
-              <div className="border-border bg-surface/60 flex items-center gap-2 border-b px-6 py-3">
-                <span className="text-muted mr-1 text-xs font-semibold tracking-widest uppercase">
-                  Azioni
-                </span>
-                {TOOLBAR.map((t) => (
-                  <span
-                    key={t}
-                    className="border-border bg-surface text-foreground rounded-lg border px-3 py-1.5 text-sm font-medium select-none"
-                  >
-                    {t}
-                  </span>
-                ))}
-
-                {/* 4° bottone — nascosto finché la segnalazione non lo "crea" */}
-                <span className="relative ml-1 inline-flex">
-                  <span
-                    className="imm-new-btn-ring border-accent pointer-events-none absolute -inset-1 rounded-xl border-2"
-                    style={{ opacity: 0 }}
-                    aria-hidden
-                  />
-                  <span
-                    className="imm-new-btn bg-accent text-accent-contrast inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-semibold"
-                    style={{ opacity: 0 }}
-                  >
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden>
-                      <path
-                        d="M3 7l9 6 9-6M4 5h16a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1z"
-                        stroke="currentColor"
-                        strokeWidth="1.7"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                    </svg>
-                    Invia per email
-                  </span>
-                </span>
-              </div>
-
-              {/* Contenuto: tabella record */}
-              <div className="flex-1 overflow-hidden p-6">
-                <div className="border-border overflow-hidden rounded-xl border">
-                  <div className="bg-surface-2 text-muted grid grid-cols-3 gap-2 px-4 py-2.5 text-xs font-semibold tracking-wider uppercase">
-                    <span>Cliente</span>
-                    <span>Valore</span>
-                    <span>Stato</span>
-                  </div>
-                  <div className="divide-border divide-y">
-                    {RIGHE.map((r) => (
-                      <div key={r.c} className="grid grid-cols-3 gap-2 px-4 py-3 text-sm">
-                        <span className="text-foreground font-medium">{r.c}</span>
-                        <span className="text-foreground font-mono">{r.v}</span>
-                        <span className="text-muted text-xs font-semibold">{r.s}</span>
+              <div className="grid grid-cols-[220px_minmax(0,1fr)] items-start gap-4">
+                {/* Colonna sinistra: pagine del sito (come nella Dashboard) */}
+                <div className="border-border bg-surface rounded-xl border shadow-sm">
+                  <p className="text-muted border-border border-b px-3 py-2 text-[11px] font-semibold tracking-wider uppercase">
+                    Pagine del sito
+                  </p>
+                  <div className="space-y-1 p-2">
+                    {PAGINE.map(({ nome, hero }) => (
+                      <div
+                        key={nome}
+                        className={`flex items-center gap-2.5 rounded-lg px-2.5 py-2 ${
+                          hero ? "bg-accent-soft" : ""
+                        }`}
+                      >
+                        <span
+                          className="bg-surface-2 border-border h-8 w-11 shrink-0 rounded-md border"
+                          aria-hidden
+                        />
+                        <span className="min-w-0 flex-1">
+                          <span className="text-foreground block truncate text-xs font-semibold">
+                            {nome}
+                          </span>
+                          <span className="mt-0.5 inline-block rounded-full bg-emerald-100 px-1.5 py-px text-[9px] font-semibold text-emerald-700">
+                            Pubblicata
+                          </span>
+                        </span>
                       </div>
                     ))}
+                  </div>
+                </div>
+
+                {/* Colonna destra: editor «Hero homepage» — il DIFETTO è qui */}
+                <div className="imm-seg-card border-border bg-surface relative rounded-xl border p-4 shadow-sm">
+                  <div className="mb-3 flex items-center justify-between">
+                    <p className="text-foreground text-sm font-semibold">Hero homepage</p>
+                    <span className="text-muted text-[11px]">Ultima modifica: oggi</span>
+                  </div>
+
+                  <div className="grid grid-cols-[260px_minmax(0,1fr)] gap-4">
+                    {/* Immagine ROTTA sotto; la foto corretta sopra, scoperta dal
+                        wipe (maskReveal) nel beat del fix */}
+                    <div className="relative h-32 overflow-hidden rounded-lg">
+                      <div
+                        className="border-border bg-surface-2 absolute inset-0 flex flex-col items-center justify-center gap-2 rounded-lg border border-dashed"
+                        aria-hidden
+                      >
+                        <ImageOff className="text-muted h-6 w-6" aria-hidden />
+                        <span className="rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-semibold text-red-700">
+                          Immagine non trovata
+                        </span>
+                      </div>
+                      <div
+                        className="imm-img-fix absolute inset-0"
+                        style={{ background: GRAD_FOTO_FIX }}
+                        aria-hidden
+                      >
+                        <div className="flex h-full items-center justify-center">
+                          <span className="bg-background/85 text-foreground rounded-lg px-3 py-1.5 text-xs font-semibold shadow-sm">
+                            impianto-2026.jpg
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Campi già compilati (stato post-Dashboard: titolo «azienda») */}
+                    <div className="space-y-3">
+                      <div>
+                        <label className="text-muted mb-1 block text-[11px] font-semibold tracking-wider uppercase">
+                          Titolo
+                        </label>
+                        <div className="border-border bg-surface-2 text-foreground rounded-lg border px-3 py-2 text-sm">
+                          Energia solare per la tua azienda
+                        </div>
+                      </div>
+                      <div>
+                        <label className="text-muted mb-1 block text-[11px] font-semibold tracking-wider uppercase">
+                          Descrizione
+                        </label>
+                        <div className="border-border bg-surface-2 text-muted min-h-[52px] rounded-lg border px-3 py-2 text-sm">
+                          Impianti fotovoltaici e ricarica EV chiavi in mano, dal
+                          sopralluogo all&apos;allaccio.
+                        </div>
+                      </div>
+                      <div className="pt-1">
+                        <span className="text-muted text-[11px]">
+                          Stato: <span className="font-semibold">Pubblicata</span>
+                        </span>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* ════════════ SCHERMATA B · Modulo di segnalazione ════════════ */}
-          <div className="w-1/2 shrink-0 overflow-hidden p-6 sm:p-8">
-            <div className="imm-zoom-local border-border bg-surface mx-auto flex h-full max-w-2xl flex-col overflow-hidden rounded-2xl border shadow-sm">
+          {/* ════ Drawer · modulo di segnalazione (entra da destra) ════ */}
+          <aside
+            className="imm-seg-drawer border-border bg-surface absolute inset-y-0 right-0 z-20 w-[400px] border-l shadow-2xl"
+            aria-hidden
+          >
+            <div className="imm-zoom-form flex h-full flex-col">
               <div className="border-border border-b px-6 py-4">
                 <h2 className="text-foreground font-semibold tracking-tight">
-                  Modulo di segnalazione
+                  Segnala un problema
                 </h2>
-                <p className="text-muted mt-0.5 text-sm">Invia una richiesta al team prodotto</p>
+                <p className="text-muted mt-0.5 text-sm">
+                  La pagina è già allegata: descrivi cosa non va
+                </p>
               </div>
 
               <div className="flex flex-1 flex-col gap-5 p-6">
-                {/* Campo Link — si riempie quando il cursore "incolla" */}
+                {/* Campo «Pagina» — GIÀ COMPILATO: link rilevato in automatico */}
                 <div className="space-y-2">
                   <label className="text-muted text-xs font-semibold tracking-widest uppercase">
-                    Link della pagina
+                    Pagina
                   </label>
-                  <div className="border-border bg-surface flex h-10 items-center overflow-hidden rounded-lg border px-3 text-sm">
-                    <svg
-                      width="14"
-                      height="14"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      className="text-muted mr-2 shrink-0"
-                      aria-hidden
-                    >
-                      <path
-                        d="M10 13a5 5 0 0 0 7 0l2-2a5 5 0 0 0-7-7l-1 1m-1 8a5 5 0 0 1-7 0 5 5 0 0 1 0-7l2-2a5 5 0 0 1 7 0"
-                        stroke="currentColor"
-                        strokeWidth="1.7"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                    </svg>
-                    <span className="imm-link-text text-accent-ink block font-mono whitespace-nowrap">
-                      {LINK_PAGINA}
+                  <div className="imm-seg-page border-border bg-surface-2 flex h-10 items-center gap-2 rounded-lg border px-3">
+                    <span className="text-foreground truncate font-mono text-xs">
+                      {PAGINA_RILEVATA}
+                    </span>
+                    <span className="bg-accent-soft text-accent-ink ml-auto shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold">
+                      Rilevata in automatico ✓
                     </span>
                   </div>
                 </div>
 
-                {/* Campo Richiesta — testo digitato carattere per carattere */}
+                {/* Campo «Descrizione» — l'unica cosa che il cliente scrive */}
                 <div className="space-y-2">
                   <label className="text-muted text-xs font-semibold tracking-widest uppercase">
-                    La tua richiesta
+                    Descrizione
                   </label>
-                  <div className="border-border bg-surface min-h-22 overflow-hidden rounded-lg border px-3 py-2.5 text-sm">
-                    <span className="imm-req-text text-foreground block font-medium whitespace-nowrap">
-                      Vorrei una 4ª funzione: &apos;Invia per email&apos;
+                  <div className="border-border bg-surface min-h-20 overflow-hidden rounded-lg border px-3 py-2.5 text-sm">
+                    <span className="imm-seg-desc text-foreground block font-medium whitespace-nowrap">
+                      L&apos;immagine della hero non si carica
                     </span>
                   </div>
                 </div>
 
-                {/* Pulsante Invia */}
+                {/* Invio */}
                 <button
                   type="button"
-                  className="imm-send-btn bg-accent text-accent-contrast mt-auto self-start rounded-lg px-5 py-2 text-sm font-semibold"
-                  aria-label="Invia segnalazione"
+                  className="imm-seg-send bg-accent text-accent-contrast mt-auto self-start rounded-lg px-5 py-2 text-sm font-semibold"
+                  tabIndex={-1}
                 >
                   Invia segnalazione
                 </button>
               </div>
             </div>
-          </div>
+          </aside>
         </div>
       </div>
 
-      {/* ── Toast globali (fuori dal track: non vengono clippati né spostati) ── */}
+      {/* ── Toast globali (fuori dall'app: non vengono clippati dal drawer) ── */}
 
-      {/* «Link pagina copiato» (Schermata A, poi svanisce prima del pan) */}
+      {/* «Segnalazione ricevuta ✓» + badge stato con FLIP «In lavorazione» → «Risolta ✓» */}
       <div
-        className="imm-copy-toast border-border bg-surface pointer-events-none absolute bottom-8 left-1/2 z-50 flex -translate-x-1/2 items-center gap-3 rounded-xl border px-5 py-3 shadow-lg"
-        aria-live="polite"
-        style={{ opacity: 0 }}
-      >
-        <span className="bg-surface-2 text-accent-ink flex h-7 w-7 shrink-0 items-center justify-center rounded-full">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden>
-            <path
-              d="M10 13a5 5 0 0 0 7 0l2-2a5 5 0 0 0-7-7l-1 1m-1 8a5 5 0 0 1-7 0 5 5 0 0 1 0-7l2-2a5 5 0 0 1 7 0"
-              stroke="currentColor"
-              strokeWidth="1.8"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
-        </span>
-        <p className="text-foreground text-sm font-semibold">Link pagina copiato</p>
-      </div>
-
-      {/* «Segnalazione ricevuta ✓» (resta visibile fino allo stato finale) */}
-      <div
-        className="imm-received-toast border-border bg-surface pointer-events-none absolute bottom-8 left-1/2 z-50 flex -translate-x-1/2 items-center gap-3 rounded-xl border px-5 py-3 shadow-lg"
+        className="imm-seg-toast border-border bg-surface pointer-events-none absolute bottom-8 left-1/2 z-50 flex -translate-x-1/2 items-center gap-3 rounded-xl border px-5 py-3 shadow-lg"
         aria-live="polite"
         style={{ opacity: 0 }}
       >
         <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-emerald-100">
-          <Check className="h-4 w-4 text-emerald-600" />
+          <Check className="h-4 w-4 text-emerald-600" aria-hidden />
         </span>
         <div>
           <p className="text-foreground text-sm font-semibold">Segnalazione ricevuta ✓</p>
-          <p className="text-muted text-xs">Inoltrata al team prodotto</p>
+          <p className="text-muted text-xs">Hero homepage · {PAGINA_RILEVATA}</p>
         </div>
+        {/* I due stati occupano la stessa cella (grid) → il flip 3D gira sul posto */}
+        <span className="ml-1 inline-grid shrink-0">
+          <span className="imm-seg-old col-start-1 row-start-1 rounded-full bg-amber-100 px-2.5 py-1 text-center text-[11px] font-semibold text-amber-700">
+            In lavorazione
+          </span>
+          <span className="imm-seg-new col-start-1 row-start-1 rounded-full bg-emerald-100 px-2.5 py-1 text-center text-[11px] font-semibold text-emerald-700">
+            Risolta ✓
+          </span>
+        </span>
       </div>
 
-      {/* Mini toast «Email inviata» (Schermata A, conferma che il 4° bottone funziona) */}
+      {/* Mini-toast «Fix pubblicato ✓» (conferma visiva del beat finale) */}
       <div
-        className="imm-email-toast border-border bg-surface pointer-events-none absolute top-8 left-1/2 z-50 flex -translate-x-1/2 items-center gap-2 rounded-full border px-4 py-2 shadow-lg"
+        className="imm-fix-toast border-border bg-surface pointer-events-none absolute top-8 left-1/2 z-50 flex -translate-x-1/2 items-center gap-2 rounded-full border px-4 py-2 shadow-lg"
         aria-live="polite"
         style={{ opacity: 0 }}
       >
-        <Check className="h-4 w-4 text-emerald-600" />
-        <p className="text-foreground text-sm font-semibold">Email inviata</p>
+        <Check className="h-4 w-4 text-emerald-600" aria-hidden />
+        <p className="text-foreground text-sm font-semibold">Fix pubblicato ✓</p>
       </div>
 
       {/* Frasi-intermezzo DESCRITTIVE (spiegano, non vendono) */}
-      <Say i={0}>Segnali un problema o una richiesta in un attimo.</Say>
+      <Say i={0}>Qualcosa non va? Lo segnali da dove sei.</Say>
       <Say i={1} variant="caption">
-        Copi il link, scrivi cosa serve, invii.
+        Il link della pagina si compila da solo.
       </Say>
       <Say i={2} variant="caption">
-        La richiesta arriva e prende vita.
+        Il team riceve, sistema, e tu vedi il fix.
       </Say>
     </ImmersiveStage>
   );

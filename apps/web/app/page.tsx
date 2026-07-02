@@ -20,7 +20,8 @@ import ImmersiveGestionale from "@/components/home/immersive/ImmersiveGestionale
  * intermezzo descrittive + cursore + pan orizzontale dove serve). Transizioni
  * verticali seamless tra prodotti.
  *   Apertura (video, scuro): Solare (impianto, gemello digitale). Poi INTERAZIONE:
- *   Assistente. Poi CONTROLLO (i capi): Dashboard → Gestionale → Segnalazioni.
+ *   Assistente. Poi CONTROLLO (i capi): Dashboard → Segnalazioni (la segnalazione
+ *   parte dal bottone «Segnala un problema» della dashboard) → Gestionale.
  *   Poi il capitolo ricarica: Ricarica EV → Integrazioni → chiusura GM Solar.
  */
 export default function HomePage() {
@@ -37,10 +38,12 @@ export default function HomePage() {
       {/* INTERAZIONE — come le persone usano il sito */}
       <ImmersiveAssistente />
 
-      {/* CONTROLLO — le interfacce dei capi */}
+      {/* CONTROLLO — le interfacce dei capi. Segnalazioni viene SUBITO dopo la
+          Dashboard: il suo walkthrough riparte dal bottone «Segnala un problema»
+          mostrato in chiusura della scena precedente. */}
       <ImmersiveDashboard />
-      <ImmersiveGestionale />
       <ImmersiveSegnalazioni />
+      <ImmersiveGestionale />
 
       {/* Capitolo ricarica: app dedicata + integrazioni */}
       <ImmersiveRicarica />
