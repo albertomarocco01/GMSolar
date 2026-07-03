@@ -24,6 +24,9 @@ import {
   ImmersiveStage,
   Say,
   say,
+  CHAPTERS,
+  ChapterCard,
+  chapterIntro,
   cursorTo,
   clickZoom,
   cameraTo,
@@ -144,7 +147,10 @@ export default function ImmersiveDashboard() {
     tl.set(".imm-nav-ind", { top: () => navTop(0) });
 
     // ── ① Contenuti: si MODIFICA un contenuto ESISTENTE ───────────────────────
-    say(tl, 0); // «La dashboard: il tuo business, in tempo reale.»
+    // Title card «03 · Dashboard» (P12): PRIMO beat, sostituisce il vecchio
+    // say(tl, 0) col velo. Dura ~2.7s → il primo beat di camera (cameraFollow
+    // sull'editor, ~3.4s) parte a card già uscita: nessun conflitto.
+    chapterIntro(tl);
 
     // Il cursore seleziona la pagina «Hero homepage» nella lista → highlight
     cursorTo(tl, ".imm-page-hero", { mode: "hand" });
@@ -280,9 +286,18 @@ export default function ImmersiveDashboard() {
       ref={ref}
       heightVh={560}
       theme="platform"
-      label="Dashboard multi-sito"
-      eyebrow="02 · Dashboard multi-sito"
+      label={CHAPTERS[2].title}
+      chapterIndex={2}
     >
+      {/* Reduced-motion: la ChapterCard animata finisce NASCOSTA a progress(1)
+          → heading statico col numero/nome capitolo in cima alla scena (il
+          fallback reduced esistente resta: editor pubblicato, KPI pieni,
+          binario = carosello). Ancorato al contenitore sticky del kit. */}
+      {reduced && (
+        <h2 className="text-muted absolute top-3 left-5 z-20 font-mono text-xs font-semibold tracking-[0.35em] uppercase">
+          {CHAPTERS[2].n} · {CHAPTERS[2].title}
+        </h2>
+      )}
       {/* Stessi token della scena Gestionale adiacente: fondi, grigi e accent
           identici (prima era bg-white + scala slate hardcoded → salto di tono). */}
       <div className="bg-background text-foreground flex h-full pt-10">
@@ -711,9 +726,14 @@ export default function ImmersiveDashboard() {
         </div>
       </div>
 
-      {/* Frasi-intermezzo DESCRITTIVE (spiegano, non vendono).
-          Prima frase = veil (annuncia la scena); le altre = caption lower-third. */}
-      <Say i={0}>La dashboard: il tuo business, in tempo reale.</Say>
+      {/* Title card di capitolo (P12): apre la scena al posto del vecchio veil
+          <Say i={0}>; la frase del veil diventa il sottotitolo della card. */}
+      <ChapterCard
+        chapter={CHAPTERS[2]}
+        subtitle="La dashboard: il tuo business, in tempo reale."
+      />
+
+      {/* Frasi-intermezzo DESCRITTIVE (spiegano, non vendono): caption lower-third. */}
       <Say i={1} variant="caption">
         Modifichi i contenuti del sito: online subito.
       </Say>

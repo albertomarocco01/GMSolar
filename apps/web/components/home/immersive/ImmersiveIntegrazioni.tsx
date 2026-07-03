@@ -18,10 +18,15 @@
  *   PULL-BACK reveal (f) = cameraReset sulla griglia piena. Il reset vive in
  *   ENTRAMBI i rami (animato e reduced) → camera neutra a progress(1).
  *
+ *   CAPITOLI (P12): la scena si apre con la title card scura «07 · Integrazioni»
+ *   (`<ChapterCard>` animata da `chapterIntro`, PRIMO beat — prima del
+ *   contro-pan), che sostituisce la vecchia Say-veil di apertura; la caption
+ *   resta invariata e a progress(1) la card finisce nascosta.
+ *
  *   Reduced-motion: il kit porta la timeline a progress(1) → la RICHIUSURA
  *   della chat vive SOLO nel percorso animato (ramo `!reduced`), così lo stato
  *   finale ridotto è "tutte le tile visibili + chat aperta e leggibile", senza
- *   nulla a metà. Il float continuo per-tile (solo `y`, loop infinito, fuori
+ *   nulla a metà; in cima resta un heading statico del capitolo. Il float continuo per-tile (solo `y`, loop infinito, fuori
  *   dallo scroll) parte solo se l'utente non ha richiesto meno movimento;
  *   essendo fuori dalla timeline scrubbata, ascolta `presentation:pausechange`
  *   (pausa globale di AutoScroll) per fermarsi/riprendere insieme alla home.
@@ -30,6 +35,7 @@
  */
 import { cn } from "@gmgroup/lib/utils";
 import { gsap } from "@gmgroup/lib/gsap";
+import { useReducedMotion } from "@gmgroup/lib/motion";
 import {
   siAirtable,
   siDiscord,
@@ -54,6 +60,9 @@ import {
   ImmersiveStage,
   Say,
   say,
+  CHAPTERS,
+  ChapterCard,
+  chapterIntro,
   cameraReset,
   cameraTo,
   cursorTo,
@@ -100,6 +109,10 @@ const CHAT = {
 // ─── Componente ──────────────────────────────────────────────────────────────
 
 export default function ImmersiveIntegrazioni() {
+  // Reduced-motion (markup): il kit porta la timeline a progress(1) → la
+  // ChapterCard finisce nascosta come il vecchio veil. L'heading statico del
+  // capitolo in cima (vedi markup) tiene leggibile il contesto nel fallback.
+  const reducedStatic = useReducedMotion();
   const ref = useImmersiveScene((tl, section) => {
     // Rispettiamo la preferenza di sistema senza dipendenze esterne: decide sia
     // il float continuo sia il ramo di RICHIUSURA della chat (vedi beat ④).
@@ -123,10 +136,15 @@ export default function ImmersiveIntegrazioni() {
     gsap.set([".imm-int-msg-1", ".imm-int-msg-2", ".imm-int-msg-3"], { autoAlpha: 0, y: 10 });
     gsap.set(".imm-int-typing", { autoAlpha: 0 });
 
+    // ── ⓪ TITLE CARD di capitolo (P12): «07 · Integrazioni». PRIMO beat della
+    //    timeline, PRIMA del primo beat camera (il contro-pan alla label
+    //    "carrellata" qui sotto). Sostituisce la vecchia Say-veil di apertura:
+    //    la frase del velo vive ora nel sottotitolo della <ChapterCard>. ──
+    chapterIntro(tl);
+
     // ── ① CARRELLATA: le righe scorrono in direzioni alternate (riga 1: 8→-8,
     //    riga 2: -8→8, riga 3: 8→-8; ease "none" su TUTTO il beat → il moto è
     //    lineare e scrub-safe) mentre le tile compaiono a ondata dal centro ──
-    say(tl, 0); // «Ci integriamo con i sistemi di tutti i giorni.»
     tl.addLabel("carrellata");
     rows.forEach((row, i) => {
       tl.to(row, { xPercent: -8 * rowDir(i), duration: PAN_DUR, ease: "none" }, "carrellata");
@@ -282,14 +300,24 @@ export default function ImmersiveIntegrazioni() {
   });
 
   return (
+    // `label` (→ aria-label della section) e HUD leggono entrambi da CHAPTERS:
+    // fonte unica per nome e numero del capitolo (P12).
     <ImmersiveStage
       ref={ref}
       heightVh={520}
       theme="platform"
-      label="Integrazioni"
-      eyebrow="07 · Integrazioni"
+      label={CHAPTERS[6].title}
+      chapterIndex={6}
     >
       <div className="relative flex h-full flex-col items-center justify-center px-6 py-16 sm:px-10">
+        {/* Reduced-motion: a progress(1) la ChapterCard è nascosta → heading
+            statico del capitolo in cima, coerente col fallback "chat aperta e
+            tile piene" (nulla di animato, solo contesto leggibile). */}
+        {reducedStatic && (
+          <p className="text-muted absolute top-6 left-1/2 -translate-x-1/2 font-mono text-xs tracking-[0.35em] uppercase">
+            {CHAPTERS[6].n} · {CHAPTERS[6].title}
+          </p>
+        )}
         {/* CARRELLATA DI LOGHI — 3 righe orizzontali da 6 tile, pan alternato */}
         <div className="imm-int-wall flex w-full flex-col items-center gap-4 sm:gap-5">
           {ROWS.map((row, r) => (
@@ -398,8 +426,10 @@ export default function ImmersiveIntegrazioni() {
         </div>
       </div>
 
-      {/* ── Frasi-intermezzo DESCRITTIVE ─────────────────────────────────────── */}
-      <Say i={0}>Ci integriamo con i sistemi di tutti i giorni.</Say>
+      {/* ── Title card di capitolo (P12) + caption descrittiva ───────────────
+          La ChapterCard sostituisce la vecchia Say-veil di apertura (la frase
+          del velo è il suo sottotitolo); la caption resta invariata. */}
+      <ChapterCard chapter={CHAPTERS[6]} subtitle="Ci integriamo con i sistemi di tutti i giorni." />
       <Say i={1} variant="caption">
         Per esempio: le notifiche ti arrivano su WhatsApp.
       </Say>

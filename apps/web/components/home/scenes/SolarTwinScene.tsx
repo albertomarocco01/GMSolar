@@ -5,8 +5,9 @@
  *   apre in fade dal nero direttamente qui. È l'anteprima di un sito vetrina
  *   premium: un FINTO SITO (header con logo, nav mock e CTA) il cui hero è il
  *   video solare ALL-KEYFRAME (`/assets/solar-twin.mp4`) scrubbato dallo scroll.
- *   Regia: frase popup d'apertura in stile "veil" immersive (replicata qui — la
- *   scena NON usa ImmersiveStage) sui primissimi px di scroll → scrub del video
+ *   Regia: TITLE CARD di capitolo 01 (P12, ChapterCard del kit immersive — la
+ *   scena NON usa ImmersiveStage ma importa il kit capitoli) sui primissimi px
+ *   di scroll → scrub del video
  *   avanti/indietro → card 3D premium (SuspendedCards) in stagger sul finale,
  *   con il video fermo sull'ultimo frame. Il cue "Scorri" grande in basso a
  *   sinistra parte con una MICRO-DEMO in loop (proxy → seek del video + dot del
@@ -15,8 +16,9 @@
  *   Porta l'ancora `id="vetrina"` (target dei link /#vetrina, es. kb assistente).
  *   Poiché la scena successiva (Assistente) è CHIARA, alza un velo chiaro sul
  *   finale → ingresso pulito, senza flash scuro.
- *   reduced-motion → variante statica impilata e leggibile: header finto +
- *   poster + frase statica + SuspendedCards animated={false}.
+ *   reduced-motion → variante statica impilata e leggibile: heading di capitolo
+ *   «01 · Siti vetrina» + header finto + poster + frase statica +
+ *   SuspendedCards animated={false}.
  * @indice
  * - SolarTwinScene → scena autonoma (sticky + ScrollTrigger scrub + micro-demo)
  * - FakeSiteHeader → header mock del finto sito (decorativo, nessun link reale)
@@ -27,13 +29,21 @@ import { useReducedMotion, useIsoLayoutEffect } from "@gmgroup/lib/motion";
 import ScrubVideo, { type ScrubVideoHandle } from "../ScrubVideo";
 import ScrollCue from "../ScrollCue";
 import SuspendedCards from "../vetrina/SuspendedCards";
+import { CHAPTERS, ChapterCard, chapterIntro } from "../immersive/shared";
 
 // Derivati ALL-KEYFRAME obbligatori: il seek è istantaneo SOLO con questi.
 const SRC = "/assets/solar-twin.mp4";
 const POSTER = "/assets/solar-twin-poster.webp";
 
 const ARIA_LABEL = "Siti vetrina — anteprima di un sito con hero video scrollytelling";
+/** Sottotitolo della title card di capitolo 01 (P12) — ex frase popup d'apertura. */
 const FRASE = "Creiamo siti web moderni con una forte narrativa di scrollytelling video.";
+
+/** Quota di scroll (progress) occupata dalla title card di capitolo (P12):
+ *  `chapterIntro` è scritta in SECONDI (~2.7s) per le timeline immersive, qui la
+ *  timeline è NORMALIZZATA (durata 1 = progress) → l'intro va su una
+ *  sotto-timeline compressa via timeScale dentro questo primo ~10% dello scroll. */
+const CHAPTER_SPAN = 0.1;
 
 /** Il video esaurisce la sua durata a questo progress di scroll: l'ultimo tratto
  *  (l'entrata delle card 3D) scorre con il video FERMO sull'ultimo frame. */
@@ -58,8 +68,9 @@ export default function SolarTwinScene() {
     let disposeDemo: () => void = () => {};
 
     const ctx = gsap.context(() => {
-      // Stato iniziale: frase popup e card nascoste; cue visibile; velo giù.
-      gsap.set(".st-say", { autoAlpha: 0, scale: 1.08, y: 26 });
+      // Stato iniziale: card 3D e velo d'uscita nascosti; cue visibile. La
+      // ChapterCard parte già nascosta (opacity 0 inline) e chapterIntro applica
+      // i suoi "from" in build (fromTo immediateRender) → niente set qui.
       gsap.set(".st-cue", { autoAlpha: 1 });
       gsap.set(".vt-card", { autoAlpha: 0, y: 30, scale: 0.92 });
       gsap.set(".st-exit-veil", { autoAlpha: 0 });
@@ -69,19 +80,17 @@ export default function SolarTwinScene() {
       const tl = gsap.timeline({ defaults: { ease: "none" } });
       tl.to({}, { duration: 1 }, 0);
 
-      // FRASE POPUP d'apertura — stessi valori del veil immersive (shared.tsx):
-      // entra teatrale sui primissimi px di scroll, tiene un beat, poi sfuma
-      // (back.in) lasciando il finto sito pulito.
-      tl.to(
-        ".st-say",
-        { autoAlpha: 1, scale: 1, y: 0, duration: 0.045, ease: "expo.out" },
-        0.004,
-      );
-      tl.to(
-        ".st-say",
-        { autoAlpha: 0, scale: 0.96, y: -24, duration: 0.05, ease: "back.in(1.4)" },
-        0.13,
-      );
+      // TITLE CARD DI CAPITOLO 01 (P12) — PRIMO beat, al posto della vecchia
+      // frase popup. `chapterIntro` è scritta in secondi (~2.7s): la costruisco
+      // su una SOTTO-timeline (con `data` = section, come fa il kit) e la
+      // comprimo via timeScale dentro CHAPTER_SPAN → la card vive nel primo
+      // ~10% dello scroll e a progress(1) resta nascosta. Tween deterministici
+      // (fromTo/to del kit) → scrub-safe avanti/indietro.
+      const intro = gsap.timeline();
+      intro.data = stage; // chapterIntro cerca `.imm-chapter` in QUESTA sezione
+      chapterIntro(intro);
+      if (intro.duration() > 0) intro.timeScale(intro.duration() / CHAPTER_SPAN);
+      tl.add(intro, 0.004);
 
       // Cue "Scorri": sfuma appena parte lo scroll.
       tl.to(".st-cue", { autoAlpha: 0, duration: 0.04, ease: "power2.in" }, 0.05);
@@ -188,10 +197,18 @@ export default function SolarTwinScene() {
       <section
         id="vetrina"
         aria-label={ARIA_LABEL}
+        // Capitolo 01 per l'HUD, a mano (la scena non passa da ImmersiveStage).
+        data-chapter={0}
         className="bg-background text-foreground relative isolate"
       >
         <FakeSiteHeader />
         <div className="mx-auto w-full max-w-5xl px-6 py-12">
+          {/* Heading di capitolo statico (P12): sotto reduced-motion la title
+              card animata resta nascosta → il numero/nome capitolo vive qui,
+              come testo normale senza velo scuro. */}
+          <h2 className="font-display text-foreground mb-8 text-xl font-bold tracking-tight">
+            {CHAPTERS[0].n} · {CHAPTERS[0].title}
+          </h2>
           {/* Poster statico al posto del video scrubbato */}
           <img
             src={POSTER}
@@ -219,6 +236,9 @@ export default function SolarTwinScene() {
       ref={stageRef}
       id="vetrina"
       aria-label={ARIA_LABEL}
+      // Capitolo 01 per l'HUD (ChapterHUD osserva le section [data-chapter]);
+      // a mano perché la scena non passa da ImmersiveStage (prop chapterIndex).
+      data-chapter={0}
       className="relative isolate h-[320svh]"
     >
       <div className="sticky top-0 flex h-svh flex-col overflow-hidden">
@@ -255,19 +275,11 @@ export default function SolarTwinScene() {
           </div>
         </div>
 
-        {/* FRASE POPUP d'apertura — replica dello stile "veil" delle scene
-            immersive (full-screen, copre anche l'header): velo chiaro sfocato
-            + frase grande centrata. GSAP anima il contenitore esterno. */}
-        <div
-          className="st-say pointer-events-none absolute inset-0 z-40 flex items-center justify-center"
-          style={{ opacity: 0 }}
-          aria-hidden
-        >
-          <div className="bg-background/85 absolute inset-0 backdrop-blur-sm" />
-          <p className="font-display text-foreground relative max-w-3xl px-6 text-center text-3xl font-bold tracking-tight text-balance sm:text-5xl">
-            {FRASE}
-          </p>
-        </div>
+        {/* TITLE CARD DI CAPITOLO 01 (P12) — velo SCURO numerato con titolo
+            lime, full-screen (copre anche l'header): apre la scena al posto
+            della vecchia frase popup chiara. Parte nascosta (opacity 0 inline);
+            la anima chapterIntro dentro la timeline scrubbata. */}
+        <ChapterCard chapter={CHAPTERS[0]} subtitle={FRASE} />
 
         {/* Barra di avanzamento accent (scaleX = progress) */}
         <div

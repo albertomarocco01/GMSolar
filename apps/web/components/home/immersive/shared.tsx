@@ -45,6 +45,13 @@
  * │   veil = frase grande su velo full-screen (PRIMA frase della scena);          │
  * │   caption = pill lower-third senza velo (frasi successive). say() rileva la   │
  * │   variante dal DOM. <ImmersiveStage>, <Cursor>, accentVars(theme) → util.     │
+ * │                                                                               │
+ * │ CAPITOLI (P12) — CHAPTERS (01→07) + <ChapterCard chapter={CHAPTERS[i]}        │
+ * │   subtitle="…"/> + chapterIntro(tl): title card SCURA numerata che apre ogni  │
+ * │   scena. chapterIntro va chiamata PRIMA di ogni altro beat e sostituisce il   │
+ * │   vecchio say(tl, 0) col velo (la <Say i={0}> veil → <ChapterCard/>). Le      │
+ * │   caption restano invariate. A progress(1) la card finisce nascosta.          │
+ * │   `chapterIndex` su <ImmersiveStage> marca la section per l'HUD (ChapterHUD). │
  * └───────────────────────────────────────────────────────────────────────────┘
  */
 import { forwardRef, useRef } from "react";
@@ -727,8 +734,9 @@ export function say(tl: gsap.core.Timeline, i: number) {
 
 /**
  * Frase-intermezzo, tono descrittivo. Due varianti:
- *   - "veil" (default): frase grande centrata su velo sfocato full-screen —
- *     annuncia il capitolo. Da usare per la PRIMA frase di ogni scena.
+ *   - "veil" (default): frase grande centrata su velo sfocato full-screen.
+ *     STORICO (P12): come apertura di scena è sostituita dalla <ChapterCard>
+ *     scura numerata — la variante resta per compat con le scene non migrate.
  *   - "caption": pill lower-third senza velo — commenta senza interrompere la
  *     vista del prodotto. Per le frasi successive (il velo ripetuto ~20 volte
  *     nella demo faceva effetto "slide di PowerPoint").
@@ -771,6 +779,134 @@ export function Say({
       </p>
     </div>
   );
+}
+
+// ── Capitoli (P12): dati + title card scura numerata ─────────────────────────
+
+/**
+ * CAPITOLI della presentazione, nell'ORDINE REALE delle scene in page.tsx.
+ * Fonte unica per: title card (ChapterCard), HUD (ChapterHUD, che li importa da
+ * qui) e attributo `data-chapter` (prop `chapterIndex` di ImmersiveStage).
+ */
+export const CHAPTERS = [
+  { n: "01", title: "Siti vetrina" },
+  { n: "02", title: "Assistente AI" },
+  { n: "03", title: "Dashboard" },
+  { n: "04", title: "Segnalazioni" },
+  { n: "05", title: "Gestionale colonnine" },
+  { n: "06", title: "App di ricarica" },
+  { n: "07", title: "Integrazioni" },
+] as const;
+
+export type Chapter = (typeof CHAPTERS)[number];
+
+/**
+ * TITLE CARD DI CAPITOLO: velo full-screen SCURO con trama a puntini accent e
+ * titolo lime numerato — NETTAMENTE diversa dalle frasi di spiegazione (chiare):
+ * il contrasto scuro/chiaro è il segnale di "cambio argomento". Sostituisce la
+ * vecchia `<Say i={0}>` veil come PRIMO elemento di ogni scena; va animata con
+ * `chapterIntro(tl)` (stesso pattern di Say/say). Le parole del titolo sono
+ * avvolte in span `.imm-chapter-word` per il mask reveal parola-per-parola.
+ * Lime pieno (`text-accent`) è ammesso qui perché il fondo è scuro.
+ */
+export function ChapterCard({ chapter, subtitle }: { chapter: Chapter; subtitle?: string }) {
+  return (
+    <div
+      className="imm-chapter pointer-events-none absolute inset-0 z-50 flex items-center justify-center bg-[#0b1020]/95"
+      // Nascosta finché chapterIntro non la fa entrare (e PRIMA che GSAP monti).
+      style={{ opacity: 0 }}
+      aria-hidden
+    >
+      {/* Trama a puntini accent tenue (pattern del vecchio ClosingScene) */}
+      <div
+        className="absolute inset-0 opacity-40"
+        style={{
+          backgroundImage:
+            "radial-gradient(color-mix(in oklab, var(--accent) 20%, transparent) 1px, transparent 1.4px)",
+          backgroundSize: "22px 22px",
+        }}
+      />
+      <div className="relative flex max-w-4xl flex-col items-center px-6 text-center">
+        {/* Kicker numerico «02 / 07» */}
+        <p className="imm-chapter-kicker text-accent font-mono text-xs tracking-[0.4em] uppercase">
+          {chapter.n} / {String(CHAPTERS.length).padStart(2, "0")}
+        </p>
+        {/* Titolo: parole in span per il mask reveal (nbsp DENTRO lo span → lo
+            spazio si rivela insieme alla parola, niente riflusso). */}
+        <p className="imm-chapter-title font-display text-accent mt-5 text-5xl font-bold tracking-tight md:text-6xl">
+          {chapter.title.split(" ").map((word, i, arr) => (
+            <span key={i} className="imm-chapter-word inline-block">
+              {word}
+              {i < arr.length - 1 ? " " : ""}
+            </span>
+          ))}
+        </p>
+        {/* Linea accent che si disegna (scaleX 0→1, origin left) */}
+        <div className="imm-chapter-line bg-accent mt-6 h-[2px] w-24 origin-left" />
+        {subtitle ? (
+          <p className="imm-chapter-sub mt-6 max-w-2xl text-base text-balance text-white/70">
+            {subtitle}
+          </p>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Intro di capitolo: anima la <ChapterCard> DENTRO la timeline scrubbata. Va
+ * chiamata PRIMA di ogni altro beat della scena (sostituisce il vecchio
+ * `say(tl, 0)`). Sequenza: velo fade veloce → kicker fade+rise → titolo mask
+ * reveal parola-per-parola (maskReveal, dir "l") → linea che si disegna →
+ * (sottotitolo, se presente) → hold breve → uscita compatta (velo+contenuto
+ * salgono e sfumano, power2.in). Occupa ~2.7s di timeline (≈ il primo 8–10%
+ * con le durate correnti delle scene). Tutto fromTo/to deterministico →
+ * scrub-safe; a progress(1) la card finisce NASCOSTA (autoAlpha 0), come il
+ * vecchio veil — per reduced-motion le scene aggiungono un heading statico.
+ * No-op se la scena non contiene una ChapterCard.
+ */
+export function chapterIntro(tl: gsap.core.Timeline) {
+  const section = tl.data as HTMLElement | undefined;
+  if (!section?.querySelector(".imm-chapter")) return;
+  // Velo scuro: fade veloce. fromTo → lo stato "nascosto" è applicato in build
+  // (immediateRender), prima del paint: niente flash.
+  tl.fromTo(
+    ".imm-chapter",
+    { autoAlpha: 0, y: 0 },
+    { autoAlpha: 1, duration: 0.3, ease: "power2.out" },
+  );
+  // Kicker «02 / 07»: fade + rise
+  tl.fromTo(
+    ".imm-chapter-kicker",
+    { autoAlpha: 0, y: 18 },
+    { autoAlpha: 1, y: 0, duration: 0.45, ease: "power3.out" },
+    "-=0.05",
+  );
+  // Titolo: mask reveal parola-per-parola (riusa maskReveal con stagger sugli span)
+  maskReveal(tl, ".imm-chapter-word", {
+    dir: "l",
+    duration: 0.5,
+    stagger: 0.09,
+    position: "-=0.15",
+  });
+  // Linea accent che si disegna (origin left è nel markup della card)
+  tl.fromTo(
+    ".imm-chapter-line",
+    { scaleX: 0 },
+    { scaleX: 1, duration: 0.5, ease: "power2.inOut" },
+    "-=0.2",
+  );
+  // Sottotitolo opzionale
+  if (section.querySelector(".imm-chapter-sub")) {
+    tl.fromTo(
+      ".imm-chapter-sub",
+      { autoAlpha: 0, y: 14 },
+      { autoAlpha: 1, y: 0, duration: 0.45, ease: "power3.out" },
+      "-=0.3",
+    );
+  }
+  // Hold breve, poi USCITA COMPATTA: velo+contenuto salgono e sfumano insieme.
+  tl.to(".imm-chapter", { autoAlpha: 0, y: -48, duration: 0.55, ease: "power2.in" }, "+=0.55");
 }
 
 /**
@@ -818,16 +954,18 @@ export const ImmersiveStage = forwardRef<
     heightVh: number;
     theme: string;
     label: string;
-    /** Mantenuto per compatibilità delle chiamate; non più reso (era poco immersivo
-     *  e collideva con gli header dei prodotti full-screen — lo annuncia l'intermezzo). */
-    eyebrow?: string;
+    /** Indice del capitolo in CHAPTERS (0-based) → imposta `data-chapter` sul
+     *  <section>: è ciò che ChapterHUD osserva per capire il capitolo corrente.
+     *  Ometterlo = scena fuori dai capitoli (l'HUD la ignora). */
+    chapterIndex?: number;
     children: React.ReactNode;
   }
->(function ImmersiveStage({ heightVh, theme, label, children }, ref) {
+>(function ImmersiveStage({ heightVh, theme, label, chapterIndex, children }, ref) {
   return (
     <section
       ref={ref}
       aria-label={label}
+      data-chapter={chapterIndex}
       className="relative"
       style={{ ...accentVars(theme), height: `${heightVh}vh` }}
     >

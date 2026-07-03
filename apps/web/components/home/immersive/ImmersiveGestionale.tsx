@@ -4,6 +4,8 @@
  * @descrizione  Scena immersiva GESTIONALE COLONNINE (servizio 05). Full-screen,
  *   alta fedeltà. REGIA (ridisegnata per non ricalcare la Dashboard, che ha già
  *   il tour sidebar+pan a 4 pannelli): tre beat, con l'ASSISTENTE AI come climax.
+ *     ⓪ Title card di capitolo (P12) — «05 · Gestionale colonnine» via
+ *        chapterIntro(tl), PRIMO beat (sostituisce il vecchio veil di apertura).
  *     ① Panoramica — vista d'apertura (KPI + barre «Sessioni per giorno»),
  *        NESSUN pan.
  *     ② Colonnine — unico pan orizzontale; query in linguaggio naturale che
@@ -18,7 +20,8 @@
  *   l'ampiezza del prodotto senza allungare la demo.
  *   Usa il kit condiviso `./shared`. Reduced-motion: tl a progress(1) → drawer
  *   aperto, colonnine Online, contatore a 0 = stato finale leggibile; il binario
- *   a 2 pannelli diventa un carosello scrollabile (overflow-x-auto).
+ *   a 2 pannelli diventa un carosello scrollabile (overflow-x-auto); la
+ *   ChapterCard finisce NASCOSTA → heading statico di capitolo in cima.
  *   CAMERA (P11) — shot-list della scena: whip-pan (d) sul cambio
  *   Panoramica→Colonnine, push-in (b) sulla barra query (SOSTITUISCE il vecchio
  *   clickZoom — regola 4), rack focus (e) dietro il drawer AI, micro-dutch 0.5°
@@ -31,6 +34,9 @@ import {
   ImmersiveStage,
   Say,
   say,
+  CHAPTERS,
+  ChapterCard,
+  chapterIntro,
   cursorTo,
   cameraTo,
   cameraReset,
@@ -103,8 +109,12 @@ export default function ImmersiveGestionale() {
     });
     tl.set(".imm-nav-ind", { top: () => navTop(0) });
 
+    // ── ⓪ Title card di capitolo (P12) — SEMPRE primo beat della timeline ────
+    // (il primo beat CAMERA resta il whip sul pan del beat ②, dopo say(tl, 1):
+    // nessun conflitto con l'intro del capitolo.)
+    chapterIntro(tl);
+
     // ── ① Panoramica — le KPI entrano, poi le barre crescono dal basso ────────
-    say(tl, 0);
     tl.to(
       ".imm-kpi",
       { autoAlpha: 1, y: 0, duration: 0.5, stagger: 0.1, ease: "back.out(1.6)" },
@@ -224,9 +234,17 @@ export default function ImmersiveGestionale() {
       ref={ref}
       heightVh={460}
       theme="platform"
-      label="Gestionale colonnine"
-      eyebrow="05 · Gestionale colonnine"
+      label={CHAPTERS[4].title}
+      chapterIndex={4}
     >
+      {/* Reduced-motion: la ChapterCard a progress(1) finisce NASCOSTA → heading
+          statico di capitolo in cima, sempre leggibile (coerente col fallback
+          reduced della scena: carosello scrollabile + stato finale). */}
+      {reduced && (
+        <h2 className="text-accent-ink absolute top-4 left-6 z-20 font-mono text-xs font-bold tracking-[0.35em] uppercase">
+          {CHAPTERS[4].n} · {CHAPTERS[4].title}
+        </h2>
+      )}
       <div className="flex h-full pt-12">
         <aside className="border-border bg-surface relative hidden w-56 shrink-0 border-r p-4 sm:block">
           <div className="text-foreground mb-6 flex items-center gap-2 px-2 font-semibold">
@@ -423,9 +441,10 @@ export default function ImmersiveGestionale() {
         </div>
       </div>
 
-      {/* Frasi-intermezzo DESCRITTIVE (spiegano, non vendono).
-          Prima frase = veil (annuncia la scena); le altre = caption lower-third. */}
-      <Say i={0}>Tutte le colonnine, in un unico gestionale.</Say>
+      {/* Title card di capitolo (P12): apre la scena al posto del vecchio veil;
+          animata da chapterIntro(tl). Le frasi successive restano caption
+          lower-third DESCRITTIVE (spiegano, non vendono). */}
+      <ChapterCard chapter={CHAPTERS[4]} subtitle="Tutte le colonnine, in un unico gestionale." />
       <Say i={1} variant="caption">
         Scrivi in italiano: i dati si filtrano da soli.
       </Say>

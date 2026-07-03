@@ -1,10 +1,11 @@
 "use client";
 
 /**
- * @descrizione  Scena immersiva RICARICA EV (06 · App con assistente AI integrato).
+ * @descrizione  Scena immersiva RICARICA EV (capitolo 06 · «App di ricarica»).
  *   Full-screen sticky-scrub: un MOCKUP SMARTPHONE centrato (sfondo mappa tenue)
- *   con una chat-agent. La scena si presenta come "un'app con assistente AI
- *   integrato". Lo scroll scrubba l'interazione ripresa dal legacy
+ *   con una chat-agent. La scena si apre con la TITLE CARD di capitolo (P12:
+ *   ChapterCard + chapterIntro, sostituisce la vecchia <Say i={0}> veil).
+ *   Lo scroll scrubba l'interazione ripresa dal legacy
  *   `EvAgentApp`/`DeviceSimulator` — assistente di ricarica di bordo:
  *     ① l'utente scrive «Devo ricaricare lungo la A1 verso Milano» (clip-path);
  *     ② l'agente risponde con generative-UI: card stazione (distanza, kW) +
@@ -19,13 +20,18 @@
  *   push-in lento 1.14 sulla ricarica 20→80% (b) → reset finale; rack focus
  *   leggerissimo (e) sulla griglia-mappa dietro il telefono quando si apre la
  *   generative-UI. Regole di sequenziamento: vedi shared.tsx.
- *   Reduced-motion: gsap.set iniziale + tl.progress(1) → stato finale leggibile.
+ *   Reduced-motion: gsap.set iniziale + tl.progress(1) → stato finale leggibile
+ *   (la ChapterCard finisce nascosta → heading statico del capitolo in cima).
  */
 import { gsap } from "@gmgroup/lib/gsap";
+import { useReducedMotion } from "@gmgroup/lib/motion";
 import {
   ImmersiveStage,
   Say,
   say,
+  CHAPTERS,
+  ChapterCard,
+  chapterIntro,
   cursorTo,
   clickZoom,
   useImmersiveScene,
@@ -56,6 +62,9 @@ const STATION_STATS = [
 ] satisfies { l: string; v: string }[];
 
 export default function ImmersiveRicarica() {
+  // Reduced-motion: la timeline va a progress(1) → la ChapterCard finisce
+  // NASCOSTA. Il capitolo resta leggibile con un heading statico (vedi markup).
+  const reduced = useReducedMotion();
   const ref = useImmersiveScene((tl, section) => {
     // ── Auto-scroll del thread ────────────────────────────────────────────────
     // Le bolle nascoste con autoAlpha mantengono lo spazio in layout: gli offset
@@ -112,8 +121,11 @@ export default function ImmersiveRicarica() {
     gsap.set(".imm-rc-battery-fill", { scaleX: 0.2, transformOrigin: "left center" });
     gsap.set(".imm-rc-final", { autoAlpha: 0, y: 12 });
 
-    // ── ① Frase introduttiva ──────────────────────────────────────────────────
-    say(tl, 0); // «Un'app con assistente AI integrato.»
+    // ── ① Title card di capitolo (P12) ────────────────────────────────────────
+    // PRIMO beat della timeline (sostituisce il vecchio say(tl, 0) col velo):
+    // «06 · App di ricarica» + sottotitolo. Nessun conflitto camera: il primo
+    // beat camera è il push-in sul typing di ②.
+    chapterIntro(tl);
 
     // ── ② L'utente scrive nel campo (kit: typeInField) e invia ────────────────
     tl.to(".imm-rc-placeholder", { autoAlpha: 0, duration: 0.2, ease: "power2.out" });
@@ -301,9 +313,18 @@ export default function ImmersiveRicarica() {
       ref={ref}
       heightVh={520}
       theme="platform"
-      label="Ricarica"
-      eyebrow="06 · App con assistente AI integrato"
+      label={CHAPTERS[5].title}
+      chapterIndex={5}
     >
+      {/* Reduced-motion: la ChapterCard animata finisce nascosta a progress(1)
+          → heading statico del capitolo in cima, coerente con lo stato finale
+          leggibile del mockup. */}
+      {reduced ? (
+        <p className="text-foreground absolute top-6 left-1/2 z-20 -translate-x-1/2 font-mono text-xs font-bold tracking-[0.35em] uppercase">
+          {CHAPTERS[5].n} · {CHAPTERS[5].title}
+        </p>
+      ) : null}
+
       {/* Sfondo pagina: griglia mappa tenue (accent) su tono chiaro.
           `.imm-rc-bg` = bersaglio del rack focus (si attenua dietro la
           generative-UI, torna a fuoco al reset finale). */}
@@ -634,8 +655,10 @@ export default function ImmersiveRicarica() {
         </div>
       </div>
 
+      {/* Title card di capitolo (P12) — apre la scena, animata da chapterIntro */}
+      <ChapterCard chapter={CHAPTERS[5]} subtitle="Un'app con assistente AI integrato." />
+
       {/* Frasi-intermezzo DESCRITTIVE — tono neutro, spiegano, non vendono */}
-      <Say i={0}>Un&apos;app con assistente AI integrato.</Say>
       <Say i={1} variant="caption">
         Trova la colonnina giusta sul tuo percorso.
       </Say>

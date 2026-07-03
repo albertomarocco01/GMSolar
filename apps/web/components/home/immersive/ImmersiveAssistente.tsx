@@ -1,7 +1,9 @@
 "use client";
 
 /**
- * @descrizione  Scena immersiva ASSISTENTE AI (servizio 04). Full-screen, alta
+ * @descrizione  Scena immersiva ASSISTENTE AI (capitolo 02, P12: si apre con la
+ *   ChapterCard «02 · Assistente AI»; sotto reduced-motion un heading statico
+ *   in cima supplisce alla card, nascosta a progress(1)). Full-screen, alta
  *   fedeltà: lo scroll scrubba un walkthrough che riprende il legacy
  *   `CableFinder` — una PAGINA PRODOTTI (cavi di ricarica) con in basso una
  *   BARRA ASSISTENTE. Il cursore tocca la barra, il visitatore digita una
@@ -28,10 +30,14 @@
  */
 import { cn } from "@gmgroup/lib/utils";
 import { gsap } from "@gmgroup/lib/gsap";
+import { useReducedMotion } from "@gmgroup/lib/motion";
 import {
   ImmersiveStage,
   Say,
   say,
+  CHAPTERS,
+  ChapterCard,
+  chapterIntro,
   cursorTo,
   useImmersiveScene,
   pressButton,
@@ -57,6 +63,9 @@ const RATINGS = [
 ];
 
 export default function ImmersiveAssistente() {
+  // Reduced-motion: la timeline va a progress(1) → la ChapterCard finisce
+  // nascosta. Serve un heading testuale statico del capitolo (vedi markup).
+  const reduced = useReducedMotion();
   const ref = useImmersiveScene((tl) => {
     // ── Stato iniziale (selettori scoped alla section da gsap.context) ─────────
     gsap.set(".imm-placeholder", { autoAlpha: 1 });
@@ -67,8 +76,10 @@ export default function ImmersiveAssistente() {
     //  autoAlpha 1 ma clippate; il wipe le scopre.)
     gsap.set(".imm-genui", { autoAlpha: 0, y: 30, scale: 0.96, transformOrigin: "50% 60%" });
 
-    // ① Presenta la scena: un assistente dentro la pagina prodotti
-    say(tl, 0);
+    // ① Title card di capitolo (P12): «02 · Assistente AI». PRIMO beat della
+    //    timeline — prima dei beat camera (il primo è il push-in del beat ③).
+    //    Sostituisce la vecchia <Say i={0}> col velo.
+    chapterIntro(tl);
 
     // ② Il cursore (caret) tocca la barra → focus (anello accent)
     cursorTo(tl, ".imm-bar", { mode: "text" });
@@ -177,10 +188,18 @@ export default function ImmersiveAssistente() {
       ref={ref}
       heightVh={520}
       theme="platform"
-      label="Assistente"
-      eyebrow="04 · Assistente AI di prodotto"
+      label={CHAPTERS[1].title}
+      chapterIndex={1}
     >
       <div className="relative flex h-full flex-col overflow-hidden">
+        {/* ── Fallback reduced-motion: a progress(1) la ChapterCard è nascosta →
+            heading statico del capitolo in cima alla scena (solo `reduced`,
+            così lo scrub animato non ha elementi in più nel layout). ──────── */}
+        {reduced && (
+          <p className="border-border bg-surface text-accent-ink relative z-10 shrink-0 border-b px-6 py-2 font-mono text-xs font-semibold tracking-[0.3em] uppercase">
+            {CHAPTERS[1].n} · {CHAPTERS[1].title}
+          </p>
+        )}
         {/* ── Header della pagina prodotti (sito vetrina / e-commerce) ──────
             `.imm-behind` = pagina DIETRO la genui (header, titolo, griglia):
             perde fuoco col rack focus quando l'interfaccia generata entra. */}
@@ -438,8 +457,8 @@ export default function ImmersiveAssistente() {
         </div>
       </div>
 
-      {/* ── Frasi-intermezzo DESCRITTIVE (spiegano, non vendono) ──────────── */}
-      <Say i={0}>Un assistente AI dentro il sito vetrina.</Say>
+      {/* ── Title card di capitolo (apre la scena) + caption descrittive ──── */}
+      <ChapterCard chapter={CHAPTERS[1]} subtitle="Un assistente AI dentro il sito vetrina." />
       <Say i={1} variant="caption">
         Capisce la richiesta in linguaggio naturale.
       </Say>

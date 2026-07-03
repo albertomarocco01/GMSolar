@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * @descrizione  Scena immersiva SEGNALAZIONI (servizio 03) — viene SUBITO dopo
+ * @descrizione  Scena immersiva SEGNALAZIONI (capitolo 04) — viene SUBITO dopo
  *   la Dashboard e ne riparte: Schermata A = la STESSA dashboard in versione
  *   compatta (sidebar, topbar con il bottone «Segnala un problema» — identico
  *   `imm-report-btn` della scena precedente) ma con un DIFETTO mock visibile:
@@ -9,8 +9,10 @@
  *   immagine spezzata + badge rosso «Immagine non trovata») — lo speculare
  *   della card pubblicata con «impianto-2026.jpg» nella scena Dashboard.
  *
- *   • Beat ① — veil «Qualcosa non va? Lo segnali da dove sei.» Il cursore
- *     (mano) preme «Segnala un problema» (punch di camera + pressButton).
+ *   • Beat ① — title card di capitolo «04 · Segnalazioni» (ChapterCard +
+ *     chapterIntro, P12 — sostituisce la vecchia veil) con sottotitolo
+ *     «Qualcosa non va? Lo segnali da dove sei.» Poi il cursore (mano) preme
+ *     «Segnala un problema» (punch di camera + pressButton).
  *   • Beat ② — si apre il DRAWER del modulo: il campo «Pagina» è GIÀ COMPILATO
  *     (`gmsolar.it/dashboard/contenuti` in font-mono) con badge «Rilevata in
  *     automatico ✓» — NESSUN copia/incolla. Il cursore (caret) digita SOLO la
@@ -29,14 +31,20 @@
  *   progress(1), regola 3).
  *   Reduced-motion (kit → tl.progress(1)): stato finale leggibile = modulo
  *   inviato (toast «Segnalazione ricevuta ✓») + difetto RISOLTO (immagine ok,
- *   badge «Risolta ✓», mini-toast «Fix pubblicato ✓»); drawer richiuso.
+ *   badge «Risolta ✓», mini-toast «Fix pubblicato ✓»); drawer richiuso. La
+ *   ChapterCard a progress(1) è nascosta → heading statico «04 · Segnalazioni»
+ *   in cima come titolo di capitolo.
  */
 import { Check, ImageOff, MessageSquareWarning } from "lucide-react";
 import { gsap } from "@gmgroup/lib/gsap";
+import { useReducedMotion } from "@gmgroup/lib/motion";
 import {
   ImmersiveStage,
   Say,
   say,
+  CHAPTERS,
+  ChapterCard,
+  chapterIntro,
   cursorTo,
   clickZoom,
   useImmersiveScene,
@@ -73,6 +81,9 @@ const GRAD_FOTO_FIX =
 // ── Componente ────────────────────────────────────────────────────────────────
 
 export default function ImmersiveSegnalazioni() {
+  // Reduced-motion: la ChapterCard finisce nascosta (progress(1)) → il numero di
+  // capitolo va reso da un heading STATICO in cima alla scena.
+  const reduced = useReducedMotion();
   const ref = useImmersiveScene((tl) => {
     // ── Stato iniziale ───────────────────────────────────────────────────────
     // Il difetto (immagine rotta) è visibile dal frame 0; la foto corretta
@@ -90,8 +101,10 @@ export default function ImmersiveSegnalazioni() {
       transformOrigin: "50% 50%",
     });
 
-    // ── Beat ① — qualcosa non va: si segnala da dove si è ────────────────────
-    say(tl, 0); // «Qualcosa non va? Lo segnali da dove sei.»
+    // ── Beat ① — title card «04 · Segnalazioni» (P12), poi il click ──────────
+    // PRIMO beat della scena (prima di ogni movimento di camera): la card entra,
+    // presenta il capitolo col sottotitolo e esce → a progress(1) è nascosta.
+    chapterIntro(tl);
     // CAMERA · punch (a) sul bottone «Segnala un problema»: sostituisce il vecchio
     // clickZoom sul wrapper (regola 4: punch locale e punch di camera non si
     // sommano). Attacco rapido + micro-overshoot d'arrivo (back.out).
@@ -176,9 +189,17 @@ export default function ImmersiveSegnalazioni() {
       ref={ref}
       heightVh={480}
       theme="platform"
-      label="Segnalazioni"
-      eyebrow="03 · Segnalazioni"
+      label={CHAPTERS[3].title}
+      chapterIndex={3}
     >
+      {/* Reduced-motion: heading statico di capitolo (la ChapterCard animata a
+          progress(1) è nascosta) — nella fascia alta libera (pt-10 del frame). */}
+      {reduced ? (
+        <h2 className="text-muted absolute top-3 left-1/2 z-40 -translate-x-1/2 font-mono text-xs font-semibold tracking-[0.35em] uppercase">
+          {CHAPTERS[3].n} · {CHAPTERS[3].title}
+        </h2>
+      ) : null}
+
       {/* ════ Schermata A · la dashboard (compatta) con il difetto ════ */}
       <div className="bg-background text-foreground flex h-full pt-10">
         {/* Sidebar compatta — replica della Dashboard, voce «Contenuti» attiva.
@@ -423,8 +444,10 @@ export default function ImmersiveSegnalazioni() {
         <p className="text-foreground text-sm font-semibold">Fix pubblicato ✓</p>
       </div>
 
+      {/* Title card di capitolo (P12) — apre la scena al posto della vecchia veil */}
+      <ChapterCard chapter={CHAPTERS[3]} subtitle="Qualcosa non va? Lo segnali da dove sei." />
+
       {/* Frasi-intermezzo DESCRITTIVE (spiegano, non vendono) */}
-      <Say i={0}>Qualcosa non va? Lo segnali da dove sei.</Say>
       <Say i={1} variant="caption">
         Il link della pagina si compila da solo.
       </Say>
