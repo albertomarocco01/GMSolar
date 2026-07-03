@@ -30,6 +30,17 @@
  * │     opts.origin (transform-origin, default "50% 50%"). Torna a scale 1 →      │
  * │     no-op pulito sotto reduced-motion.                                        │
  * │                                                                               │
+ * │ CAMERA (.imm-camera · P11) — inquadrature cinematografiche di scena:          │
+ * │   cameraTo(tl, target, opts?) — centra il target nel viewport alla scala      │
+ * │     richiesta (default 1.4, clamp ≤1.7; duration 0.9, ease power3.inOut).     │
+ * │   cameraReset(tl, opts?) — torna neutra (x0 y0 scale1 rot0): OBBLIGATORIA     │
+ * │     prima della fine timeline → a progress(1) la camera DEVE essere neutra.   │
+ * │   cameraFollow(tl, target, opts?) — pan che segue il cursore (zoom invariato  │
+ * │     o lieve). cameraWhip(tl, dir, opts?) — colpo di frusta sui cambi          │
+ * │     pannello, finisce neutro da solo. rackFocus(tl, bg, opts?) /              │
+ * │     rackFocusOff(tl, bg, opts?) — profondità dietro drawer/modali.            │
+ * │   Vincoli d'uso: vedi «CAMERA · REGOLE DI SEQUENZIAMENTO» più sotto.          │
+ * │                                                                               │
  * │ say(tl, i) → mostra/nasconde <Say i={i}>. <Say variant="veil"|"caption">:     │
  * │   veil = frase grande su velo full-screen (PRIMA frase della scena);          │
  * │   caption = pill lower-third senza velo (frasi successive). say() rileva la   │
@@ -73,9 +84,12 @@ export function accentVars(theme: string): React.CSSProperties {
 export type CursorMode = "arrow" | "hand" | "text";
 
 /** Centro del target reale, in px, NELLO SPAZIO dell'offsetParent del cursore.
- *  Letto a runtime: durante le interazioni la scena è a scale 1 (l'entrata/uscita
- *  zoom avvengono FUORI dalla finestra di scrub principale), quindi i px del
- *  target e quelli del cursore coincidono. */
+ *  Letto a runtime. Perché la matematica regge SEMPRE, anche a camera trasformata:
+ *  il target si misura in coordinate SCHERMO (getBoundingClientRect, transform
+ *  inclusi) e il cursore vive FUORI da `.imm-camera`, in uno spazio NON scalato
+ *  (`.imm-stage`/sticky, neutro durante la finestra di scrub principale: l'hand-off
+ *  avviene fuori) i cui px coincidono con lo schermo. Unico vincolo: misurare a
+ *  camera FERMA (vedi CAMERA · REGOLE DI SEQUENZIAMENTO, regola 2). */
 function cursorDest(
   section: HTMLElement,
   target: string | Element | null | undefined,
@@ -322,6 +336,285 @@ export function maskReveal(
   return tl;
 }
 
+/* ══ CAMERA · REGOLE DI SEQUENZIAMENTO (P11 — vincolanti per le scene) ═════════
+ *
+ * `.imm-camera` è il layer delle INQUADRATURE (punch-in, push-in, follow, whip):
+ * sta dentro `.imm-stage`, sopra `.imm-skew`. Con camera inutilizzata è un div
+ * neutro → le scene che non la usano si comportano ESATTAMENTE come prima.
+ *
+ * 1. LAYER E RUOLI — non mescolare:
+ *    · `.imm-stage`  = hand-off tra scene (entrata/uscita). RISERVATA: mai
+ *      animarla dalla timeline principale né dalle API camera.
+ *    · `.imm-camera` = inquadrature di scena, SOLO via cameraTo / cameraReset /
+ *      cameraFollow / cameraWhip (mai tween "a mano" su altri transform).
+ *    · `.imm-skew`   = velocity skew (VelocitySkew, globale). Non toccarla.
+ *    · `.imm-cursor` = FUORI da `.imm-camera`, figlio diretto di `.imm-stage`:
+ *      NON va mai spostato dentro la camera, o cursorDest misura coordinate
+ *      sbagliate quando la camera scala (vedi commento su cursorDest).
+ *
+ * 2. CAMERA E CURSORE MAI IN PARTENZA SIMULTANEA verso lo stesso target: i
+ *    valori function-based si misurano a TWEEN START, e una misura a metà
+ *    movimento camera darebbe coordinate sbagliate. Prima parte la camera (o il
+ *    cursore), l'altro segue con overlap MASSIMO `position: ">-0.2"`. Per un
+ *    atterraggio preciso del cursore su un target inquadrato: camera prima,
+ *    cursorTo per ultimo (misura il layout ormai assestato).
+ *
+ * 3. OGNI INQUADRATURA SI CHIUDE: `cameraReset` prima del beat finale della
+ *    scena e comunque prima della fine timeline. A progress(1) la camera DEVE
+ *    essere neutra (x:0, y:0, scale:1, rotation:0) → reduced-motion pulito e
+ *    hand-off `.imm-stage` senza conflitti. cameraWhip finisce neutro da solo;
+ *    rackFocus si chiude con rackFocusOff quando il primo piano si richiude.
+ *
+ * 4. clickZoom (punch LOCALE sul cluster) e cameraTo (punch DI CAMERA) NON si
+ *    sommano sullo stesso beat: dove entra il punch di camera, va rimosso il
+ *    clickZoom corrispondente.
+ *
+ * 5. ROTATION MICRO-DUTCH: max 0.6deg, solo su beat drammatici, sempre
+ *    riportata a 0 (cameraReset la azzera comunque).
+ *
+ * 6. SCRUB-SAFE E DETERMINISTICO: niente repeat:-1 nella timeline scrubbata;
+ *    solo transform/opacity. `filter: blur()` SOLO ≤2px e per beat ≤0.5s: in
+ *    rackFocus è OPZIONALE (opts.blur, default disattivo) — va rimosso se non
+ *    tiene i 60fps.
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+/** Scala camera ammessa: mai <1 (scoprirebbe il fondo oltre i bordi del
+ *  contenuto), mai >1.7 (oltre, la UI raster si sgrana e il pan "pixella"). */
+const CAM_MAX_SCALE = 1.7;
+function clampCamScale(s: number): number {
+  return Math.min(CAM_MAX_SCALE, Math.max(1, s));
+}
+
+/** Transform correnti della camera — fallback quando il target manca (la camera
+ *  resta dov'è: niente salti in scrub). */
+function cameraCurrent(section: HTMLElement | undefined): {
+  x: number;
+  y: number;
+  scale: number;
+} {
+  const cam = section?.querySelector<HTMLElement>(".imm-camera");
+  if (!cam) return { x: 0, y: 0, scale: 1 };
+  return {
+    x: Number(gsap.getProperty(cam, "x")) || 0,
+    y: Number(gsap.getProperty(cam, "y")) || 0,
+    scale: Number(gsap.getProperty(cam, "scaleX")) || 1,
+  };
+}
+
+/**
+ * Calcola x/y/scale della camera perché il CENTRO di `target` finisca al centro
+ * del viewport alla scala S. Robusto a camera GIÀ trasformata: ricava le
+ * coordinate LOCALI (non trasformate) del target dal rect trasformato diviso la
+ * scala corrente, poi risolve la traslazione con transform-origin al centro
+ * (derivazione: screenX(p) = stickyLeft + cx + x + (p − cx)·S, risolta per x con
+ * screenX(target) = centro viewport; il riferimento fisso è il genitore STICKY,
+ * mai trasformato). x/y sono CLAMPATI a ±(metà·(S−1)) così ai margini non si
+ * scopre mai il fondo (lo stage riempie il viewport — demo PC full-screen).
+ * Ritorna null se camera/target mancano o il target è display:none → il
+ * chiamante fa fallback allo stato corrente.
+ */
+function cameraShot(
+  section: HTMLElement,
+  target: string | Element | null | undefined,
+  scale: number,
+): { x: number; y: number; scale: number } | null {
+  const cam = section.querySelector<HTMLElement>(".imm-camera");
+  const el =
+    typeof target === "string" ? section.querySelector<HTMLElement>(target) : (target ?? null);
+  if (!cam || !el) return null;
+  const r = el.getBoundingClientRect();
+  if (r.width === 0 && r.height === 0) return null; // target nascosto → fallback
+  const S = clampCamScale(scale);
+  const s0 = Number(gsap.getProperty(cam, "scaleX")) || 1;
+  const camRect = cam.getBoundingClientRect(); // rect TRASFORMATO (transform correnti)
+  // Centro del target nello spazio NON trasformato della camera:
+  const localX = (r.left + r.width / 2 - camRect.left) / s0;
+  const localY = (r.top + r.height / 2 - camRect.top) / s0;
+  // Riferimento fisso: il genitore sticky (mai trasformato; .imm-stage è neutro
+  // durante la finestra di scrub principale — l'hand-off avviene fuori).
+  const sticky = cam.parentElement?.parentElement ?? section;
+  const sr = sticky.getBoundingClientRect();
+  const cx = cam.offsetWidth / 2;
+  const cy = cam.offsetHeight / 2;
+  let x = window.innerWidth / 2 - sr.left - cx + (cx - localX) * S;
+  let y = window.innerHeight / 2 - sr.top - cy + (cy - localY) * S;
+  // CLAMP ai bordi: il contenuto scalato deve sempre coprire il viewport.
+  const maxX = Math.max(0, cx * (S - 1));
+  const maxY = Math.max(0, cy * (S - 1));
+  x = Math.min(maxX, Math.max(-maxX, x));
+  y = Math.min(maxY, Math.max(-maxY, y));
+  return { x, y, scale: S };
+}
+
+/**
+ * INQUADRA un elemento: anima `.imm-camera` (x, y, scale) così che il centro del
+ * target finisca al centro del viewport alla scala richiesta. Punch-in sui click
+ * (scale 1.35–1.5, ease "expo.out" breve), push-in lento sul typing (scale ~1.2,
+ * ease "power1.inOut", duration del typeInField). Valori FUNCTION-BASED:
+ * ri-misurati a tween start e su invalidateOnRefresh → seguono il layout vero.
+ * Scale clampata a [1, 1.7]; x/y clampati per non scoprire i bordi. Target
+ * mancante → la camera resta dov'è (no-op). Chiudere SEMPRE con cameraReset
+ * (regola 3). NON sommare a clickZoom sullo stesso beat (regola 4).
+ */
+export function cameraTo(
+  tl: gsap.core.Timeline,
+  target: string | Element,
+  opts?: { scale?: number; duration?: number; ease?: string; position?: number | string },
+): gsap.core.Timeline {
+  const section = tl.data as HTMLElement | undefined;
+  const S = clampCamScale(opts?.scale ?? 1.4);
+  const shot = () => (section ? cameraShot(section, target, S) : null);
+  return tl.to(
+    ".imm-camera",
+    {
+      duration: opts?.duration ?? 0.9,
+      ease: opts?.ease ?? "power3.inOut",
+      x: () => shot()?.x ?? cameraCurrent(section).x,
+      y: () => shot()?.y ?? cameraCurrent(section).y,
+      scale: () => shot()?.scale ?? cameraCurrent(section).scale,
+    },
+    opts?.position ?? ">",
+  );
+}
+
+/**
+ * Riporta la camera NEUTRA (x:0, y:0, scale:1, rotation:0 — azzera anche
+ * xPercent/skewX del whip per sicurezza). È il meccanismo con cui ogni scena
+ * garantisce la regola 3: camera neutra a progress(1) → reduced-motion pulito e
+ * hand-off `.imm-stage` senza conflitti. Va chiamata prima del beat finale.
+ */
+export function cameraReset(
+  tl: gsap.core.Timeline,
+  opts?: { duration?: number; ease?: string; position?: number | string },
+): gsap.core.Timeline {
+  return tl.to(
+    ".imm-camera",
+    {
+      x: 0,
+      y: 0,
+      xPercent: 0,
+      yPercent: 0,
+      scale: 1,
+      rotation: 0,
+      skewX: 0,
+      duration: opts?.duration ?? 0.8,
+      ease: opts?.ease ?? "power2.inOut",
+    },
+    opts?.position ?? ">",
+  );
+}
+
+/**
+ * "Lock" sul cursore nelle traversate lunghe (es. sidebar → contenuto): pan
+ * della camera verso lo stesso target del cursorTo concorrente, con gli stessi
+ * default di duration/ease (0.9, "power2.inOut") così i due viaggi respirano
+ * insieme. Zoom INVARIATO di default (passare opts.scale, es. 1.15, per un
+ * lieve avvicinamento). Rispettare la regola 2: partenze sfalsate (overlap max
+ * ">-0.2") — per l'atterraggio preciso il cursorTo parte per ultimo.
+ */
+export function cameraFollow(
+  tl: gsap.core.Timeline,
+  target: string | Element,
+  opts?: { scale?: number; duration?: number; ease?: string; position?: number | string },
+): gsap.core.Timeline {
+  const section = tl.data as HTMLElement | undefined;
+  // Scala risolta a TWEEN START: default = quella corrente (zoom invariato).
+  const shot = () =>
+    section ? cameraShot(section, target, opts?.scale ?? cameraCurrent(section).scale) : null;
+  return tl.to(
+    ".imm-camera",
+    {
+      duration: opts?.duration ?? 0.9,
+      ease: opts?.ease ?? "power2.inOut",
+      x: () => shot()?.x ?? cameraCurrent(section).x,
+      y: () => shot()?.y ?? cameraCurrent(section).y,
+      scale: () => shot()?.scale ?? cameraCurrent(section).scale,
+    },
+    opts?.position ?? ">",
+  );
+}
+
+/**
+ * WHIP-PAN sui cambi pannello: burst rapido (default 0.35s totali, expo in→out)
+ * con xPercent ±3 + skewX 0→±1.2→0 su `.imm-camera` — lo "squash" da colpo di
+ * frusta — in sync con il pan del `.imm-track`. `dir` = verso dove VA la vista:
+ * "r" = pannello successivo (il contenuto scatta a sinistra), "l" = precedente.
+ * Sotto-timeline (come clickZoom) inserita a `position`; finisce SEMPRE a valori
+ * neutri → scrub-safe e no-op pulito sotto reduced-motion.
+ */
+export function cameraWhip(
+  tl: gsap.core.Timeline,
+  dir: "l" | "r",
+  opts?: { amount?: number; skew?: number; duration?: number; position?: number | string },
+): gsap.core.Timeline {
+  const sign = dir === "r" ? -1 : 1;
+  const amount = (opts?.amount ?? 3) * sign;
+  const skew = (opts?.skew ?? 1.2) * sign;
+  const dur = opts?.duration ?? 0.35;
+  const w = gsap.timeline();
+  w.to(".imm-camera", { xPercent: amount, skewX: skew, duration: dur / 2, ease: "expo.in" }).to(
+    ".imm-camera",
+    { xPercent: 0, skewX: 0, duration: dur / 2, ease: "expo.out" },
+  );
+  tl.add(w, opts?.position ?? ">");
+  return tl;
+}
+
+/**
+ * RACK FOCUS: profondità quando si apre un drawer/modale/chat — il layer DIETRO
+ * (bgTarget) perde fuoco: opacity ~0.55 + scale 0.985 (0.5s, "power2.out").
+ * Blur OPZIONALE e disattivo di default (opts.blur in px, clamp ≤2 — regola 6:
+ * beat ≤0.5s, rimuoverlo se non tiene i 60fps). Ripristinare con rackFocusOff
+ * quando il primo piano si richiude (se resta aperto a fine scena, lo stato
+ * "sfocato" è uno stato finale legittimo a progress(1) — la CAMERA invece deve
+ * comunque finire neutra).
+ */
+export function rackFocus(
+  tl: gsap.core.Timeline,
+  bgTarget: string | Element,
+  opts?: {
+    opacity?: number;
+    scale?: number;
+    blur?: number;
+    duration?: number;
+    ease?: string;
+    position?: number | string;
+  },
+): gsap.core.Timeline {
+  const vars: gsap.TweenVars = {
+    opacity: opts?.opacity ?? 0.55,
+    scale: opts?.scale ?? 0.985,
+    duration: opts?.duration ?? 0.5,
+    ease: opts?.ease ?? "power2.out",
+  };
+  const blur = Math.min(2, Math.max(0, opts?.blur ?? 0));
+  if (blur > 0) vars.filter = `blur(${blur}px)`;
+  tl.to(bgTarget, vars, opts?.position ?? ">");
+  return tl;
+}
+
+/**
+ * Chiude il rack focus: il layer dietro torna a fuoco (opacity 1, scale 1).
+ * Passare `blur: true` se rackFocus era stato chiamato con opts.blur > 0 (il
+ * filter va riportato a blur(0px); non lo si tocca altrimenti, per non creare
+ * layer di compositing inutili).
+ */
+export function rackFocusOff(
+  tl: gsap.core.Timeline,
+  bgTarget: string | Element,
+  opts?: { blur?: boolean; duration?: number; ease?: string; position?: number | string },
+): gsap.core.Timeline {
+  const vars: gsap.TweenVars = {
+    opacity: 1,
+    scale: 1,
+    duration: opts?.duration ?? 0.5,
+    ease: opts?.ease ?? "power2.inOut",
+  };
+  if (opts?.blur) vars.filter = "blur(0px)";
+  tl.to(bgTarget, vars, opts?.position ?? ">");
+  return tl;
+}
+
 /**
  * Sticky-scrub immersivo + HAND-OFF di scena. Il `build` popola la timeline
  * (selettori scoped a gsap.context). `tl.data = section` permette agli helper
@@ -539,11 +832,21 @@ export const ImmersiveStage = forwardRef<
       style={{ ...accentVars(theme), height: `${heightVh}vh` }}
     >
       <div className="bg-background sticky top-0 h-svh overflow-hidden">
-        {/* .imm-stage = camera (scale/opacity/translate da scroll: zoom di scena +
-            hand-off); .imm-skew = velocity skew. Il cursore è FUORI da .imm-skew
-            (non va inclinato) ma dentro .imm-stage. */}
+        {/* Gerarchia layer (vedi CAMERA · REGOLE DI SEQUENZIAMENTO):
+            .imm-stage  = hand-off tra scene (RISERVATA, animata solo dal kit);
+            .imm-camera = inquadrature cinematografiche (cameraTo/Whip/…) —
+                          neutra finché una scena non la usa → retro-compatibile;
+            .imm-skew   = velocity skew (globale).
+            Il CURSORE resta figlio diretto di .imm-stage, FUORI da .imm-camera
+            (non va scalato: vive nello spazio non trasformato che coincide con
+            lo schermo, vedi cursorDest) e FUORI da .imm-skew (non va inclinato). */}
         <div className="imm-stage h-full w-full">
-          <div className="imm-skew h-full w-full">{children}</div>
+          <div
+            className="imm-camera h-full w-full"
+            style={{ transformOrigin: "50% 50%", willChange: "transform" }}
+          >
+            <div className="imm-skew h-full w-full">{children}</div>
+          </div>
           <Cursor />
         </div>
       </div>

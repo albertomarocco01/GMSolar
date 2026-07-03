@@ -10,7 +10,7 @@
  *   della card pubblicata con «impianto-2026.jpg» nella scena Dashboard.
  *
  *   • Beat ① — veil «Qualcosa non va? Lo segnali da dove sei.» Il cursore
- *     (mano) preme «Segnala un problema» (pressButton + clickZoom).
+ *     (mano) preme «Segnala un problema» (punch di camera + pressButton).
  *   • Beat ② — si apre il DRAWER del modulo: il campo «Pagina» è GIÀ COMPILATO
  *     (`gmsolar.it/dashboard/contenuti` in font-mono) con badge «Rilevata in
  *     automatico ✓» — NESSUN copia/incolla. Il cursore (caret) digita SOLO la
@@ -21,7 +21,12 @@
  *     corretta SOSTITUISCE l'immagine rotta con un wipe (maskReveal) e compare
  *     il mini-toast «Fix pubblicato ✓».
  *
- *   Usa il kit condiviso `./shared`. Camera/skew ereditati dallo stage.
+ *   Usa il kit condiviso `./shared`. CAMERA (P11 — shot-list della scena):
+ *   punch (a) su «Segnala un problema» → pull-back+rack focus (e) sul modulo
+ *   (dashboard `.imm-seg-bg` attenuata dietro il drawer) → lock (c) sul typing
+ *   della descrizione → push-in lento (b) sulla card mentre l'immagine si
+ *   sistema → pull-back reveal (f) + cameraReset finale (camera neutra a
+ *   progress(1), regola 3).
  *   Reduced-motion (kit → tl.progress(1)): stato finale leggibile = modulo
  *   inviato (toast «Segnalazione ricevuta ✓») + difetto RISOLTO (immagine ok,
  *   badge «Risolta ✓», mini-toast «Fix pubblicato ✓»); drawer richiuso.
@@ -38,6 +43,11 @@ import {
   pressButton,
   typeInField,
   maskReveal,
+  cameraTo,
+  cameraReset,
+  cameraFollow,
+  rackFocus,
+  rackFocusOff,
 } from "./shared";
 
 // ── Dati mock (deterministici) ───────────────────────────────────────────────
@@ -82,31 +92,52 @@ export default function ImmersiveSegnalazioni() {
 
     // ── Beat ① — qualcosa non va: si segnala da dove si è ────────────────────
     say(tl, 0); // «Qualcosa non va? Lo segnali da dove sei.»
+    // CAMERA · punch (a) sul bottone «Segnala un problema»: sostituisce il vecchio
+    // clickZoom sul wrapper (regola 4: punch locale e punch di camera non si
+    // sommano). Attacco rapido + micro-overshoot d'arrivo (back.out).
+    cameraTo(tl, ".imm-report-wrap", { scale: 1.4, duration: 0.5, ease: "back.out(1.2)" });
+    // Cursore per ULTIMO (regola 2): misura il layout a camera FERMA → atterra
+    // preciso sul bottone inquadrato. pressButton (scale del solo bottone) resta:
+    // è l'affordance del click, non un punch che si somma.
     cursorTo(tl, ".imm-report-btn", { mode: "hand" });
     tl.to({}, { duration: 0.2 });
     pressButton(tl, ".imm-report-btn", { down: 0.93, downDur: 0.1, upDur: 0.35, back: 2.6 });
-    // Punch sul wrapper (non sul bottone: pressButton ne sta già animando la scale)
-    clickZoom(tl, ".imm-report-wrap", { position: "<", scale: 1.1 });
 
     // ── Beat ② — il modulo: link auto-rilevato, si scrive solo la descrizione ─
     tl.to(".imm-seg-drawer", { xPercent: 0, duration: 0.9, ease: "expo.out" }, ">-0.05");
-    // Enfasi sul campo «Pagina» GIÀ compilato (nessun copia/incolla)
+    // CAMERA · l'inquadratura ① si chiude (regola 3): pull-back a neutro in sync
+    // con l'ingresso del drawer (tween a valori fissi → nessuna misura in corsa).
+    cameraReset(tl, { position: "<" });
+    // CAMERA · rack focus (e): la dashboard dietro (.imm-seg-bg — sidebar, topbar,
+    // pannello; il drawer è un fratello e resta a fuoco) si attenua.
+    rackFocus(tl, ".imm-seg-bg", { position: "<" });
+    // Enfasi sul campo «Pagina» GIÀ compilato (nessun copia/incolla) — beat senza
+    // camera: il punch locale è ammesso.
     clickZoom(tl, ".imm-seg-page", { position: ">0.1", scale: 1.06 });
     say(tl, 1); // «Il link della pagina si compila da solo.»
 
-    // Il cursore (caret) digita SOLO la descrizione del problema
+    // CAMERA · lock (c) sul typing: la camera si aggancia al campo descrizione…
+    cameraFollow(tl, ".imm-seg-desc", { scale: 1.22 });
+    // …e il cursore (caret) parte per ultimo, a camera ferma (regola 2); poi la
+    // camera resta AGGANCIATA (nessun movimento) per tutta la digitazione.
+    // Il vecchio clickZoom su .imm-zoom-form è rimosso (regola 4).
     cursorTo(tl, ".imm-seg-desc", { mode: "text" });
     typeInField(tl, ".imm-seg-desc", { steps: 35, duration: 1.3, position: ">0.15" });
-    clickZoom(tl, ".imm-zoom-form", { position: "<" }); // push-in locale durante il typing
 
     // «Invia segnalazione» → pressione + toast di ricezione con stato
     cursorTo(tl, ".imm-seg-send", { mode: "hand" });
     pressButton(tl, ".imm-seg-send", { downDur: 0.1, upDur: 0.45, back: 3.5, position: ">0.2" });
-    tl.to(".imm-seg-toast", { autoAlpha: 1, y: 0, duration: 0.55, ease: "expo.out" }, ">0.1");
+    // CAMERA · si stacca dal modulo: pull-back a neutro mentre sale il toast
+    // (nasce in basso al centro → rientra in campo con la camera larga).
+    cameraReset(tl, { duration: 0.7 });
+    tl.to(".imm-seg-toast", { autoAlpha: 1, y: 0, duration: 0.55, ease: "expo.out" }, "<0.1");
     clickZoom(tl, ".imm-seg-toast", { position: "<0.14", scale: 1.05 });
 
     // ── Beat ③ — IL FIX: si torna alla dashboard e il difetto è risolto ───────
     tl.to(".imm-seg-drawer", { xPercent: 100, duration: 0.8, ease: "expo.inOut" }, ">0.25");
+    // CAMERA · il rack focus si chiude col drawer: la dashboard torna a fuoco
+    // (rackFocus/rackFocusOff bilanciati — regola 3).
+    rackFocusOff(tl, ".imm-seg-bg", { position: "<" });
     // Il badge di stato flippa in 3D: «In lavorazione» gira via, «Risolta ✓» entra
     tl.to(".imm-seg-old", { rotationY: 90, autoAlpha: 0, duration: 0.3, ease: "power2.in" }, ">0.1");
     tl.to(
@@ -114,11 +145,27 @@ export default function ImmersiveSegnalazioni() {
       { rotationY: 0, autoAlpha: 1, duration: 0.45, ease: "back.out(1.4)" },
       "<0.05",
     );
-    // La foto corretta copre l'immagine rotta con un wipe da sinistra
-    maskReveal(tl, ".imm-img-fix", { dir: "l", duration: 0.8, position: ">0.15" });
-    clickZoom(tl, ".imm-seg-card", { position: "<0.1", scale: 1.04 }); // enfasi sulla card riparata
-    // Mini-toast di conferma del fix
-    tl.to(".imm-fix-toast", { autoAlpha: 1, y: 0, duration: 0.45, ease: "back.out(1.7)" }, ">0.05");
+    // CAMERA · push-in (b) LENTO sulla card mentre l'immagine si sistema (parte a
+    // layout fermo: drawer chiuso e fuoco ripristinato → misura esatta).
+    // Sostituisce il vecchio clickZoom sulla card (regola 4).
+    cameraTo(tl, ".imm-seg-card", {
+      scale: 1.3,
+      duration: 1,
+      ease: "power1.inOut",
+      position: ">0.1",
+    });
+    // La foto corretta copre l'immagine rotta con un wipe da sinistra, DENTRO il
+    // push-in (clip-path: nessuna dipendenza dalle misure di camera).
+    maskReveal(tl, ".imm-img-fix", { dir: "l", duration: 0.8, position: "<0.25" });
+    // CAMERA · pull-back reveal (f) + reset FINALE (regola 3): da 1.3 a neutra per
+    // svelare la dashboard riparata → a progress(1) la camera è neutra.
+    cameraReset(tl, { duration: 0.9, position: ">0.2" });
+    // Mini-toast di conferma mentre il campo si allarga (rientra in alto al centro)
+    tl.to(
+      ".imm-fix-toast",
+      { autoAlpha: 1, y: 0, duration: 0.45, ease: "back.out(1.7)" },
+      ">-0.35",
+    );
     say(tl, 2); // «Il team riceve, sistema, e tu vedi il fix.»
 
     tl.to({}, { duration: 0.6 }); // hold finale
@@ -134,8 +181,11 @@ export default function ImmersiveSegnalazioni() {
     >
       {/* ════ Schermata A · la dashboard (compatta) con il difetto ════ */}
       <div className="bg-background text-foreground flex h-full pt-10">
-        {/* Sidebar compatta — replica della Dashboard, voce «Contenuti» attiva */}
-        <aside className="border-border bg-surface hidden w-44 shrink-0 border-r p-4 sm:block">
+        {/* Sidebar compatta — replica della Dashboard, voce «Contenuti» attiva.
+            `imm-seg-bg` = layer "dietro" del rack focus (P11): sidebar + topbar +
+            pannello si attenuano quando il drawer è aperto; il drawer (fratello,
+            z-20) resta a fuoco. */}
+        <aside className="imm-seg-bg border-border bg-surface hidden w-44 shrink-0 border-r p-4 sm:block">
           <div className="text-foreground mb-6 flex items-center gap-2 px-2 font-semibold">
             <span className="bg-accent h-4 w-4 rounded-[5px]" />
             Dashboard
@@ -157,11 +207,12 @@ export default function ImmersiveSegnalazioni() {
         {/* Area principale: topbar + pannello «Contenuti» + drawer segnalazione */}
         <div className="relative flex-1 overflow-hidden">
           {/* Topbar — con lo STESSO bottone «Segnala un problema» della Dashboard */}
-          <div className="border-border bg-background/80 flex h-12 items-center gap-3 border-b px-5 backdrop-blur">
+          <div className="imm-seg-bg border-border bg-background/80 flex h-12 items-center gap-3 border-b px-5 backdrop-blur">
             <span className="h-2 w-2 rounded-full bg-emerald-400" />
             <span className="text-muted text-xs font-semibold">3 siti connessi</span>
             <div className="ml-auto flex items-center gap-1.5">
-              {/* Wrapper per il punch-zoom: pressButton anima la scale del bottone */}
+              {/* Wrapper = target del punch di CAMERA (cameraTo, P11): pressButton
+                  anima la scale del solo bottone, la camera inquadra il wrapper */}
               <span className="imm-report-wrap inline-flex">
                 <button
                   className="imm-report-btn bg-accent-soft text-accent-ink flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold"
@@ -176,7 +227,7 @@ export default function ImmersiveSegnalazioni() {
           </div>
 
           {/* Pannello «Contenuti» compatto: lista pagine + editor con il difetto */}
-          <div className="h-[calc(100%-3rem)] overflow-hidden p-5">
+          <div className="imm-seg-bg h-[calc(100%-3rem)] overflow-hidden p-5">
             <div className="mx-auto max-w-4xl">
               <div className="mb-3 flex items-center justify-between">
                 <p className="text-foreground font-semibold">Contenuti del sito</p>

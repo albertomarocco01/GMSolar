@@ -19,6 +19,11 @@
  *   Usa il kit condiviso `./shared`. Reduced-motion: tl a progress(1) → drawer
  *   aperto, colonnine Online, contatore a 0 = stato finale leggibile; il binario
  *   a 2 pannelli diventa un carosello scrollabile (overflow-x-auto).
+ *   CAMERA (P11) — shot-list della scena: whip-pan (d) sul cambio
+ *   Panoramica→Colonnine, push-in (b) sulla barra query (SOSTITUISCE il vecchio
+ *   clickZoom — regola 4), rack focus (e) dietro il drawer AI, micro-dutch 0.5°
+ *   sul «Fatto», punch (a) sui flip Offline→Online ✓. Ogni inquadratura si
+ *   chiude con cameraReset → camera NEUTRA a progress(1) (regola 3).
  */
 import { gsap } from "@gmgroup/lib/gsap";
 import { useReducedMotion } from "@gmgroup/lib/motion";
@@ -27,7 +32,10 @@ import {
   Say,
   say,
   cursorTo,
-  clickZoom,
+  cameraTo,
+  cameraReset,
+  cameraWhip,
+  rackFocus,
   useImmersiveScene,
   pressButton,
   typeInField,
@@ -77,6 +85,10 @@ export default function ImmersiveGestionale() {
     gsap.set(".imm-kpi", { autoAlpha: 0, y: 18 });
     // Barre Panoramica: crescono dal basso (scaleY).
     gsap.set(".imm-pano-bar", { scaleY: 0, transformOrigin: "bottom" });
+    // Rack focus (P11): la scala 0.985 del binario deve respirare attorno al
+    // pannello COLONNINE (metà destra del binario largo 200% → origin 75%),
+    // non attorno al centro geometrico che a pan concluso cade sul bordo sinistro.
+    gsap.set(".imm-track", { transformOrigin: "75% 50%" });
     // Pannello assistente: parte fuori campo a destra (drawer chiuso).
     gsap.set(".imm-ag-drawer", { xPercent: 100 });
     gsap.set(".imm-ag-step", { autoAlpha: 0, y: 8 });
@@ -109,13 +121,29 @@ export default function ImmersiveGestionale() {
     cursorTo(tl, navItems[1], { mode: "hand" });
     tl.to(".imm-nav-ind", { top: () => navTop(1), duration: 0.45, ease: "power3.inOut" }, "<0.3");
     tl.to(".imm-track", { xPercent: -50, duration: 1.1, ease: "expo.inOut" }, "<0.1");
-    cursorTo(tl, ".imm-query", { mode: "text" });
-    typeInField(tl, ".imm-query", { steps: 17, duration: 1, position: "<0.2" });
-    clickZoom(tl, ".imm-zoom-local", { position: "<0.3" }); // punch-zoom barra ricerca durante il typing
-    // Le righe che fanno match: l'evidenziazione accent entra a WIPE (maskReveal).
+    // CAMERA · whip-pan (d) in sync col pan del binario: parte nel cuore del
+    // movimento — DOPO che il cursore è atterrato sulla voce di nav (regola 2:
+    // nessun movimento camera durante il viaggio del cursore) — e finisce neutro.
+    cameraWhip(tl, "r", { position: "<0.55" });
+    // CAMERA · push-in (b) sulla barra query: camera PRIMA, cursore per ultimo
+    // (regola 2 — atterraggio preciso sul layout ormai assestato). ">0.25" =
+    // dopo la fine del pan (1.1s): la misura function-based legge il binario FERMO.
+    cameraTo(tl, ".imm-query", {
+      scale: 1.2,
+      duration: 1.1,
+      ease: "power1.inOut",
+      position: ">0.25",
+    });
+    cursorTo(tl, ".imm-query", { mode: "text", duration: 0.7 });
+    typeInField(tl, ".imm-query", { steps: 17, duration: 1, position: ">0.05" });
+    // (Il clickZoom sulla barra è stato SOSTITUITO dal push-in di camera —
+    //  regola 4: punch locale e punch di camera non si sommano sullo stesso beat.)
+    // Le righe che fanno match: l'evidenziazione accent entra a WIPE (maskReveal)
+    // mentre la camera si RIAPRE — pull-back all'"invio" che svela il filtro.
     tl.to(".imm-row-n", { opacity: 0.35, duration: 0.4 }, ">0.1");
     maskReveal(tl, ".imm-match", { dir: "l", duration: 0.5, stagger: 0.12, position: "<" });
     tl.to(".imm-badge", { autoAlpha: 1, scale: 1, duration: 0.45, ease: "back.out(1.8)" }, "<");
+    cameraReset(tl, { duration: 0.8, position: "<" });
 
     // ── ③ Assistente AI — si apre il pannello copilota ed ESEGUE l'operazione ─
     say(tl, 2);
@@ -129,6 +157,11 @@ export default function ImmersiveGestionale() {
       position: ">-0.05",
     });
     tl.to(".imm-ag-drawer", { xPercent: 0, duration: 0.9, ease: "expo.out" }, ">-0.1");
+    // CAMERA · rack focus (e): mentre il drawer entra, il contenuto DIETRO
+    // (binario Colonnine) perde fuoco. Il drawer non si richiude mai → il
+    // rack resta attivo a fine scena: stato finale legittimo a progress(1)
+    // (vedi doc rackFocus in shared); la CAMERA invece finirà neutra.
+    rackFocus(tl, ".imm-track", { position: "<0.1" });
     // 1. la richiesta in linguaggio naturale si "scrive" (kit: typeInField)
     cursorTo(tl, ".imm-ag-req", { mode: "text" });
     typeInField(tl, ".imm-ag-req", { steps: 26, duration: 0.9, position: "<0.2" });
@@ -139,18 +172,38 @@ export default function ImmersiveGestionale() {
       ">0.1",
     );
     tl.to(".imm-ag-check", { scale: 1, duration: 0.4, stagger: 0.3, ease: "back.out(3)" }, "<0.15");
-    // 3. le 2 colonnine filtrate cambiano stato con un FLIP rotateY: "Offline" → "Online ✓"
+    // CAMERA · micro-dutch 0.5° sul «Fatto» (regola 5: ≤0.6°, SEMPRE riportata
+    // a 0). Sotto-timeline rotation-only in sync col pop dell'ultimo check
+    // (">-0.4" = quando parte il 4° check); non esiste un helper dedicato nel
+    // kit, il tween tocca SOLO rotation e chiude a 0 (cameraReset la azzera comunque).
+    const dutch = gsap.timeline();
+    dutch
+      .to(".imm-camera", { rotation: 0.5, duration: 0.18, ease: "power2.out" })
+      .to(".imm-camera", { rotation: 0, duration: 0.32, ease: "power2.inOut" });
+    tl.add(dutch, ">-0.4");
+    // 3. CAMERA · punch (a) sulla mini-lista: la camera "colpisce" (back.out(1.2)
+    //    = micro-overshoot d'arrivo) mentre le 2 colonnine flippano con un
+    //    rotateY "Offline" → "Online ✓". Parte a dutch concluso (rotation 0).
+    cameraTo(tl, ".imm-ag-list", {
+      scale: 1.4,
+      duration: 0.45,
+      ease: "back.out(1.2)",
+      position: ">",
+    });
     tl.to(
       ".imm-ag-old",
       { rotationY: 90, autoAlpha: 0, duration: 0.3, stagger: 0.08, ease: "power2.in" },
-      ">-0.05",
+      "<0.15",
     );
     tl.to(
       ".imm-ag-new",
       { rotationY: 0, autoAlpha: 1, duration: 0.45, stagger: 0.08, ease: "back.out(1.4)" },
       "<0.05",
     );
-    // 4. CONSEGUENZA sui dati: il contatore "Colonnine offline" scala 2 → 0.
+    // 4. PULL-BACK e chiusura inquadratura (regola 3: camera NEUTRA a progress(1)):
+    //    mentre la camera si riapre, la CONSEGUENZA sui dati — "Colonnine offline"
+    //    scala 2 → 0 nel footer del drawer, di nuovo in campo.
+    cameraReset(tl, { duration: 0.8, position: ">0.35" });
     tl.to(
       offline,
       {
@@ -161,7 +214,7 @@ export default function ImmersiveGestionale() {
           if (offlineEl) offlineEl.textContent = String(Math.round(offline.v));
         },
       },
-      ">0.05",
+      "<0.2",
     );
     tl.to({}, { duration: 0.6 });
   });
@@ -251,7 +304,9 @@ export default function ImmersiveGestionale() {
             {/* 2 · Colonnine */}
             <div className="relative w-1/2 shrink-0 overflow-hidden p-6">
               <div className="mb-4 flex items-center justify-between">
-                <div className="imm-zoom-local bg-surface-2 text-foreground flex h-9 max-w-sm flex-1 items-center rounded-full px-4 text-sm">
+                {/* Barra query: l'enfasi sul typing è il PUSH-IN di camera (P11),
+                    niente più cluster clickZoom (imm-zoom-local rimosso). */}
+                <div className="bg-surface-2 text-foreground flex h-9 max-w-sm flex-1 items-center rounded-full px-4 text-sm">
                   <span className="imm-query block whitespace-nowrap">colonnine offline</span>
                 </div>
                 <span className="imm-badge bg-accent text-accent-contrast ml-3 rounded-full px-3 py-1 text-xs font-semibold">
@@ -326,8 +381,9 @@ export default function ImmersiveGestionale() {
               ))}
             </ul>
 
-            {/* Le stesse 2 colonnine filtrate al beat ②: flippano Offline → Online ✓ */}
-            <div className="border-border mt-5 overflow-hidden rounded-xl border">
+            {/* Le stesse 2 colonnine filtrate al beat ②: flippano Offline → Online ✓.
+                `imm-ag-list` = target del PUNCH di camera (P11) sul flip. */}
+            <div className="imm-ag-list border-border mt-5 overflow-hidden rounded-xl border">
               <div className="bg-surface-2 text-muted grid grid-cols-[1fr_auto_6rem] gap-3 px-4 py-2 text-xs font-semibold tracking-wider uppercase">
                 <span>Colonnina</span>
                 <span>Potenza</span>

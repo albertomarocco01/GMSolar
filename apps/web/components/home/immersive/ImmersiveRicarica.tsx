@@ -13,6 +13,12 @@
  *        proxy+Intl), timer e costo live, bolla finale «Stallo prenotato».
  *   Il thread fa auto-scroll (translate Y misurato) per tenere a fuoco l'ultimo
  *   messaggio. Tema CHIARO, tono DESCRITTIVO. Usa il kit condiviso `./shared`.
+ *   CAMERA (P11) — qui DISCRETA (il telefono è già centrato e piccolo, scale ≤1.15):
+ *   push-in 1.15 sul typing (b) → punch leggero 1.12 sull'invio (a) → pull-back
+ *   reveal (f) sul messaggio nel thread → follow lieve 1.08 verso il CTA (c) →
+ *   push-in lento 1.14 sulla ricarica 20→80% (b) → reset finale; rack focus
+ *   leggerissimo (e) sulla griglia-mappa dietro il telefono quando si apre la
+ *   generative-UI. Regole di sequenziamento: vedi shared.tsx.
  *   Reduced-motion: gsap.set iniziale + tl.progress(1) → stato finale leggibile.
  */
 import { gsap } from "@gmgroup/lib/gsap";
@@ -27,6 +33,11 @@ import {
   typeInField,
   countUp,
   maskReveal,
+  cameraTo,
+  cameraFollow,
+  cameraReset,
+  rackFocus,
+  rackFocusOff,
 } from "./shared";
 
 /** Formattatori Intl — singleton fuori dal componente (nessuna riallocazione). */
@@ -107,8 +118,19 @@ export default function ImmersiveRicarica() {
     // ── ② L'utente scrive nel campo (kit: typeInField) e invia ────────────────
     tl.to(".imm-rc-placeholder", { autoAlpha: 0, duration: 0.2, ease: "power2.out" });
     typeInField(tl, ".imm-rc-input-text", { steps: 28, duration: 0.95, position: "<" });
-    clickZoom(tl, ".imm-zoom-local", { position: "<0.3" }); // punch-zoom della barra durante il typing
-    // Il cursore (mano) va sul tasto invia e fa "tap" (kit: pressButton)
+    // (b) PUSH-IN lento sulla digitazione, camera DISCRETA (max scale 1.15 in
+    // tutta la scena). Sostituisce il vecchio clickZoom della barra: punch locale
+    // e punch di camera non si sommano sullo stesso beat (regola 4).
+    cameraTo(tl, ".imm-zoom-local", {
+      scale: 1.15,
+      duration: 0.95,
+      ease: "power1.inOut",
+      position: "<",
+    });
+    // (a) PUNCH leggero sul tasto invia: prima la camera (breve, expo.out), POI
+    // il cursore-mano che atterra a inquadratura assestata (regola 2: mai
+    // partenze simultanee camera+cursore sullo stesso target).
+    cameraTo(tl, ".imm-rc-send", { scale: 1.12, duration: 0.4, ease: "expo.out" });
     cursorTo(tl, ".imm-rc-send", { mode: "hand" });
     pressButton(tl, ".imm-rc-send", {
       down: 0.86,
@@ -134,6 +156,9 @@ export default function ImmersiveRicarica() {
       { y: () => scrollTo(".imm-rc-user-1"), duration: 0.5, ease: "power2.inOut" },
       "<",
     );
+    // (f) PULL-BACK REVEAL: dal punch sull'invio la camera si riapre a neutro
+    // mentre il messaggio entra nel thread → "svela" la conversazione.
+    cameraReset(tl, { duration: 0.7, position: "<" });
 
     // ── ③ L'agente "sta scrivendo" → risponde ─────────────────────────────────
     tl.to(".imm-rc-typing", { autoAlpha: 1, duration: 0.3, ease: "power2.out" }, ">0.1");
@@ -152,6 +177,10 @@ export default function ImmersiveRicarica() {
       { autoAlpha: 1, y: 0, scale: 1, duration: 0.6, ease: "expo.out" },
       ">0.1",
     );
+    // (e) RACK FOCUS leggerissimo: la griglia-mappa di sfondo si attenua mentre
+    // si "apre" la generative-UI → profondità dietro il telefono (chiuso con
+    // rackFocusOff al beat finale; niente blur — regola 6).
+    rackFocus(tl, ".imm-rc-bg", { opacity: 0.45, scale: 0.99, duration: 0.5, position: "<" });
     tl.to(
       ".imm-rc-thread",
       { y: () => scrollTo(".imm-rc-card-station"), duration: 0.6, ease: "power2.inOut" },
@@ -173,7 +202,13 @@ export default function ImmersiveRicarica() {
     maskReveal(tl, ".imm-rc-stat", { dir: "t", duration: 0.4, stagger: 0.07, position: "<0.15" });
 
     // ── ⑤ L'utente prenota lo stallo (cursore-mano "tap" + punch-zoom della card) ──
+    // (c) FOLLOW leggero: la camera accompagna la traversata verso il CTA con un
+    // lieve avvicinamento (1.08); camera PRIMA, cursorTo per ULTIMO così il
+    // cursore misura il layout ormai assestato (regola 2).
+    cameraFollow(tl, ".imm-rc-book-btn", { scale: 1.08, duration: 0.7 });
     cursorTo(tl, ".imm-rc-book-btn", { mode: "hand" });
+    // Punch LOCALE (clickZoom 1.03): ammesso perché su questo beat la camera è
+    // FERMA in hold a 1.08 — nessun cameraTo concorrente (regola 4).
     clickZoom(tl, ".imm-rc-card-station", { position: ">-0.05", scale: 1.03 });
     pressButton(tl, ".imm-rc-book-btn", {
       down: 0.94,
@@ -201,8 +236,12 @@ export default function ImmersiveRicarica() {
       { y: () => scrollTo(".imm-rc-card-charge"), duration: 0.6, ease: "power2.inOut" },
       "<",
     );
+    // (b) PUSH-IN lento sulla vista ricarica, in respiro con la batteria 20→80%.
+    // Appeso DOPO l'auto-scroll del thread: la camera misura i target a tween
+    // start e una misura a thread in movimento darebbe coordinate sbagliate.
+    cameraTo(tl, ".imm-rc-card-charge", { scale: 1.14, duration: 1.2, ease: "power1.inOut" });
     // Barra batteria 20% → 80% in sincronia con il contatore
-    tl.to(".imm-rc-battery-fill", { scaleX: 0.8, duration: 1.3, ease: "power1.inOut" }, "<0.15");
+    tl.to(".imm-rc-battery-fill", { scaleX: 0.8, duration: 1.3, ease: "power1.inOut" }, "<0.1");
     tl.to(
       pct,
       {
@@ -247,6 +286,13 @@ export default function ImmersiveRicarica() {
       { y: () => scrollTo(".imm-rc-final"), duration: 0.5, ease: "power2.inOut" },
       "<",
     );
+    // RESET FINALE (regola 3): pull-back a camera NEUTRA sulla bolla conclusiva
+    // → a progress(1) x:0 y:0 scale:1 rot:0 (reduced-motion pulito, hand-off
+    // .imm-stage invariato); la griglia di sfondo torna a fuoco (chiude il
+    // rack focus di ④). La pausa di respiro resta DOPO: il reset si completa
+    // sempre prima della fine timeline.
+    cameraReset(tl, { duration: 0.8, position: "<" });
+    rackFocusOff(tl, ".imm-rc-bg", { duration: 0.5, position: "<" });
     tl.to({}, { duration: 0.5 });
   });
 
@@ -258,9 +304,11 @@ export default function ImmersiveRicarica() {
       label="Ricarica"
       eyebrow="06 · App con assistente AI integrato"
     >
-      {/* Sfondo pagina: griglia mappa tenue (accent) su tono chiaro */}
+      {/* Sfondo pagina: griglia mappa tenue (accent) su tono chiaro.
+          `.imm-rc-bg` = bersaglio del rack focus (si attenua dietro la
+          generative-UI, torna a fuoco al reset finale). */}
       <div
-        className="pointer-events-none absolute inset-0"
+        className="imm-rc-bg pointer-events-none absolute inset-0"
         style={{
           backgroundImage: [
             "linear-gradient(to right, color-mix(in oklab, var(--accent) 7%, transparent) 1px, transparent 1px)",

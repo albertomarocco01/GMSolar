@@ -16,6 +16,12 @@
  *   accessibilità MA conserva il suo box → l'altezza della scena non cambia e lo
  *   sticky-scrub non si desincronizza. L'interfaccia generata è un overlay assoluto.
  *
+ *   CAMERA (P11 — shot-list della scena): push-in (b) sulla barra durante il
+ *   typing; punch (a) sull'invio; pull-back reveal (f) quando la griglia vola via
+ *   ed entra la genui + rack focus (e) leggero sulla pagina dietro (`.imm-behind`);
+ *   punch (a) sulla scelta del configuratore; cameraReset prima del beat finale
+ *   → a progress(1) la camera è NEUTRA (reduced-motion pulito).
+ *
  *   Usa il kit condiviso `./shared`; selettori a classe scoped a gsap.context.
  *   Reduced-motion: stato finale (interfaccia generata visibile, griglia nascosta)
  *   leggibile — il kit porta la timeline a progress(1).
@@ -27,12 +33,14 @@ import {
   Say,
   say,
   cursorTo,
-  clickZoom,
   useImmersiveScene,
   pressButton,
   typeInField,
   drawPath,
   maskReveal,
+  cameraTo,
+  cameraReset,
+  rackFocus,
 } from "./shared";
 import { PRODUCTS, GENERATED, QUERY } from "./_assistente-data";
 
@@ -66,16 +74,27 @@ export default function ImmersiveAssistente() {
     cursorTo(tl, ".imm-bar", { mode: "text" });
     tl.to(".imm-bar-ring", { autoAlpha: 1, duration: 0.35, ease: "power2.out" }, "<0.45");
 
-    // ③ Digitazione della richiesta carattere-per-carattere (kit: typeInField),
-    //    con punch-zoom della barra a metà digitazione.
+    // ③ Digitazione della richiesta carattere-per-carattere (kit: typeInField).
+    //    CAMERA · PUSH-IN (b): avvicinamento lento sulla barra per tutta la durata
+    //    del typing (scale 1.2, ease "documentaristico"). La camera parte per prima
+    //    e il typing si sovrappone: il cursore è già FERMO sulla barra (regola 2 ok,
+    //    nessuna partenza simultanea camera+cursore). Sostituisce il vecchio
+    //    clickZoom locale sulla barra (regola 4: i due punch non si sommano).
     tl.to(".imm-placeholder", { autoAlpha: 0, duration: 0.2, ease: "power2.in" });
-    typeInField(tl, ".imm-typed", { steps: 30, duration: 1.2 });
-    clickZoom(tl, ".imm-bar", { position: "<0.4" }); // punch-zoom della barra durante il typing
+    cameraTo(tl, ".imm-bar", { scale: 1.2, duration: 1.2, ease: "power1.inOut" });
+    typeInField(tl, ".imm-typed", { steps: 30, duration: 1.2, position: "<0.1" });
     say(tl, 1);
 
     // ④ Invio → l'AI "ragiona": press del tasto (kit: pressButton), dots + un
     //    mini-grafico/spec che si DISEGNA durante la pausa di ragionamento.
-    cursorTo(tl, ".imm-send", { mode: "hand" });
+    //    CAMERA · PUNCH (a) sul tasto invio: punch rapido (expo.out) + micro-
+    //    overshoot d'arrivo (back.out) che assesta l'inquadratura a 1.4. Camera
+    //    PRIMA, cursorTo per ULTIMO (regola 2: il cursore misura il layout ormai
+    //    fermo → atterraggio preciso sul target inquadrato). L'inquadratura TIENE
+    //    durante il ragionamento: il pull-back arriva col reveal della genui (⑤).
+    cameraTo(tl, ".imm-send", { scale: 1.5, duration: 0.45, ease: "expo.out" });
+    cameraTo(tl, ".imm-send", { scale: 1.4, duration: 0.25, ease: "back.out(1.2)" });
+    cursorTo(tl, ".imm-send", { mode: "hand", duration: 0.6 });
     pressButton(tl, ".imm-send", {
       down: 0.86,
       downDur: 0.12,
@@ -93,16 +112,25 @@ export default function ImmersiveAssistente() {
     // La barra perde il focus: l'anello accent si spegne (altrimenti a progress(1),
     // sotto reduced-motion, resterebbe acceso senza interazione in corso).
     tl.to(".imm-bar-ring", { autoAlpha: 0, duration: 0.25, ease: "power2.in" }, "<");
-    // Griglia OUT: stagger che si dissolve verso l'alto. autoAlpha:0 →
-    // visibility:hidden = fuori dall'albero a11y, ma il box resta (height lock).
-    tl.to(".imm-prod", {
-      autoAlpha: 0,
-      y: -26,
-      scale: 0.9,
-      duration: 0.5,
-      stagger: { each: 0.05, from: "end" },
-      ease: "power2.in",
-    });
+    // CAMERA · PULL-BACK REVEAL (f): dall'inquadratura del punch (1.4) alla
+    // neutra MENTRE la griglia vola via e la genui entra — è lo zoom-out che
+    // "svela" l'interfaccia generata (chiude anche l'inquadratura del punch ④).
+    cameraReset(tl, { duration: 1.1, ease: "power2.inOut" });
+    // Griglia OUT: stagger che si dissolve verso l'alto, in overlap col pull-back.
+    // autoAlpha:0 → visibility:hidden = fuori dall'albero a11y, ma il box resta
+    // (height lock).
+    tl.to(
+      ".imm-prod",
+      {
+        autoAlpha: 0,
+        y: -26,
+        scale: 0.9,
+        duration: 0.5,
+        stagger: { each: 0.05, from: "end" },
+        ease: "power2.in",
+      },
+      "<0.1",
+    );
     // Interfaccia generata IN (overlay assoluto); le sezioni entrano con un WIPE
     // direzionale (kit: maskReveal) invece del semplice fade+slide.
     tl.to(
@@ -110,6 +138,11 @@ export default function ImmersiveAssistente() {
       { autoAlpha: 1, y: 0, scale: 1, duration: 0.75, ease: "expo.out" },
       ">-0.15",
     );
+    // CAMERA · RACK FOCUS (e) leggero: la pagina dietro la genui (header, titolo,
+    // griglia ormai svuotata — classe `.imm-behind`) perde fuoco → profondità.
+    // Resta così a fine scena: il primo piano non si richiude, quindi è uno stato
+    // finale legittimo a progress(1) (la CAMERA invece torna comunque neutra).
+    rackFocus(tl, ".imm-behind", { opacity: 0.7, scale: 0.99, position: "<" });
     maskReveal(tl, ".imm-genui-item", {
       dir: "l",
       duration: 0.5,
@@ -117,8 +150,12 @@ export default function ImmersiveAssistente() {
       position: "<0.18",
     });
 
-    // ⑥ Il configuratore "funziona": il cursore preme la combinazione pre-scelta
-    //    (kit: pressButton) e un punch-zoom evidenzia il cluster.
+    // ⑥ Il configuratore "funziona": il cursore preme la combinazione pre-scelta.
+    //    CAMERA · PUNCH (a) sulla scelta del configuratore: punch rapido + micro-
+    //    overshoot d'arrivo; camera PRIMA, cursore per ULTIMO (regola 2).
+    //    Sostituisce il clickZoom locale sul cluster del configuratore (regola 4).
+    cameraTo(tl, ".imm-config-pick", { scale: 1.42, duration: 0.45, ease: "expo.out" });
+    cameraTo(tl, ".imm-config-pick", { scale: 1.35, duration: 0.25, ease: "back.out(1.2)" });
     cursorTo(tl, ".imm-config-pick", { mode: "hand" });
     pressButton(tl, ".imm-config-pick", {
       down: 0.9,
@@ -127,10 +164,12 @@ export default function ImmersiveAssistente() {
       back: 2.6,
       position: ">-0.05",
     });
-    clickZoom(tl, ".imm-config-zoom", { position: "<" });
+    tl.to({}, { duration: 0.35 }); // hold breve sull'inquadratura del click
 
-    // ⑦ Pausa finale
-    tl.to({}, { duration: 0.6 });
+    // ⑦ CAMERA · reset PRIMA del beat finale (regola 3): a progress(1) la camera
+    //    è neutra → reduced-motion pulito e hand-off `.imm-stage` senza conflitti.
+    cameraReset(tl);
+    tl.to({}, { duration: 0.6 }); // pausa finale
   });
 
   return (
@@ -142,8 +181,10 @@ export default function ImmersiveAssistente() {
       eyebrow="04 · Assistente AI di prodotto"
     >
       <div className="relative flex h-full flex-col overflow-hidden">
-        {/* ── Header della pagina prodotti (sito vetrina / e-commerce) ────── */}
-        <header className="border-border bg-surface/90 relative z-10 flex h-14 shrink-0 items-center justify-between border-b px-6 backdrop-blur">
+        {/* ── Header della pagina prodotti (sito vetrina / e-commerce) ──────
+            `.imm-behind` = pagina DIETRO la genui (header, titolo, griglia):
+            perde fuoco col rack focus quando l'interfaccia generata entra. */}
+        <header className="imm-behind border-border bg-surface/90 relative z-10 flex h-14 shrink-0 items-center justify-between border-b px-6 backdrop-blur">
           <div className="flex items-center gap-2">
             <span className="bg-accent h-4 w-4 rounded-[5px]" aria-hidden />
             <span className="font-display text-foreground text-base font-bold tracking-tight">
@@ -163,14 +204,14 @@ export default function ImmersiveAssistente() {
         </header>
 
         {/* ── Corpo: titolo + griglia prodotti ───────────────────────────── */}
-        <div className="px-6 pt-4">
+        <div className="imm-behind px-6 pt-4">
           <h2 className="font-display text-foreground text-lg font-bold tracking-tight">
             Cavi di ricarica
           </h2>
           <p className="text-muted mt-0.5 text-xs">Trova il cavo giusto per la tua auto.</p>
         </div>
 
-        <div className="imm-grid grid grid-cols-2 content-start gap-3 overflow-hidden px-6 pt-3 pb-44 sm:grid-cols-3">
+        <div className="imm-grid imm-behind grid grid-cols-2 content-start gap-3 overflow-hidden px-6 pt-3 pb-44 sm:grid-cols-3">
           {PRODUCTS.map((p, i) => (
             <article
               key={p.id}
@@ -322,9 +363,9 @@ export default function ImmersiveAssistente() {
                 </div>
 
                 {/* Configuratore (mock): l'AI ha pre-selezionato la combinazione.
-                    `.imm-config-zoom` = cluster per il punch-zoom; `.imm-config-pick`
-                    = la scelta che il cursore "preme" (prima opzione selezionata). */}
-                <div className="imm-config-zoom mt-3 space-y-2">
+                    `.imm-config-pick` = la scelta che il cursore "preme" (prima
+                    opzione selezionata); il punch è DI CAMERA (P11), non locale. */}
+                <div className="mt-3 space-y-2">
                   {GENERATED.options.map((opt, oi) => (
                     <div key={opt.label} className="imm-genui-item">
                       <p className="text-muted text-[0.65rem] font-medium">{opt.label}</p>

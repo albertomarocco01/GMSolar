@@ -10,6 +10,10 @@
  *   compilato: sostituzione immagine con wipe, riscrittura titolo, Pubblica →
  *   toast). Poi catalogo prodotti (griglia 3 col), KPI compatti + grafici
  *   affiancati, tabella ordini con Data/Canale. Tono DESCRITTIVO. Kit ./shared.
+ *   CAMERA (P11): follow sidebar→editor, push-in sul typing del titolo, punch su
+ *   «Pubblica» + pull-back reveal sul toast, whip su OGNI pan del binario,
+ *   push-in lento sui KPI durante il countUp → reset. La camera è NEUTRA sul
+ *   beat finale (cursore su «Segnala un problema») e a progress(1).
  *   Reduced-motion: timeline a progress(1) → stato finale leggibile (editor con
  *   foto e titolo nuovi, KPI pieni, tabella completa; binario = carosello).
  */
@@ -22,6 +26,10 @@ import {
   say,
   cursorTo,
   clickZoom,
+  cameraTo,
+  cameraReset,
+  cameraFollow,
+  cameraWhip,
   useImmersiveScene,
   pressButton,
   typeInField,
@@ -143,8 +151,10 @@ export default function ImmersiveDashboard() {
     tl.to({}, { duration: 0.25 });
     pressButton(tl, ".imm-page-hero", { down: 0.96, downDur: 0.12, upDur: 0.22, back: 2.2 });
     tl.to(".imm-page-active", { autoAlpha: 1, duration: 0.3, ease: "power2.out" }, "<");
-    // Punch-zoom sull'editor della pagina selezionata
-    clickZoom(tl, ".imm-zoom-local", { position: ">-0.05" });
+    // FOLLOW (c) — sostituisce il clickZoom sull'editor: dal click sulla lista
+    // la camera fa il pan verso l'editor, POI il cursore lo raggiunge (regola 2:
+    // camera prima, cursorTo per ultimo → misura il layout ormai assestato).
+    cameraFollow(tl, ".imm-zoom-local", { scale: 1.15 });
 
     // «Sostituisci immagine»: la foto attuale viene COPERTA dalla nuova (wipe)
     cursorTo(tl, ".imm-replace-btn", { mode: "hand" });
@@ -157,20 +167,37 @@ export default function ImmersiveDashboard() {
     tl.to({}, { duration: 0.2 });
     tl.to(".imm-title-old", { autoAlpha: 0, duration: 0.15, ease: "power1.out" });
     typeInField(tl, ".imm-title-new", { steps: 32, duration: 1.0, position: "<0.1" });
-    clickZoom(tl, ".imm-zoom-local", { position: "<" }); // push-in durante il typing
+    // PUSH-IN (b) — respiro lento in parallelo al typing (sostituisce il
+    // clickZoom locale; il cursore è FERMO sul campo → nessuna misura sporca).
+    cameraTo(tl, ".imm-title-field", {
+      scale: 1.2,
+      duration: 1.0, // = durata del typeInField
+      ease: "power1.inOut",
+      position: "<",
+    });
 
-    // «Pubblica» → punch + toast di conferma
-    cursorTo(tl, ".imm-publish-btn", { mode: "hand" });
-    tl.to({}, { duration: 0.2 });
+    // «Pubblica» → PUNCH (a) DI CAMERA + toast. Camera PRIMA — snap expo.out e
+    // micro-overshoot back.out(1.2) sull'arrivo — poi il cursore (regola 2);
+    // il vecchio clickZoom locale è rimosso (regola 4: mai i due sommati).
+    tl.to({}, { duration: 0.25 });
+    cameraTo(tl, ".imm-publish-btn", { scale: 1.45, duration: 0.45, ease: "expo.out" });
+    cameraTo(tl, ".imm-publish-btn", { scale: 1.38, duration: 0.3, ease: "back.out(1.2)" });
+    cursorTo(tl, ".imm-publish-btn", { mode: "hand", duration: 0.5 });
+    tl.to({}, { duration: 0.15 });
     pressButton(tl, ".imm-publish-btn", { down: 0.93, downDur: 0.1, upDur: 0.2, back: 2.5 });
-    clickZoom(tl, ".imm-zoom-local", { position: "<", scale: 1.06 }); // punch Pubblica
     tl.to(".imm-toast", { autoAlpha: 1, y: 0, duration: 0.4, ease: "back.out(2)" }, ">-0.1");
+    // PULL-BACK REVEAL (f): dalla stretta sul bottone si svela l'editor
+    // pubblicato con il toast → camera neutra prima del cambio pannello.
+    cameraReset(tl, { duration: 0.9 });
     say(tl, 1); // «Modifichi i contenuti del sito: online subito.»
 
     // ── ② Prodotti ────────────────────────────────────────────────────────────
     cursorTo(tl, navItems[1], { mode: "hand" }); // click "Prodotti" nella sidebar
     tl.to(".imm-nav-ind", { top: () => navTop(1), duration: 0.45, ease: "power3.inOut" }, "<0.3");
     tl.to(".imm-track", { xPercent: -25, duration: 1.1, ease: "expo.inOut" }, "<0.1");
+    // WHIP (d) in sync col pan: il burst (0.35s) cade sul picco di velocità
+    // dell'expo.inOut (~metà pan). Finisce neutro da solo.
+    cameraWhip(tl, "r", { position: "<0.35" });
     say(tl, 2); // «Il catalogo prodotti: aggiungi e aggiorni in un click.»
 
     // Cursore (mano) sul bottone "Aggiungi prodotto" e lo preme
@@ -188,6 +215,7 @@ export default function ImmersiveDashboard() {
     cursorTo(tl, navItems[2], { mode: "hand" }); // click "Visite"
     tl.to(".imm-nav-ind", { top: () => navTop(2), duration: 0.45, ease: "power3.inOut" }, "<0.3");
     tl.to(".imm-track", { xPercent: -50, duration: 1.1, ease: "expo.inOut" }, "<0.1");
+    cameraWhip(tl, "r", { position: "<0.35" }); // WHIP (d) in sync col pan
     say(tl, 3); // «Visite, utenti e conversioni, sempre aggiornati.»
 
     // Card KPI entrano con back.out staggered
@@ -206,18 +234,32 @@ export default function ImmersiveDashboard() {
       })),
       { duration: 1.4, ease: "power2.out", position: "<0.3" },
     );
+    // PUSH-IN (b) lento sulla fila KPI per TUTTA la durata del countUp (parte
+    // insieme al counter; il cursore è fermo in sidebar → nessun conflitto).
+    cameraTo(tl, ".imm-kpi-grid", {
+      scale: 1.15,
+      duration: 1.4, // = durata del countUp
+      ease: "power1.inOut",
+      position: "<",
+    });
     // Sparkline si disegna da sinistra (dashoffset → 0)
     drawPath(tl, ".imm-spark-path", { duration: 1.2, ease: "power2.inOut", position: "<0.4" });
     // Barre crescono dal basso con stagger
     tl.to(".imm-bar", { scaleY: 1, duration: 0.6, stagger: 0.07, ease: "back.out(1.7)" }, "<0.3");
-    // Tocco: il cursore "apre" una card KPI (punch-zoom verso il dettaglio).
+    // Tocco: il cursore "apre" una card KPI (punch LOCALE dentro l'inquadratura
+    // tenuta a 1.15: la camera è FERMA → misura corretta e nessun cameraTo
+    // sommato al clickZoom su questo beat — regola 4).
     cursorTo(tl, ".imm-kpi-zoom", { mode: "hand" });
     clickZoom(tl, ".imm-kpi-zoom", { position: ">-0.05", scale: 1.08 });
+    // Chiusura dell'inquadratura KPI (regola 3): da qui in poi solo whip
+    // auto-neutri → a progress(1) e sul beat finale la camera è neutra.
+    cameraReset(tl);
 
     // ── ④ Ordini ──────────────────────────────────────────────────────────────
     cursorTo(tl, navItems[3], { mode: "hand" }); // click "Ordini"
     tl.to(".imm-nav-ind", { top: () => navTop(3), duration: 0.45, ease: "power3.inOut" }, "<0.3");
     tl.to(".imm-track", { xPercent: -75, duration: 1.1, ease: "expo.inOut" }, "<0.1");
+    cameraWhip(tl, "r", { position: "<0.35" }); // WHIP (d) in sync col pan
     say(tl, 4); // «Gli ordini, con data e canale, in un'unica vista.»
     // Righe tabella entrano con slide+fade staggered
     tl.to(
@@ -520,8 +562,9 @@ export default function ImmersiveDashboard() {
               <div className="mx-auto max-w-5xl">
                 <p className="text-foreground mb-3 font-semibold">Visite · ultimi 30 giorni</p>
 
-                {/* 4 card KPI compatte: counter animato via proxy GSAP */}
-                <div className="mb-3 grid grid-cols-4 gap-3">
+                {/* 4 card KPI compatte: counter animato via proxy GSAP.
+                    `imm-kpi-grid` = target del push-in di camera durante il countUp. */}
+                <div className="imm-kpi-grid mb-3 grid grid-cols-4 gap-3">
                   {KPI.map(({ label, dir, delta, fmt }, i) => (
                     <div
                       key={label}

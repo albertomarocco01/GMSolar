@@ -153,3 +153,24 @@ Posizioni attuali (per i builder):
   pagina si compila da solo.», 2 «Il team riceve, sistema, e tu vedi il fix.». La scena non
   usa `.imm-track`. Eyebrow passati alle scene ora SFASATI rispetto al nuovo ordine (03/04/05):
   irrilevante (prop non renderizzata), P12 li rimuove e usa CHAPTERS.
+
+### Fase 4 (KIT-11 + S11-*)
+
+- Kit camera in shared.tsx: layer `.imm-camera` tra `.imm-stage` e `.imm-skew` (cursore FUORI);
+  helper cameraTo/cameraReset/cameraFollow/cameraWhip/rackFocus/rackFocusOff; blocco
+  «CAMERA · REGOLE DI SEQUENZIAMENTO»; clamp scale [1,1.7]; blur opt-in default OFF.
+- **PER TUTTI I BUILDER P12: in OGNI scena il primo beat camera parte DOPO say(tl,0)** —
+  sostituire `<Say i={0}>`/`say(tl,0)` con ChapterCard/`chapterIntro(tl)` non interseca
+  alcun movimento camera (camera neutra durante tutta la title card). Dettaglio:
+  Assistente → primo beat camera = push-in `.imm-bar` (beat ③); Dashboard = cameraFollow
+  editor (~3.4s, dopo press «Hero homepage»); Segnalazioni = punch `.imm-report-wrap`
+  subito dopo say(0); Gestionale = whip al pan beat ② (dopo say(1)); Ricarica = push-in
+  typing beat ②; Integrazioni = contro-pan alla label "carrellata" (dopo say(0)).
+- Nuovi selettori F4: `.imm-kpi-grid` (Dashboard), `.imm-ag-list` (Gestionale),
+  `.imm-behind` (Assistente rack), `.imm-seg-bg` (Segnalazioni rack), `.imm-rc-bg` (Ricarica).
+- QA runtime F4: fps medio 59.7 (worst frame 67ms), 0 errori console (normale+reduced),
+  camera neutra a fine scene in entrambi i rami, scrub bidirezionale coerente.
+- Note minori aperte (per F6): rack focus resta attivo a progress(1) in Assistente/
+  Gestionale/Integrazioni (stato finale legittimo da doc kit; se QA reduced lo giudica
+  poco leggibile → rackFocusOff nel ramo else); tween "a mano" su .imm-camera in
+  Integrazioni (contro-pan, sanzionato dal prompt) e Gestionale (dutch rotation-only).

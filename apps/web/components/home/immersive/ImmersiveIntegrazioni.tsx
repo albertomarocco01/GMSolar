@@ -11,6 +11,13 @@
  *   notifica una alla volta). Le icone sono loghi brand reali da `simple-icons`,
  *   resi nel colore ufficiale (`#${icon.hex}`) dentro tile neutre (token).
  *
+ *   REGIA DI CAMERA (P11) — inquadrature sul layer `.imm-camera` del kit:
+ *   CONTRO-PAN laterale lieve in sync con la carrellata (tween diretto, ease
+ *   "none"), PUNCH-IN (a) sulla tile WhatsApp, RACK FOCUS (e) sul wall quando
+ *   si apre la chat, PUSH-IN lento (b) durante la lettura delle bolle e
+ *   PULL-BACK reveal (f) = cameraReset sulla griglia piena. Il reset vive in
+ *   ENTRAMBI i rami (animato e reduced) → camera neutra a progress(1).
+ *
  *   Reduced-motion: il kit porta la timeline a progress(1) → la RICHIUSURA
  *   della chat vive SOLO nel percorso animato (ramo `!reduced`), così lo stato
  *   finale ridotto è "tutte le tile visibili + chat aperta e leggibile", senza
@@ -43,7 +50,18 @@ import {
   siWoocommerce,
   siZapier,
 } from "simple-icons";
-import { ImmersiveStage, Say, say, cursorTo, pressButton, useImmersiveScene } from "./shared";
+import {
+  ImmersiveStage,
+  Say,
+  say,
+  cameraReset,
+  cameraTo,
+  cursorTo,
+  pressButton,
+  rackFocus,
+  rackFocusOff,
+  useImmersiveScene,
+} from "./shared";
 
 // ─── Dati statici ────────────────────────────────────────────────────────────
 
@@ -62,6 +80,12 @@ const ROWS: BrandIcon[][] = [
 
 /** Direzione del pan per riga: la riga centrale va in contro-movimento. */
 const rowDir = (i: number) => (i === 1 ? -1 : 1);
+
+/** Durata (unità timeline scrubbata) del pan della carrellata: la condividono
+ *  le righe e il CONTRO-PAN della camera, e àncora il punch sulla tile WhatsApp
+ *  che parte SOLO a pan concluso (le misure function-based della camera vanno
+ *  fatte su layout fermo — regola 2 del kit). */
+const PAN_DUR = 2.6;
 
 /** Chat mock deterministica (orari fissi, testo fisso): esempio WhatsApp. */
 const CHAT = {
@@ -105,8 +129,17 @@ export default function ImmersiveIntegrazioni() {
     say(tl, 0); // «Ci integriamo con i sistemi di tutti i giorni.»
     tl.addLabel("carrellata");
     rows.forEach((row, i) => {
-      tl.to(row, { xPercent: -8 * rowDir(i), duration: 2.6, ease: "none" }, "carrellata");
+      tl.to(row, { xPercent: -8 * rowDir(i), duration: PAN_DUR, ease: "none" }, "carrellata");
     });
+    // CAMERA · CONTRO-PAN laterale (P11): la camera scivola CONTRO le due righe
+    // esterne (che dominano il moto verso sinistra) — parallasse da carrello che
+    // ne amplifica la velocità relativa. Tween DIRETTO su `.imm-camera` (solo
+    // `x`, lieve): eccezione prevista dal prompt P11 perché nessun helper copre
+    // il pan lineare scrubbato; ease "none" e stessa finestra della label
+    // "carrellata" → deterministico avanti/indietro, in sync con le righe. La
+    // `x` residua viene riassorbita dal punch successivo (cameraTo è robusto a
+    // camera già trasformata) e azzerata dal cameraReset finale.
+    tl.to(".imm-camera", { x: -16, duration: PAN_DUR, ease: "none" }, "carrellata");
     tl.to(
       tiles,
       {
@@ -121,17 +154,45 @@ export default function ImmersiveIntegrazioni() {
       "carrellata+=0.1",
     );
 
-    // ── ② ESEMPIO WHATSAPP: il cursore clicca la tile, il resto sfuma, si apre
-    //    la chat mock centrata ──
-    cursorTo(tl, ".imm-int-wa", { mode: "hand" }); // parte a pan concluso (append in coda)
+    // ── ② ESEMPIO WHATSAPP: PUNCH di camera sulla tile, il cursore clicca, il
+    //    resto perde fuoco (rack focus) e si apre la chat mock centrata ──
+    // CAMERA · PUNCH-IN (a): la camera si tuffa sulla tile WhatsApp con micro-
+    // overshoot (back.out). Parte SOLO a pan concluso (àncora esplicita, NON
+    // ">": l'ultimo tween inserito è la stagger delle tile che finisce prima
+    // delle righe) così la misura function-based avviene su tile ferma. Nessun
+    // clickZoom locale da rimuovere su questo beat (regola 4): c'era solo il
+    // pressButton, che resta — è la pressione del bottone, non uno zoom.
+    cameraTo(tl, ".imm-int-wa", {
+      scale: 1.45,
+      duration: 0.5,
+      ease: "back.out(1.2)",
+      position: `carrellata+=${PAN_DUR}`,
+    });
+    // Regola 2 del kit: camera PRIMA, cursore per ULTIMO (append in coda, parte
+    // a punch concluso) → cursorTo misura il layout ormai zoomato e assestato;
+    // il cursore vive FUORI da `.imm-camera`, quindi la mira resta esatta.
+    cursorTo(tl, ".imm-int-wa", { mode: "hand" });
     pressButton(tl, ".imm-int-wa");
-    tl.to(others, { autoAlpha: 0.25, duration: 0.5, ease: "power2.out" }, ">-0.2");
+    // Dim locale dei loghi non protagonisti: 0.45 (non più 0.25) perché ora si
+    // SOMMA al rack focus sul wall (0.45 × 0.55 ≈ 0.25 → resa percepita di prima).
+    tl.to(others, { autoAlpha: 0.45, duration: 0.5, ease: "power2.out" }, ">-0.2");
     tl.to(
       ".imm-int-chat",
       { autoAlpha: 1, scale: 1, y: 0, duration: 0.55, ease: "back.out(1.5)" },
       "<0.1",
     );
     tl.addLabel("chat", "<"); // inizio apertura chat: àncora per le bolle
+    // CAMERA · RACK FOCUS (e): la chat prende il primo piano, la carrellata
+    // dietro perde fuoco (opacity+scale sul wall, niente blur). Si ripristina
+    // con rackFocusOff alla chiusura (ramo !reduced); se la chat resta aperta
+    // (reduced) lo stato sfocato è un finale legittimo — la CAMERA invece torna
+    // comunque neutra (vedi beat ④).
+    rackFocus(tl, ".imm-int-wall", { position: "chat" });
+    // Il cursore esce di scena con l'apertura della chat: ha finito il compito
+    // e i movimenti di camera successivi (push-in, pull-back) lo lascerebbero
+    // visibilmente disallineato dalla tile (criterio P11: mai offset cursore↔
+    // target dopo un movimento di camera). Scrubbando indietro riappare.
+    tl.to(".imm-cursor", { autoAlpha: 0, duration: 0.3, ease: "power2.out" }, "chat");
 
     // ── ③ Sequenza bolle (fade+rise, una alla volta) con caption in parallelo ──
     say(tl, 1); // «Per esempio: le notifiche ti arrivano su WhatsApp.»
@@ -140,22 +201,44 @@ export default function ImmersiveIntegrazioni() {
     tl.to(".imm-int-typing", { autoAlpha: 0, duration: 0.2, ease: "power2.in" }, ">0.55");
     tl.to(".imm-int-msg-2", { autoAlpha: 1, y: 0, duration: 0.4, ease: "power2.out" }, "<0.05");
     tl.to(".imm-int-msg-3", { autoAlpha: 1, y: 0, duration: 0.4, ease: "power2.out" }, ">0.4");
+    // CAMERA · PUSH-IN lento (b): mentre le bolle arrivano, la camera avanza
+    // piano sulla chat (1.45 → 1.5, respiro da documentario). Àncora esplicita
+    // "chat+=0.6": a tween start la chat è già aperta e ferma (apertura 0.55s)
+    // → misura function-based stabile; finisce prima della chiusura, quindi non
+    // si sovrappone mai al pull-back (un solo tween di camera alla volta).
+    cameraTo(tl, ".imm-int-chat", {
+      scale: 1.5,
+      duration: 2.2,
+      ease: "power1.inOut",
+      position: "chat+=0.6",
+    });
     tl.to({}, { duration: 0.6 }); // hold: tempo di lettura della conversazione
 
-    // ── ④ CHIUSURA — solo nel percorso animato. Con reduced-motion il kit salta
-    //    a progress(1) e lo stato finale richiesto è "chat aperta e leggibile":
-    //    lì la chat NON si richiude, ma le tile tornano comunque a piena opacità
-    //    (niente elementi a metà). ──
+    // ── ④ CHIUSURA — la richiusura della chat vive solo nel percorso animato.
+    //    Con reduced-motion il kit salta a progress(1) e lo stato finale è "chat
+    //    aperta e leggibile" (il rack focus resta: finale legittimo); le tile
+    //    tornano comunque a piena opacità (niente elementi a metà). La CAMERA
+    //    invece torna NEUTRA in ENTRAMBI i rami (regola 3 del kit: a progress(1)
+    //    deve essere x:0 / y:0 / scale:1, per reduced-motion e hand-off puliti). ──
     if (!reduced) {
       tl.to(
         ".imm-int-chat",
         { autoAlpha: 0, scale: 0.92, y: 12, duration: 0.35, ease: "power2.in" },
         ">0.3",
       );
+      // Il fondale torna a fuoco insieme alla chiusura della chat…
+      rackFocusOff(tl, ".imm-int-wall", { position: "<" });
       tl.to(others, { autoAlpha: 1, duration: 0.45, ease: "power2.out" }, "<");
+      // …e CAMERA · PULL-BACK REVEAL (f): dal push sulla chat (1.5) a campo
+      // largo (1) sulla griglia piena — il cameraReset È il pull-back, in sync
+      // con la riapertura del fondale. Obbligatorio prima della fine timeline.
+      cameraReset(tl, { duration: 0.9, position: "<" });
       tl.to({}, { duration: 0.5 }); // respiro finale sulla carrellata piena e pulita
     } else {
       tl.to(others, { autoAlpha: 1, duration: 0.3 }, ">");
+      // Ramo reduced: la chat resta aperta ma la camera DEVE finire neutra anche
+      // qui — a progress(1) l'ultimo stato di camera è questo reset (regola 3).
+      cameraReset(tl, { duration: 0.3, position: "<" });
     }
 
     // ── Float continuo sfalsato (motion-safe, indipendente dallo scroll) ─────
