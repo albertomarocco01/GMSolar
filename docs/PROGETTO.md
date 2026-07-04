@@ -22,13 +22,47 @@ I sette servizi da raccontare:
 
 | # | Servizio | Stato attuale nel codice |
 |---|----------|--------------------------|
-| 1 | Siti vetrina moderni (scrollytelling / three.js avanzato) | ✅ esiste: i 3 mondi = l'esempio |
-| 2 | Dashboard centralizzata: gestione contenuti + telemetria multi-sito | ⬜ da costruire (mock) |
-| 3 | Pannello segnalazioni (bug / richieste modifica) | ⬜ da costruire (mock) |
-| 4 | Assistente AI nel sito vetrina (risponde, indirizza a sezioni/prodotti) | 🟡 parziale (manca il chatbot di sito) |
-| 5 | Webapp gestionale con assistente AI | 🟡 solo assaggio (analytics NL→SQL) |
-| 6 | App ricarica EV con assistente AI | ✅ `/mobility/agent` |
-| 7 | Integrazioni API (WhatsApp, Resend, ecc.) | ⬜ da costruire (showcase animato + 1 reale) |
+| 1 | Siti vetrina moderni (scrollytelling video) | ✅ scena Solare (hero video scrubbato + card 3D) |
+| 2 | Assistente AI di prodotto (risponde, genera l'interfaccia) | ✅ `ImmersiveAssistente` (mock) |
+| 3 | Dashboard centralizzata: gestione contenuti + telemetria multi-sito | ✅ `ImmersiveDashboard` (mock) |
+| 4 | Pannello segnalazioni (bug / richieste, con fix mostrato) | ✅ `ImmersiveSegnalazioni` (mock) |
+| 5 | Gestionale colonnine di ricarica con assistente AI | ✅ `ImmersiveGestionale` (mock) |
+| 6 | App di ricarica EV con assistente AI integrato | ✅ `ImmersiveRicarica` (mock) |
+| 7 | Integrazioni API (carrellata loghi + esempio WhatsApp) | ✅ `ImmersiveIntegrazioni` (mock) |
+
+> **Nota:** la numerazione qui sopra è quella narrativa della home (capitoli 01→07),
+> non l'ordine storico del brief. Vedi «Stato della home» qui sotto.
+
+## Stato della home (aggiornato dopo le migliorie P1–P12 + bugfix)
+
+La home (`apps/web/app/page.tsx`) è la presentazione scrollytelling chromeless. Ordine
+delle scene, tutte `<section>` figlie di `#top`:
+
+1. **Solare** (`scenes/SolarTwinScene.tsx`) — finto sito vetrina: header mock + hero
+   video scrubbato (`/assets/solar-twin.mp4`, all-keyframe) + card 3D finali. Apre con
+   una **title card di capitolo one-shot** (velo scuro opaco, titolo lime «Siti vetrina»)
+   mostrata e **tenuta ferma PRIMA** che parta lo scroll (evento `presentation:introdone`
+   → AutoScroll), poi si solleva rivelando l'hero.
+2. **Assistente AI** · 3. **Dashboard** · 4. **Segnalazioni** · 5. **Gestionale colonnine**
+   · 6. **App di ricarica** · 7. **Integrazioni** — scene immersive (`components/home/immersive/`)
+   costruite sul kit `shared.tsx` (`useImmersiveScene`): timeline **scrubbata dallo scroll**,
+   cursore finto, `Say`/caption, e **camera cinematografica** (`cameraTo/Follow/Whip`,
+   `rackFocus`, `hideCursor`) — motion design "da After Effects".
+3. **Chiusura** (`scenes/ClosingScene.tsx`) — solo marchio GM Solar + «Rivedi la presentazione».
+
+Sistemi trasversali:
+
+- **Capitoli + HUD** (P12): ogni scena apre con una `ChapterCard` scura numerata
+  (`shared.tsx`); `ChapterHUD.tsx` (montato in `page.tsx`) mostra capitolo corrente + mini-rail.
+- **Scorrimento automatico** (`AutoScroll.tsx`): crociera a **velocità variabile** — lettura
+  nel corpo scena, **assist rapido nell'hand-off tra un blocco e l'altro**. La **pausa globale**
+  (click) congela auto-scroll + keyframe CSS + tween `repeat:-1` + video liberi
+  (`data-presentation-paused` + evento `presentation:pausechange`). Replay = reload dalla cima.
+- **Rimossi**: le vecchie scene video drone e cavo EV, la ricerca Integrazioni, i dati
+  economici del gestionale, il badge «GM Charge».
+- **Reduced-motion**: ogni scena porta la timeline a `progress(1)` con stato finale
+  leggibile + heading statico di capitolo; camera azzerata da rete di sicurezza nel kit.
+- **AI/integrazioni**: sempre SIMULATE (nessun provider esterno chiamato).
 
 ## A cosa serve / per chi
 

@@ -38,6 +38,7 @@ import {
   ChapterCard,
   chapterIntro,
   cursorTo,
+  hideCursor,
   cameraTo,
   cameraReset,
   cameraWhip,
@@ -194,6 +195,11 @@ export default function ImmersiveGestionale() {
     // 3. CAMERA · punch (a) sulla mini-lista: la camera "colpisce" (back.out(1.2)
     //    = micro-overshoot d'arrivo) mentre le 2 colonnine flippano con un
     //    rotateY "Offline" → "Online ✓". Parte a dutch concluso (rotation 0).
+    // Il cursore finto (fuori da .imm-camera) resta parcheggiato su .imm-ag-req:
+    // lo sfumiamo QUI, appena prima del punch, così non "galleggia" staccato
+    // durante il punch + il cameraReset finale (reduced-motion-safe: a progress(1)
+    // autoAlpha 0; scrub-safe: reversibile). Il prossimo cursorTo lo riporta visibile.
+    hideCursor(tl, { duration: 0.3, position: ">-0.2" });
     cameraTo(tl, ".imm-ag-list", {
       scale: 1.4,
       duration: 0.45,

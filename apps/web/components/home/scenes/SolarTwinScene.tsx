@@ -29,21 +29,15 @@ import { useReducedMotion, useIsoLayoutEffect } from "@gmgroup/lib/motion";
 import ScrubVideo, { type ScrubVideoHandle } from "../ScrubVideo";
 import ScrollCue from "../ScrollCue";
 import SuspendedCards from "../vetrina/SuspendedCards";
-import { CHAPTERS, ChapterCard, chapterIntro } from "../immersive/shared";
+import { CHAPTERS, ChapterCard, maskReveal } from "../immersive/shared";
 
 // Derivati ALL-KEYFRAME obbligatori: il seek è istantaneo SOLO con questi.
 const SRC = "/assets/solar-twin.mp4";
 const POSTER = "/assets/solar-twin-poster.webp";
 
 const ARIA_LABEL = "Siti vetrina — anteprima di un sito con hero video scrollytelling";
-/** Sottotitolo della title card di capitolo 01 (P12) — ex frase popup d'apertura. */
-const FRASE = "Creiamo siti web moderni con una forte narrativa di scrollytelling video.";
-
-/** Quota di scroll (progress) occupata dalla title card di capitolo (P12):
- *  `chapterIntro` è scritta in SECONDI (~2.7s) per le timeline immersive, qui la
- *  timeline è NORMALIZZATA (durata 1 = progress) → l'intro va su una
- *  sotto-timeline compressa via timeScale dentro questo primo ~10% dello scroll. */
-const CHAPTER_SPAN = 0.1;
+/** Sottotitolo della title card di capitolo 01 — ex frase popup d'apertura. */
+const FRASE = "Con una forte narrativa, costruita tramite scrollytelling video.";
 
 /** Il video esaurisce la sua durata a questo progress di scroll: l'ultimo tratto
  *  (l'entrata delle card 3D) scorre con il video FERMO sull'ultimo frame. */
@@ -68,29 +62,45 @@ export default function SolarTwinScene() {
     let disposeDemo: () => void = () => {};
 
     const ctx = gsap.context(() => {
-      // Stato iniziale: card 3D e velo d'uscita nascosti; cue visibile. La
-      // ChapterCard parte già nascosta (opacity 0 inline) e chapterIntro applica
-      // i suoi "from" in build (fromTo immediateRender) → niente set qui.
+      // Stato iniziale: card 3D e velo d'uscita nascosti; cue visibile.
       gsap.set(".st-cue", { autoAlpha: 1 });
       gsap.set(".vt-card", { autoAlpha: 0, y: 30, scale: 0.92 });
       gsap.set(".st-exit-veil", { autoAlpha: 0 });
 
-      // Timeline NORMALIZZATA a durata 1 (spacer): le posizioni dei tween
-      // coincidono con il progress dello scroll. Nessun repeat:-1 qui dentro.
+      // ── TITLE CARD DI CAPITOLO 01 — INTRO ONE-SHOT (NON scrubbata) ─────────
+      // La card NON dipende dallo scroll: è mostrata e TENUTA FERMA PRIMA che la
+      // presentazione parta. Velo OPACO (#0b1020) attivo dal frame 0, SOTTO il
+      // nero di IntroOverlay (dark→dark, nessuno stacco): copre l'hero finché la
+      // card non si solleva → si legge il TITOLO, poi si rivela l'hero e SOLO
+      // allora l'auto-scroll parte (evento `presentation:introdone` → AutoScroll).
+      // `delay` lascia sfumare il nero di IntroOverlay (~1.9s) prima del reveal.
+      // gsap.context la uccide al cleanup; sotto reduced-motion l'effect è saltato
+      // (early-return) → resta l'heading statico e la card inline resta nascosta.
+      gsap.set(".imm-chapter", { autoAlpha: 1, backgroundColor: "#0b1020" });
+      gsap.set(".imm-chapter-kicker", { autoAlpha: 0, y: 18 });
+      gsap.set(".imm-chapter-line", { scaleX: 0, transformOrigin: "left center" });
+      gsap.set(".imm-chapter-sub", { autoAlpha: 0, y: 14 });
+      const introTl = gsap.timeline({
+        delay: 1.15,
+        onComplete: () => window.dispatchEvent(new CustomEvent("presentation:introdone")),
+      });
+      introTl.to(".imm-chapter-kicker", { autoAlpha: 1, y: 0, duration: 0.45, ease: "power3.out" });
+      maskReveal(introTl, ".imm-chapter-word", {
+        dir: "l",
+        duration: 0.55,
+        stagger: 0.09,
+        position: "-=0.1",
+      });
+      introTl
+        .to(".imm-chapter-line", { scaleX: 1, duration: 0.5, ease: "power2.inOut" }, "-=0.2")
+        .to(".imm-chapter-sub", { autoAlpha: 1, y: 0, duration: 0.45, ease: "power3.out" }, "-=0.25")
+        // HOLD leggibile: il titolo resta FERMO ~2.4s (gap "+=2.4" prima dell'uscita).
+        .to(".imm-chapter", { autoAlpha: 0, y: -48, duration: 0.7, ease: "power2.in" }, "+=2.4");
+
+      // Timeline SCRUBBATA (normalizzata a durata 1 = progress): guida video, cue,
+      // card 3D e velo d'uscita. La title card d'apertura NON è qui dentro.
       const tl = gsap.timeline({ defaults: { ease: "none" } });
       tl.to({}, { duration: 1 }, 0);
-
-      // TITLE CARD DI CAPITOLO 01 (P12) — PRIMO beat, al posto della vecchia
-      // frase popup. `chapterIntro` è scritta in secondi (~2.7s): la costruisco
-      // su una SOTTO-timeline (con `data` = section, come fa il kit) e la
-      // comprimo via timeScale dentro CHAPTER_SPAN → la card vive nel primo
-      // ~10% dello scroll e a progress(1) resta nascosta. Tween deterministici
-      // (fromTo/to del kit) → scrub-safe avanti/indietro.
-      const intro = gsap.timeline();
-      intro.data = stage; // chapterIntro cerca `.imm-chapter` in QUESTA sezione
-      chapterIntro(intro);
-      if (intro.duration() > 0) intro.timeScale(intro.duration() / CHAPTER_SPAN);
-      tl.add(intro, 0.004);
 
       // Cue "Scorri": sfuma appena parte lo scroll.
       tl.to(".st-cue", { autoAlpha: 0, duration: 0.04, ease: "power2.in" }, 0.05);
@@ -275,10 +285,10 @@ export default function SolarTwinScene() {
           </div>
         </div>
 
-        {/* TITLE CARD DI CAPITOLO 01 (P12) — velo SCURO numerato con titolo
-            lime, full-screen (copre anche l'header): apre la scena al posto
-            della vecchia frase popup chiara. Parte nascosta (opacity 0 inline);
-            la anima chapterIntro dentro la timeline scrubbata. */}
+        {/* TITLE CARD DI CAPITOLO 01 — velo SCURO numerato con titolo lime,
+            full-screen (copre anche l'header). Parte nascosta (opacity 0 inline);
+            l'INTRO ONE-SHOT (non scrubbata, vedi effect) la mostra e la tiene
+            ferma PRIMA dello scroll, poi la solleva rivelando l'hero. */}
         <ChapterCard chapter={CHAPTERS[0]} subtitle={FRASE} />
 
         {/* Barra di avanzamento accent (scaleX = progress) */}

@@ -33,6 +33,7 @@ import {
   ChapterCard,
   chapterIntro,
   cursorTo,
+  hideCursor,
   clickZoom,
   useImmersiveScene,
   pressButton,
@@ -239,6 +240,11 @@ export default function ImmersiveRicarica() {
       { y: () => scrollTo(".imm-rc-user-2"), duration: 0.5, ease: "power2.inOut" },
       "<",
     );
+    // Nasconde il cursore-mano DOPO che la bolla user-2 si è assestata e PRIMA del
+    // cameraTo sulla vista ricarica: altrimenti resta congelato sopra il telefono
+    // fino al reset finale. A progress(1) l'ultimo tween sul cursore è autoAlpha:0
+    // → nascosto anche in reduced-motion (il cursorTo successivo lo rimostra).
+    hideCursor(tl, { duration: 0.3, position: ">" });
 
     // ── ⑥ Frase + vista RICARICA: batteria che sale, timer e costo live ───────
     say(tl, 2); // «Prenota lo stallo e segue tempi e costi in tempo reale.»
@@ -423,7 +429,7 @@ export default function ImmersiveRicarica() {
                       <p className="text-foreground truncate text-[11px] font-semibold">
                         Hub Ultra-Rapido · A1
                       </p>
-                      <p className="text-muted text-[9px]">Rete Mennekes</p>
+                      <p className="text-muted text-[9px]">Rete partner</p>
                     </div>
                     <span className="bg-accent-soft text-accent-ink shrink-0 rounded-full px-2 py-0.5 text-[9.5px] font-bold">
                       175 kW
@@ -586,7 +592,7 @@ export default function ImmersiveRicarica() {
                   </div>
 
                   <p className="text-accent-ink mt-1 font-mono text-2xl font-bold">
-                    <span className="imm-rc-pct">20%</span>
+                    <span className="imm-rc-pct inline-block">20%</span>
                   </p>
 
                   {/* Barra batteria: scaleX da 0.2 a 0.8 */}

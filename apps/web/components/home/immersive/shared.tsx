@@ -171,6 +171,28 @@ export function cursorTo(
 }
 
 /**
+ * NASCONDE il cursore finto (autoAlpha → 0). Il cursore vive FUORI dal layer
+ * `.imm-camera` (coordinate schermo): durante un movimento di sola camera
+ * (cameraFollow/cameraTo/cameraReset con cursore fermo) resterebbe inchiodato
+ * mentre il contenuto scala/trasla sotto → appare "staccato/galleggiante".
+ * Chiamare `hideCursor` PRIMA di un movimento camera-only, e dopo l'ultima
+ * interazione della scena (così il cursore non resta congelato a fine scena):
+ * il `cursorTo` successivo lo riporta a autoAlpha 1. Scrub-safe: scrubbando
+ * indietro il tween reversa e il cursore ricompare dov'era. Default: parte
+ * insieme al beat di camera (position "<") e sfuma veloce (0.2s).
+ */
+export function hideCursor(
+  tl: gsap.core.Timeline,
+  opts?: { duration?: number; position?: number | string },
+): gsap.core.Timeline {
+  return tl.to(
+    ".imm-cursor",
+    { autoAlpha: 0, duration: opts?.duration ?? 0.2, ease: "power2.out" },
+    opts?.position ?? "<",
+  );
+}
+
+/**
  * "Punch" zoom-in→out su un cluster LOCALE (campo, bottone, card) quando il
  * walkthrough simula un click o una digitazione. Tween di solo `scale` sul
  * target → NON usa .imm-stage (che porta lo zoom di scena), così i due non si
@@ -656,6 +678,11 @@ export function useImmersiveScene(build: (tl: gsap.core.Timeline, section: HTMLE
         // in orizzontale, vedi scene multi-pannello) mostra tutti i pannelli.
         const tracks = section.querySelectorAll<HTMLElement>(".imm-track");
         if (tracks.length) gsap.set(tracks, { clearProps: "transform" });
+        // Rete di sicurezza camera: se una scena dimenticasse il cameraReset
+        // finale, a progress(1) la camera resterebbe zoomata/panata → azzeriamo
+        // comunque il transform del layer camera (a progress(1) DEVE essere neutro).
+        const cam = section.querySelector<HTMLElement>(".imm-camera");
+        if (cam) gsap.set(cam, { clearProps: "transform" });
         return;
       }
       ScrollTrigger.create({

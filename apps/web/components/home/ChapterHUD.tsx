@@ -114,7 +114,7 @@ export default function ChapterHUD() {
           {CHAPTERS.map((c, i) => (
             <span
               key={c.n}
-              className={`h-1.5 w-1.5 rounded-full ${i === shown ? "bg-accent" : "bg-border"}`}
+              className={`h-1.5 w-1.5 rounded-full ${i === shown ? "bg-accent-ink" : "bg-border"}`}
             />
           ))}
         </span>

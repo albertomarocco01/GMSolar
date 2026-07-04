@@ -1,5 +1,5 @@
 /**
- * @descrizione  Dati per la scena immersiva ASSISTENTE AI (servizio 04).
+ * @descrizione  Dati per la scena immersiva ASSISTENTE AI (capitolo 02).
  *   Prodotti realistici ripresi da `legacy/data/products.json` (cavi di ricarica
  *   GM Solar Shop), ridotti ai soli campi mostrati a schermo. Uno è marcato
  *   `recommended`: è il match che l'assistente "genera" per la richiesta della

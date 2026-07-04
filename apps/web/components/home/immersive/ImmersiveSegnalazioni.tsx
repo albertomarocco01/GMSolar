@@ -46,6 +46,7 @@ import {
   ChapterCard,
   chapterIntro,
   cursorTo,
+  hideCursor,
   clickZoom,
   useImmersiveScene,
   pressButton,
@@ -140,6 +141,12 @@ export default function ImmersiveSegnalazioni() {
     // «Invia segnalazione» → pressione + toast di ricezione con stato
     cursorTo(tl, ".imm-seg-send", { mode: "hand" });
     pressButton(tl, ".imm-seg-send", { downDur: 0.1, upDur: 0.45, back: 3.5, position: ">0.2" });
+    // ULTIMA interazione della scena: il cursore (fuori da .imm-camera) sfuma qui,
+    // così non resta "staccato/galleggiante" durante i movimenti di sola camera che
+    // seguono (pull-back del toast, push-in sul fix, cameraReset finale) né congelato
+    // a fine scena. Scrub-safe (reversibile) e a progress(1) → autoAlpha 0, coerente
+    // con le scene sorelle: nessun cursorTo successivo lo rimostra.
+    hideCursor(tl, { duration: 0.3 });
     // CAMERA · si stacca dal modulo: pull-back a neutro mentre sale il toast
     // (nasce in basso al centro → rientra in campo con la camera larga).
     cameraReset(tl, { duration: 0.7 });

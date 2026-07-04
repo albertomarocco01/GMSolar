@@ -47,6 +47,7 @@ import {
   cameraTo,
   cameraReset,
   rackFocus,
+  hideCursor,
 } from "./shared";
 import { PRODUCTS, GENERATED, QUERY } from "./_assistente-data";
 
@@ -127,6 +128,10 @@ export default function ImmersiveAssistente() {
     // neutra MENTRE la griglia vola via e la genui entra — è lo zoom-out che
     // "svela" l'interfaccia generata (chiude anche l'inquadratura del punch ④).
     cameraReset(tl, { duration: 1.1, ease: "power2.inOut" });
+    // Il cursore finto vive FUORI dal layer .imm-camera: durante questo pull-back
+    // di sola camera "galleggerebbe" staccato dai bottoni → lo sfumo via. Il
+    // cursorTo del beat ⑥ (config-pick) lo rimostra da solo (autoAlpha 1).
+    hideCursor(tl, { duration: 0.3 });
     // Griglia OUT: stagger che si dissolve verso l'alto, in overlap col pull-back.
     // autoAlpha:0 → visibility:hidden = fuori dall'albero a11y, ma il box resta
     // (height lock).
@@ -180,6 +185,9 @@ export default function ImmersiveAssistente() {
     // ⑦ CAMERA · reset PRIMA del beat finale (regola 3): a progress(1) la camera
     //    è neutra → reduced-motion pulito e hand-off `.imm-stage` senza conflitti.
     cameraReset(tl);
+    // Il cursore sfuma mentre la camera torna neutra e resta nascosto durante
+    // l'hold finale e l'hand-off (a progress(1) neutro, reduced-motion pulito).
+    hideCursor(tl, { duration: 0.3 });
     tl.to({}, { duration: 0.6 }); // pausa finale
   });
 
@@ -333,7 +341,7 @@ export default function ImmersiveAssistente() {
               <div className="imm-genui-item flex min-h-0 flex-col gap-2.5" aria-hidden>
                 <div className="h-24 overflow-hidden rounded-xl sm:h-auto sm:flex-1">
                   <img
-                    src="/assets/products/wallbox-detail.jpg"
+                    src="/assets/products/cavo-01.jpg"
                     alt=""
                     loading="lazy"
                     decoding="async"

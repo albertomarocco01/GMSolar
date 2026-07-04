@@ -28,6 +28,7 @@ import {
   ChapterCard,
   chapterIntro,
   cursorTo,
+  hideCursor,
   clickZoom,
   cameraTo,
   cameraReset,
@@ -161,6 +162,9 @@ export default function ImmersiveDashboard() {
     // la camera fa il pan verso l'editor, POI il cursore lo raggiunge (regola 2:
     // camera prima, cursorTo per ultimo → misura il layout ormai assestato).
     cameraFollow(tl, ".imm-zoom-local", { scale: 1.15 });
+    // Il cursore vive FUORI dalla camera: durante il pan camera-only sfuma
+    // (sennò galleggerebbe sulla voce di sinistra). Il cursorTo sotto lo riporta.
+    hideCursor(tl);
 
     // «Sostituisci immagine»: la foto attuale viene COPERTA dalla nuova (wipe)
     cursorTo(tl, ".imm-replace-btn", { mode: "hand" });
@@ -187,6 +191,7 @@ export default function ImmersiveDashboard() {
     // il vecchio clickZoom locale è rimosso (regola 4: mai i due sommati).
     tl.to({}, { duration: 0.25 });
     cameraTo(tl, ".imm-publish-btn", { scale: 1.45, duration: 0.45, ease: "expo.out" });
+    hideCursor(tl); // sfuma col punch (era fermo sul campo titolo) → niente galleggiamento
     cameraTo(tl, ".imm-publish-btn", { scale: 1.38, duration: 0.3, ease: "back.out(1.2)" });
     cursorTo(tl, ".imm-publish-btn", { mode: "hand", duration: 0.5 });
     tl.to({}, { duration: 0.15 });
@@ -195,6 +200,7 @@ export default function ImmersiveDashboard() {
     // PULL-BACK REVEAL (f): dalla stretta sul bottone si svela l'editor
     // pubblicato con il toast → camera neutra prima del cambio pannello.
     cameraReset(tl, { duration: 0.9 });
+    hideCursor(tl); // sfuma col pull-back (era sul bottone); il beat ② lo riporta
     say(tl, 1); // «Modifichi i contenuti del sito: online subito.»
 
     // ── ② Prodotti ────────────────────────────────────────────────────────────

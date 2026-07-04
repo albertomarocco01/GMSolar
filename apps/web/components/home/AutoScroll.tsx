@@ -37,17 +37,25 @@ type LenisLike = {
 };
 
 // ── Knob (cadenza cinematografica) ───────────────────────────────────────────
-/** Velocità di crociera in px/SECONDO (indip. dal refresh rate). Ritarata su +170%
- *  di altezza pagina introdotta in Fase 5 (~32k px): a 110 l'autoplay durava ~5 min. */
-const SPEED = 210;
+/** Velocità di LETTURA in px/SECONDO (indip. dal refresh rate): il ritmo con cui
+ *  si attraversa il CORPO interattivo di una scena (typing, camera, beat). */
+const SPEED = 300;
+/** Velocità "ASSIST" nell'hand-off verso il blocco successivo: la scena corrente è
+ *  già esaurita (a progress ~1, solo rise+fade di transizione) → si zippa rapidi
+ *  fino all'anchor. È ciò che rende lo scorrimento "veloce tra un blocco e l'altro"
+ *  senza sacrificare la leggibilità dei beat nel corpo scena. */
+const FAST_SPEED = 1150;
+/** Ampiezza della banda ASSIST prima di ogni anchor, come FRAZIONE del viewport:
+ *  entro `ASSIST_VH * innerHeight` px dal prossimo anchor si viaggia a FAST_SPEED. */
+const ASSIST_VH = 0.9;
 /** Pavimento di velocità nella zona di atterraggio: evita il crawl infinito. */
-const MIN_SPEED = 110;
+const MIN_SPEED = 120;
 /** Ampiezza (px) dell'inviluppo ease-in/ease-out attorno a ogni anchor. */
-const LAND_ZONE = 180;
+const LAND_ZONE = 160;
 /** Soglia (px) di "arrivo" all'anchor → clamp + sosta. */
 const ARRIVE_EPS = 2;
-/** Sosta breve (ms) su ogni anchor allineato prima di ripartire. */
-const DWELL_MS = 550;
+/** Sosta breve (ms) su ogni anchor allineato prima di ripartire (era 550: troppo). */
+const DWELL_MS = 300;
 /** Inattività mouse prima che l'auto riparta (~2s: prima era 9s, troppo). */
 const IDLE_MS = 2000;
 /** Inattività su TOUCH prima che l'auto riparta (più respiro: si legge col dito fermo). */
@@ -88,6 +96,12 @@ export default function AutoScroll() {
 
     const getLenis = () => (window as unknown as { __lenis?: LenisLike }).__lenis;
 
+    // INTRO GATE: l'auto-scroll resta fermo finché la title card d'apertura
+    // (SolarTwinScene) non è uscita → la card si LEGGE prima che parta lo scroll.
+    // Rilasciato dall'evento `presentation:introdone`; un failsafe generoso libera
+    // comunque se l'evento non arriva (es. scena solare non montata) → mai bloccato.
+    let introHold = true;
+
     // Anchor = inizio di ogni scena (le scene sono i <section> figli diretti di
     // #top). A quel punto l'hand-off di ENTRATA è già completo (la scena è a
     // scale 1): fermarsi qui = fermarsi su un beat di riposo, mai in transizione.
@@ -109,6 +123,7 @@ export default function AutoScroll() {
     const tick = (_time: number, deltaMs: number) => {
       const lenis = getLenis();
       if (
+        introHold ||
         !autoRef.current ||
         !lenis ||
         document.visibilityState !== "visible" ||
@@ -160,7 +175,13 @@ export default function AutoScroll() {
       const rampOut = LAND_ZONE > 0 ? Math.min(1, dist / LAND_ZONE) : 1;
       const shape = Math.min(rampIn, rampOut);
       const breath = 0.9 + 0.1 * (0.5 + 0.5 * Math.sin(performance.now() * 0.0004));
-      const v = Math.max(MIN_SPEED, SPEED * shape * breath);
+      // Velocità BASE variabile: nell'ASSIST band (ultimo tratto di viewport prima
+      // dell'anchor = hand-off della scena uscente, ormai esaurita) si zippa a
+      // FAST_SPEED → transizione rapida "tra un blocco e l'altro"; nel corpo scena
+      // si legge a SPEED. L'inviluppo `shape` mantiene comunque l'atterraggio morbido.
+      const assistBand = ASSIST_VH * window.innerHeight;
+      const base = dist < assistBand ? FAST_SPEED : SPEED;
+      const v = Math.max(MIN_SPEED, base * shape * breath);
       // Passo desiderato (px) + resto sub-pixel accumulato. Avanziamo di INTERI: sotto
       // la soglia di 1px Lenis riarrotonderebbe a zero → il resto matura in frame futuri.
       const desired = v * (Math.min(deltaMs, 50) / 1000) + carryRef.current; // clamp anti-salto
@@ -176,8 +197,16 @@ export default function AutoScroll() {
     // Setup: primo calcolo (deferito così il layout delle scene è pronto) +
     // ricalcolo su refresh/resize.
     const raf0 = requestAnimationFrame(computeAnchors);
-    // Sosta iniziale: lascia finire la dissolvenza di IntroOverlay (~1.9s) prima di partire.
-    holdUntilRef.current = performance.now() + 2200;
+    // Rilascio dell'intro gate: alla title card d'apertura uscita (evento) o al
+    // failsafe. Al rilascio, una sosta breve (DWELL_MS) prima del primo movimento.
+    const releaseIntro = () => {
+      introHold = false;
+      holdUntilRef.current = Math.max(holdUntilRef.current, performance.now() + DWELL_MS);
+    };
+    window.addEventListener("presentation:introdone", releaseIntro, { once: true });
+    // Failsafe > durata reale della card tenuta ferma (~4.9s con delay+reveal+hold+exit):
+    // se l'evento non arriva, l'auto-scroll riparte comunque e non resta bloccato.
+    const introFailsafe = setTimeout(releaseIntro, 8000);
     ScrollTrigger.addEventListener("refresh", computeAnchors);
     window.addEventListener("resize", computeAnchors, { passive: true });
     gsap.ticker.add(tick);
@@ -303,6 +332,8 @@ export default function AutoScroll() {
       document.documentElement.removeAttribute("data-presentation-paused");
       window.removeEventListener("presentation:pausechange", onPauseChange);
       cancelAnimationFrame(raf0);
+      clearTimeout(introFailsafe);
+      window.removeEventListener("presentation:introdone", releaseIntro);
       gsap.ticker.remove(tick);
       ScrollTrigger.removeEventListener("refresh", computeAnchors);
       window.removeEventListener("resize", computeAnchors);
@@ -329,7 +360,7 @@ export default function AutoScroll() {
     <>
       {/* PAUSA GLOBALE — stile SCOPED (niente globals condivisi): con l'attributo
           su <html> congela tutti i keyframe CSS della home (#top), inclusi
-          ::before/::after (animate-pulse, animate-bounce, sc-dot/sc-arrow,
+          ::before/::after (animate-pulse, animate-bounce, sc-arrow,
           auto-float…). Le transition NON sono toccate (l'overlay di pausa usa
           transition-opacity e deve poter apparire). Sotto reduced-motion il
           componente ritorna null → né <style> né attributo esistono mai. */}

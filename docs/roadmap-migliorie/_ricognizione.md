@@ -174,3 +174,40 @@ Posizioni attuali (per i builder):
   Gestionale/Integrazioni (stato finale legittimo da doc kit; se QA reduced lo giudica
   poco leggibile → rackFocusOff nel ramo else); tween "a mano" su .imm-camera in
   Integrazioni (contro-pan, sanzionato dal prompt) e Gestionale (dutch rotation-only).
+
+### Fase 5 (KIT-12 + S12-*)
+
+- Kit capitoli in shared.tsx: `CHAPTERS` (7 voci 01→07 = ordine reale page.tsx),
+  `ChapterCard`/`chapterIntro`, prop `chapterIndex` su ImmersiveStage → `data-chapter`
+  sul section; prop `eyebrow` RIMOSSA (ondata 2.5). `ChapterHUD.tsx` montato in page.tsx.
+- Ogni scena immersiva: prima `<Say i={0}>` veil → `<ChapterCard>` + `chapterIntro(tl)`
+  come primo beat; heading statico reduced «NN · Titolo»; `label={CHAPTERS[i].title}` →
+  aria-label. Solare: `data-chapter={0}` a mano su entrambe le varianti.
+- QA F5: typecheck/build verde; HUD 01→07 visibile + sparisce sulla chiusura; card scure
+  a ogni ingresso; reduced-motion heading statici presenti; 0 errori console.
+- Fase 5 committata come `dbdc768` (msg «feat(home): migrate immersive scenes…», mergiata
+  in main dall'umano); tag `roadmap-fase-5-ok` aggiunto a posteriori.
+
+### Fase 6 (QA finale) + CACCIA BUG (richiesta utente)
+
+- Controllo totale: typecheck ✓ build ✓ lint ✓; grep sweep vecchio racconto = 0;
+  anti-regressione zona condivisa (packages/**, layout, globals) = diff VUOTO dal baseline.
+  `format:check` rosso ma è **solo CRLF** (Git autocrlf su Windows, repo-wide incl. file
+  mai toccati): codice prettier-clean a meno di line-ending → NON corretto (richiederebbe
+  di toccare packages/**). Debito ambientale documentato.
+- Caccia bug via workflow multi-agente (8 investigatori + verifica avversariale) →
+  35 findings confermati (0 blocker, 13 major, 22 minor). Fix applicati e verificati a runtime:
+  - **Intro solare** (bug utente #1): ChapterCard solare scorporata dallo scrub → one-shot
+    on-mount, velo OPACO (#0b1020), titolo tenuto FERMO ~2.4s PRIMA dello scroll; AutoScroll
+    coordinato via evento `presentation:introdone` + failsafe 8s. Sottotitolo aggiornato.
+  - **Cursor-drift** (bug utente #2 "cose strane" + sistemico): nuovo helper kit `hideCursor`;
+    applicato in Dashboard (follow/punch/reset), Assistente, Gestionale, Ricarica, Segnalazioni
+    → il cursore finto sfuma durante i movimenti camera-only e a fine scena.
+  - **AutoScroll** (bug utente #3): velocità variabile SPEED 210→300 + `FAST_SPEED` 1150
+    nell'ASSIST band (hand-off) + DWELL 550→300 → ~328px/s effettivi (era 210), ~1min51s
+    totali (era ~3min), transizioni "assistite" rapide tra i blocchi.
+  - Minori: foto dettaglio Assistente wallbox→cavo-01; «Rete Mennekes»→«Rete partner»;
+    puntino HUD attivo bg-accent→bg-accent-ink (contrasto); % ricarica inline→inline-block
+    (pulsa); rete di sicurezza `.imm-camera` sotto reduced-motion; commenti stale.
+- QA runtime finale: fps ~59, 0 errori console (motion+reduced), 7 heading reduced,
+  camera neutra sotto reduced.
