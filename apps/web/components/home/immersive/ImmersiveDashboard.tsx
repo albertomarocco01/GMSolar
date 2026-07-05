@@ -33,6 +33,7 @@ import {
   cameraTo,
   cameraReset,
   cameraFollow,
+  cameraTrackType,
   cameraWhip,
   useImmersiveScene,
   pressButton,
@@ -81,13 +82,15 @@ const SPARK_D = "M0,54 L28,42 L56,46 L84,28 L112,32 L140,15 L168,19 L200,8";
 /** Altezze barre giornaliere (%). */
 const BARS = [32, 48, 41, 67, 58, 80, 72] as const;
 
-/** Prodotti già presenti nel catalogo (fotovoltaico + ricarica EV, coerenti). */
-const PRODOTTI_INIT: ReadonlyArray<{ nome: string; prezzo: string; ico: string }> = [
-  { nome: "Cavo Type 2 · 5 m", prezzo: "149 €", ico: "🔌" },
-  { nome: "Wallbox 22 kW", prezzo: "899 €", ico: "⚡" },
-  { nome: "Pannello 400 W", prezzo: "210 €", ico: "☀️" },
-  { nome: "Inverter 6 kW", prezzo: "1.490 €", ico: "🔆" },
-  { nome: "Kit staffe tetto", prezzo: "89 €", ico: "🛠️" },
+/** Prodotti già presenti nel catalogo (fotovoltaico + ricarica EV, coerenti).
+ *  `img` = foto placeholder in /assets/products/ — le STESSE che l'AI consiglia
+ *  nella scena Assistente → dashboard e vetrina combaciano. */
+const PRODOTTI_INIT: ReadonlyArray<{ nome: string; prezzo: string; img: string }> = [
+  { nome: "Cavo Type 2 · 5 m", prezzo: "149 €", img: "/assets/products/cavo-01.jpg" },
+  { nome: "Wallbox 22 kW", prezzo: "899 €", img: "/assets/products/wallbox-detail.jpg" },
+  { nome: "Pannello 400 W", prezzo: "210 €", img: "/assets/products/pannello-01.jpg" },
+  { nome: "Inverter 6 kW", prezzo: "1.490 €", img: "/assets/products/inverter-01.jpg" },
+  { nome: "Kit staffe tetto", prezzo: "89 €", img: "/assets/products/cavo-04.jpg" },
 ];
 
 /** Righe tabella ordini (Data/Canale mock deterministici; somma = 16.889 €). */
@@ -113,15 +116,12 @@ const STATO_CLS: Record<string, string> = {
   "In attesa": "bg-amber-100 text-amber-700",
 };
 
-/** "Foto" placeholder (gradient de-brandizzati sull'accent, nessun asset reale).
- *  La NUOVA è più satura e con pattern diverso → il wipe di sostituzione si vede. */
-const GRAD_FOTO_ATTUALE =
-  "repeating-linear-gradient(45deg, color-mix(in oklab, var(--accent) 7%, transparent) 0px, color-mix(in oklab, var(--accent) 7%, transparent) 2px, transparent 2px, transparent 10px), linear-gradient(135deg, color-mix(in oklab, var(--accent) 13%, transparent), color-mix(in oklab, var(--accent) 27%, transparent))";
-const GRAD_FOTO_NUOVA =
-  "repeating-linear-gradient(-45deg, color-mix(in oklab, var(--accent) 12%, transparent) 0px, color-mix(in oklab, var(--accent) 12%, transparent) 3px, transparent 3px, transparent 12px), linear-gradient(135deg, color-mix(in oklab, var(--accent) 30%, transparent), color-mix(in oklab, var(--accent) 52%, transparent))";
-/** Mini-anteprima delle voci nella lista «Pagine del sito». */
-const GRAD_THUMB =
-  "linear-gradient(135deg, color-mix(in oklab, var(--accent) 18%, transparent), color-mix(in oklab, var(--accent) 34%, transparent))";
+/** Foto reali della hero: ATTUALE (wallbox) → NUOVA (impianto fotovoltaico).
+ *  Due foto DIVERSE a colpo d'occhio → il wipe di sostituzione si vede.
+ *  FOTO_NUOVA («impianto-2026.jpg») è la STESSA che la scena Segnalazioni usa
+ *  come stato «risolto» → continuità tra i due capitoli. */
+const FOTO_ATTUALE = "/assets/products/wallbox-detail.jpg";
+const FOTO_NUOVA = "/assets/products/pannello-01.jpg";
 
 // ── Componente ─────────────────────────────────────────────────────────────────
 
@@ -172,19 +172,14 @@ export default function ImmersiveDashboard() {
     pressButton(tl, ".imm-replace-btn", { down: 0.93, downDur: 0.1, upDur: 0.18, back: 2.5 });
     maskReveal(tl, ".imm-img-new", { dir: "l", duration: 0.8, position: "<0.1" });
 
-    // Il cursore va sul titolo e lo RISCRIVE (il vecchio sfuma, il nuovo si digita)
-    cursorTo(tl, ".imm-title-field", { mode: "text" });
+    // Il titolo si RISCRIVE: il vecchio sfuma e il nuovo si digita mentre la CAMERA
+    // SEGUE IL CARET (item 4) — trasla a dx col punto di scrittura invece del push-in
+    // FERMO (cameraTrackType sostituisce il vecchio cameraTo, regola 4). Il track
+    // porta lui il caret al centro-schermo: niente cursorTo(campo) dedicato.
     tl.to({}, { duration: 0.2 });
     tl.to(".imm-title-old", { autoAlpha: 0, duration: 0.15, ease: "power1.out" });
-    typeInField(tl, ".imm-title-new", { steps: 32, duration: 1.0, position: "<0.1" });
-    // PUSH-IN (b) — respiro lento in parallelo al typing (sostituisce il
-    // clickZoom locale; il cursore è FERMO sul campo → nessuna misura sporca).
-    cameraTo(tl, ".imm-title-field", {
-      scale: 1.2,
-      duration: 1.0, // = durata del typeInField
-      ease: "power1.inOut",
-      position: "<",
-    });
+    cameraTrackType(tl, ".imm-title-new", { scale: 1.2, duration: 1.0 });
+    typeInField(tl, ".imm-title-new", { steps: 32, duration: 1.0, position: "<" });
 
     // «Pubblica» → PUNCH (a) DI CAMERA + toast. Camera PRIMA — snap expo.out e
     // micro-overshoot back.out(1.2) sull'arrivo — poi il cursore (regola 2);
@@ -292,8 +287,8 @@ export default function ImmersiveDashboard() {
       ref={ref}
       heightVh={560}
       theme="platform"
-      label={CHAPTERS[2].title}
-      chapterIndex={2}
+      label={CHAPTERS[3].title}
+      chapterIndex={3}
     >
       {/* Reduced-motion: la ChapterCard animata finisce NASCOSTA a progress(1)
           → heading statico col numero/nome capitolo in cima alla scena (il
@@ -301,7 +296,7 @@ export default function ImmersiveDashboard() {
           binario = carosello). Ancorato al contenitore sticky del kit. */}
       {reduced && (
         <h2 className="text-muted absolute top-3 left-5 z-20 font-mono text-xs font-semibold tracking-[0.35em] uppercase">
-          {CHAPTERS[2].n} · {CHAPTERS[2].title}
+          {CHAPTERS[3].n} · {CHAPTERS[3].title}
         </h2>
       )}
       {/* Stessi token della scena Gestionale adiacente: fondi, grigi e accent
@@ -418,14 +413,26 @@ export default function ImmersiveDashboard() {
                               aria-hidden
                             />
                           )}
-                          {/* Mini-anteprima */}
-                          <span
-                            className={`relative h-8 w-11 shrink-0 rounded-md ${
-                              hero ? "" : "bg-surface-2 border-border border"
-                            }`}
-                            style={hero ? { background: GRAD_THUMB } : undefined}
-                            aria-hidden
-                          />
+                          {/* Mini-anteprima: foto reale della pagina */}
+                          {hero ? (
+                            <img
+                              src={FOTO_ATTUALE}
+                              alt=""
+                              loading="lazy"
+                              decoding="async"
+                              className="relative h-8 w-11 shrink-0 rounded-md object-cover"
+                              aria-hidden
+                            />
+                          ) : (
+                            <img
+                              src="/assets/products/cavo-02.jpg"
+                              alt=""
+                              loading="lazy"
+                              decoding="async"
+                              className="border-border relative h-8 w-11 shrink-0 rounded-md border object-cover"
+                              aria-hidden
+                            />
+                          )}
                           <span className="relative min-w-0 flex-1">
                             <span className="text-foreground block truncate text-xs font-semibold">
                               {nome}
@@ -450,23 +457,29 @@ export default function ImmersiveDashboard() {
                       {/* Immagine: attuale sotto, NUOVA sopra (coperta → wipe maskReveal) */}
                       <div>
                         <div className="relative h-32 overflow-hidden rounded-lg">
-                          <div
-                            className="absolute inset-0"
-                            style={{ background: GRAD_FOTO_ATTUALE }}
-                            aria-hidden
-                          >
-                            <div className="flex h-full items-center justify-center">
+                          <div className="absolute inset-0" aria-hidden>
+                            <img
+                              src={FOTO_ATTUALE}
+                              alt=""
+                              loading="lazy"
+                              decoding="async"
+                              className="h-full w-full object-cover"
+                            />
+                            <div className="absolute inset-0 flex items-center justify-center">
                               <span className="bg-background/85 text-foreground rounded-lg px-3 py-1.5 text-xs font-semibold shadow-sm">
                                 foto-attuale.jpg
                               </span>
                             </div>
                           </div>
-                          <div
-                            className="imm-img-new absolute inset-0"
-                            style={{ background: GRAD_FOTO_NUOVA }}
-                            aria-hidden
-                          >
-                            <div className="flex h-full items-center justify-center">
+                          <div className="imm-img-new absolute inset-0" aria-hidden>
+                            <img
+                              src={FOTO_NUOVA}
+                              alt=""
+                              loading="lazy"
+                              decoding="async"
+                              className="h-full w-full object-cover"
+                            />
+                            <div className="absolute inset-0 flex items-center justify-center">
                               <span className="bg-background/85 text-foreground rounded-lg px-3 py-1.5 text-xs font-semibold shadow-sm">
                                 impianto-2026.jpg
                               </span>
@@ -556,9 +569,13 @@ export default function ImmersiveDashboard() {
                       key={p.nome}
                       className="border-border bg-surface rounded-xl border p-3 shadow-sm"
                     >
-                      <div className="bg-surface-2 mb-2 flex h-8 w-8 items-center justify-center rounded-lg text-base">
-                        {p.ico}
-                      </div>
+                      <img
+                        src={p.img}
+                        alt=""
+                        loading="lazy"
+                        decoding="async"
+                        className="mb-2 h-10 w-full rounded-lg object-cover"
+                      />
                       <p className="text-foreground text-sm font-semibold">{p.nome}</p>
                       <p className="text-accent-ink text-xs font-bold">{p.prezzo}</p>
                     </div>
@@ -566,9 +583,13 @@ export default function ImmersiveDashboard() {
 
                   {/* Nuova card: entra con back.out al click del cursore */}
                   <div className="imm-new-card border-accent/40 bg-accent/5 rounded-xl border-2 p-3 shadow-sm">
-                    <div className="bg-accent-soft mb-2 flex h-8 w-8 items-center justify-center rounded-lg text-base">
-                      🔋
-                    </div>
+                    <img
+                      src="/assets/products/cavo-05.jpg"
+                      alt=""
+                      loading="lazy"
+                      decoding="async"
+                      className="mb-2 h-10 w-full rounded-lg object-cover"
+                    />
                     <p className="text-foreground text-sm font-semibold">Batteria 10 kWh</p>
                     <p className="text-accent-ink text-xs font-bold">3.200 €</p>
                   </div>
@@ -735,7 +756,7 @@ export default function ImmersiveDashboard() {
       {/* Title card di capitolo (P12): apre la scena al posto del vecchio veil
           <Say i={0}>; la frase del veil diventa il sottotitolo della card. */}
       <ChapterCard
-        chapter={CHAPTERS[2]}
+        chapter={CHAPTERS[3]}
         subtitle="La dashboard: il tuo business, in tempo reale."
       />
 

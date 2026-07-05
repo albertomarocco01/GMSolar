@@ -37,21 +37,12 @@ type LenisLike = {
 };
 
 // ── Knob (cadenza cinematografica) ───────────────────────────────────────────
-/** Velocità di LETTURA in px/SECONDO (indip. dal refresh rate): il ritmo con cui
- *  si attraversa il CORPO interattivo di una scena (typing, camera, beat). */
-const SPEED = 300;
-/** Velocità "ASSIST" nell'hand-off verso il blocco successivo: la scena corrente è
- *  già esaurita (a progress ~1, solo rise+fade di transizione) → si zippa rapidi
- *  fino all'anchor. È ciò che rende lo scorrimento "veloce tra un blocco e l'altro"
- *  senza sacrificare la leggibilità dei beat nel corpo scena. */
-const FAST_SPEED = 1150;
-/** Ampiezza della banda ASSIST prima di ogni anchor, come FRAZIONE del viewport:
- *  entro `ASSIST_VH * innerHeight` px dal prossimo anchor si viaggia a FAST_SPEED. */
-const ASSIST_VH = 0.9;
-/** Pavimento di velocità nella zona di atterraggio: evita il crawl infinito. */
+/** Picco di velocità (px/SECONDO, indip. dal refresh rate) al CENTRO di ogni
+ *  tratto anchor→anchor. Il profilo è una campana: lento in partenza, veloce a
+ *  metà, lento in arrivo → "lento-veloce-lento" ad ogni scena (richiesta utente). */
+const PEAK_SPEED = 900;
+/** Pavimento di velocità: ai bordi del tratto la campana → 0, questo evita lo stallo. */
 const MIN_SPEED = 120;
-/** Ampiezza (px) dell'inviluppo ease-in/ease-out attorno a ogni anchor. */
-const LAND_ZONE = 160;
 /** Soglia (px) di "arrivo" all'anchor → clamp + sosta. */
 const ARRIVE_EPS = 2;
 /** Sosta breve (ms) su ogni anchor allineato prima di ripartire (era 550: troppo). */
@@ -169,19 +160,19 @@ export default function AutoScroll() {
         return;
       }
 
-      // Inviluppo ease-in (dalla partenza) ∩ ease-out (verso l'arrivo) + respiro
-      // lieve → cadenza cinematografica, non metronomica.
-      const rampIn = LAND_ZONE > 0 ? Math.min(1, Math.max(0, scroll - from) / LAND_ZONE) : 1;
-      const rampOut = LAND_ZONE > 0 ? Math.min(1, dist / LAND_ZONE) : 1;
-      const shape = Math.min(rampIn, rampOut);
-      const breath = 0.9 + 0.1 * (0.5 + 0.5 * Math.sin(performance.now() * 0.0004));
-      // Velocità BASE variabile: nell'ASSIST band (ultimo tratto di viewport prima
-      // dell'anchor = hand-off della scena uscente, ormai esaurita) si zippa a
-      // FAST_SPEED → transizione rapida "tra un blocco e l'altro"; nel corpo scena
-      // si legge a SPEED. L'inviluppo `shape` mantiene comunque l'atterraggio morbido.
-      const assistBand = ASSIST_VH * window.innerHeight;
-      const base = dist < assistBand ? FAST_SPEED : SPEED;
-      const v = Math.max(MIN_SPEED, base * shape * breath);
+      // Profilo di velocità a CAMPANA sull'intero tratto from → target: lento in
+      // partenza, picco al centro, lento in arrivo (la "gaussiana" richiesta). Dopo
+      // la sosta su un anchor il tratto seguente riparte da p=0 → lento-veloce-lento
+      // ripetuto ad ogni scena, non a velocità costante.
+      const seg = target - from;
+      const p = seg > 0 ? (scroll - from) / seg : 1; // 0 = appena partiti, 1 = all'anchor
+      const pc = Math.min(1, Math.max(0, p));
+      // sin(π·p): campana morbida coi bordi esattamente a 0 (frenata piena) → il
+      // MIN_SPEED sotto evita lo stallo. Variante gaussiana (plateau più largo, code
+      // più lunghe, ~0.34 ai bordi anziché 0), se preferisci il look di Gauss:
+      //   const bell = Math.exp(-((pc - 0.5) ** 2) / (2 * 0.34 * 0.34));
+      const bell = Math.sin(Math.PI * pc);
+      const v = Math.max(MIN_SPEED, PEAK_SPEED * bell);
       // Passo desiderato (px) + resto sub-pixel accumulato. Avanziamo di INTERI: sotto
       // la soglia di 1px Lenis riarrotonderebbe a zero → il resto matura in frame futuri.
       const desired = v * (Math.min(deltaMs, 50) / 1000) + carryRef.current; // clamp anti-salto

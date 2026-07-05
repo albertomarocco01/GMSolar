@@ -22,40 +22,49 @@ I sette servizi da raccontare:
 
 | # | Servizio | Stato attuale nel codice |
 |---|----------|--------------------------|
-| 1 | Siti vetrina moderni (scrollytelling video) | ✅ scena Solare (hero video scrubbato + card 3D) |
+| 1 | Siti vetrina moderni (scrollytelling video) | ✅ scena Solare (hero video scrubbato) + `InterfacceScene` (componenti UI) |
 | 2 | Assistente AI di prodotto (risponde, genera l'interfaccia) | ✅ `ImmersiveAssistente` (mock) |
 | 3 | Dashboard centralizzata: gestione contenuti + telemetria multi-sito | ✅ `ImmersiveDashboard` (mock) |
 | 4 | Pannello segnalazioni (bug / richieste, con fix mostrato) | ✅ `ImmersiveSegnalazioni` (mock) |
-| 5 | Gestionale colonnine di ricarica con assistente AI | ✅ `ImmersiveGestionale` (mock) |
+| 5 | Gestionali su misura con assistente AI (esempio vivo: colonnine di ricarica) | ✅ `ImmersiveGestionale` (mock) |
 | 6 | App di ricarica EV con assistente AI integrato | ✅ `ImmersiveRicarica` (mock) |
 | 7 | Integrazioni API (carrellata loghi + esempio WhatsApp) | ✅ `ImmersiveIntegrazioni` (mock) |
 
-> **Nota:** la numerazione qui sopra è quella narrativa della home (capitoli 01→07),
-> non l'ordine storico del brief. Vedi «Stato della home» qui sotto.
+> **Nota:** la numerazione qui sopra è quella del brief; la narrativa della home è a
+> **8 capitoli** (01→08, vedi «Stato della home» qui sotto).
 
-## Stato della home (aggiornato dopo le migliorie P1–P12 + bugfix)
+## Stato della home (aggiornato dopo migliorie round 2 — `docs/roadmap-migliorie-2/`)
 
 La home (`apps/web/app/page.tsx`) è la presentazione scrollytelling chromeless. Ordine
-delle scene, tutte `<section>` figlie di `#top`:
+delle scene, tutte `<section>` figlie di `#top` (capitoli 01→08):
 
-1. **Solare** (`scenes/SolarTwinScene.tsx`) — finto sito vetrina: header mock + hero
-   video scrubbato (`/assets/solar-twin.mp4`, all-keyframe) + card 3D finali. Apre con
-   una **title card di capitolo one-shot** (velo scuro opaco, titolo lime «Siti vetrina»)
-   mostrata e **tenuta ferma PRIMA** che parta lo scroll (evento `presentation:introdone`
-   → AutoScroll), poi si solleva rivelando l'hero.
-2. **Assistente AI** · 3. **Dashboard** · 4. **Segnalazioni** · 5. **Gestionale colonnine**
-   · 6. **App di ricarica** · 7. **Integrazioni** — scene immersive (`components/home/immersive/`)
-   costruite sul kit `shared.tsx` (`useImmersiveScene`): timeline **scrubbata dallo scroll**,
-   cursore finto, `Say`/caption, e **camera cinematografica** (`cameraTo/Follow/Whip`,
-   `rackFocus`, `hideCursor`) — motion design "da After Effects".
-3. **Chiusura** (`scenes/ClosingScene.tsx`) — solo marchio GM Solar + «Rivedi la presentazione».
+1. **Siti vetrina** (`scenes/SolarTwinScene.tsx`) — finto sito vetrina: header mock + hero
+   video scrubbato (`/assets/solar-twin.mp4`, all-keyframe, corsa fino a `VIDEO_END=0.92`),
+   SOLO video (niente card 3D). Apre con una **title card di capitolo one-shot** (chiara,
+   titolo nero) mostrata e **tenuta ferma PRIMA** che parta lo scroll (evento
+   `presentation:introdone` → AutoScroll), poi si solleva rivelando l'hero.
+2. **Interfacce grafiche moderne** (`scenes/InterfacceScene.tsx`) — i componenti UI premium
+   (`SuspendedCards`) su pannello scuro morbido dentro sezione chiara, **senza video**.
+3. **Assistente AI** · 4. **Dashboard** · 5. **Segnalazioni** · 6. **Gestionali su misura**
+   · 7. **App con assistente AI integrato** · 8. **Integrazioni** — scene immersive
+   (`components/home/immersive/`) costruite sul kit `shared.tsx` (`useImmersiveScene`):
+   timeline **scrubbata dallo scroll**, cursore finto, `Say`/caption, e **camera
+   cinematografica** (`cameraTo/Follow/Whip`, `rackFocus`, `cameraTrackType` — la camera
+   **trasla col caret durante le digitazioni**) — motion design "da After Effects".
+   Dashboard e Segnalazioni usano **foto prodotto reali** (`/assets/products/`, le stesse
+   dell'Assistente; niente emoji, niente gradient); la hero «impianto-2026.jpg» è la
+   stessa foto in Dashboard (pubblicazione) e Segnalazioni (fix).
+4. **Chiusura** (`scenes/ClosingScene.tsx`) — SOLO «Rivedi la presentazione» su loop di
+   sfondo discreto (aloni accent che respirano; si ferma in pausa e con reduced-motion).
 
 Sistemi trasversali:
 
-- **Capitoli + HUD** (P12): ogni scena apre con una `ChapterCard` scura numerata
-  (`shared.tsx`); `ChapterHUD.tsx` (montato in `page.tsx`) mostra capitolo corrente + mini-rail.
-- **Scorrimento automatico** (`AutoScroll.tsx`): crociera a **velocità variabile** — lettura
-  nel corpo scena, **assist rapido nell'hand-off tra un blocco e l'altro**. La **pausa globale**
+- **Capitoli + HUD** (P12): ogni scena apre con una `ChapterCard` **chiara** numerata
+  (titolo nero grande, kicker `accent-ink`, in `shared.tsx`); `ChapterHUD.tsx` (montato in
+  `page.tsx`, sotto la nav mock del cap. 01) mostra capitolo corrente + mini-rail a 8 puntini.
+- **Scorrimento automatico** (`AutoScroll.tsx`): profilo di velocità **a campana** per tratto
+  (lento → picco `PEAK_SPEED` a metà → lento, `sin(π·p)`; variante gaussiana commentata) con
+  `MIN_SPEED` anti-stallo e carry sub-pixel. La **pausa globale**
   (click) congela auto-scroll + keyframe CSS + tween `repeat:-1` + video liberi
   (`data-presentation-paused` + evento `presentation:pausechange`). Replay = reload dalla cima.
 - **Rimossi**: le vecchie scene video drone e cavo EV, la ricerca Integrazioni, i dati

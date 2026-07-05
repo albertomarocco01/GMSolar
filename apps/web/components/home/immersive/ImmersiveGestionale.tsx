@@ -1,10 +1,11 @@
 "use client";
 
 /**
- * @descrizione  Scena immersiva GESTIONALE COLONNINE (servizio 05). Full-screen,
- *   alta fedeltà. REGIA (ridisegnata per non ricalcare la Dashboard, che ha già
- *   il tour sidebar+pan a 4 pannelli): tre beat, con l'ASSISTENTE AI come climax.
- *     ⓪ Title card di capitolo (P12) — «05 · Gestionale colonnine» via
+ * @descrizione  Scena immersiva GESTIONALI SU MISURA (servizio 06): il messaggio
+ *   è la personalizzazione; le colonnine di ricarica sono l'ESEMPIO concreto.
+ *   Full-screen, alta fedeltà. REGIA (ridisegnata per non ricalcare la Dashboard,
+ *   che ha già il tour sidebar+pan a 4 pannelli): tre beat, ASSISTENTE AI climax.
+ *     ⓪ Title card di capitolo (P12) — «05 · Gestionali su misura» via
  *        chapterIntro(tl), PRIMO beat (sostituisce il vecchio veil di apertura).
  *     ① Panoramica — vista d'apertura (KPI + barre «Sessioni per giorno»),
  *        NESSUN pan.
@@ -41,6 +42,7 @@ import {
   hideCursor,
   cameraTo,
   cameraReset,
+  cameraTrackType,
   cameraWhip,
   rackFocus,
   useImmersiveScene,
@@ -136,19 +138,12 @@ export default function ImmersiveGestionale() {
     // movimento — DOPO che il cursore è atterrato sulla voce di nav (regola 2:
     // nessun movimento camera durante il viaggio del cursore) — e finisce neutro.
     cameraWhip(tl, "r", { position: "<0.55" });
-    // CAMERA · push-in (b) sulla barra query: camera PRIMA, cursore per ultimo
-    // (regola 2 — atterraggio preciso sul layout ormai assestato). ">0.25" =
-    // dopo la fine del pan (1.1s): la misura function-based legge il binario FERMO.
-    cameraTo(tl, ".imm-query", {
-      scale: 1.2,
-      duration: 1.1,
-      ease: "power1.inOut",
-      position: ">0.25",
-    });
-    cursorTo(tl, ".imm-query", { mode: "text", duration: 0.7 });
-    typeInField(tl, ".imm-query", { steps: 17, duration: 1, position: ">0.05" });
-    // (Il clickZoom sulla barra è stato SOSTITUITO dal push-in di camera —
-    //  regola 4: punch locale e punch di camera non si sommano sullo stesso beat.)
+    // CAMERA · track del caret (item 4): al posto del push-in FERMO sulla barra
+    // (cameraTo, regola 4) la camera TRASLA a dx seguendo il punto di scrittura
+    // della query — il caret resta al centro-schermo (niente cursorTo dedicato).
+    // ">0.25" = parte a binario FERMO (dopo il pan di 1.1s) → misura pulita.
+    cameraTrackType(tl, ".imm-query", { scale: 1.2, duration: 1, position: ">0.25" });
+    typeInField(tl, ".imm-query", { steps: 17, duration: 1, position: "<" });
     // Le righe che fanno match: l'evidenziazione accent entra a WIPE (maskReveal)
     // mentre la camera si RIAPRE — pull-back all'"invio" che svela il filtro.
     tl.to(".imm-row-n", { opacity: 0.35, duration: 0.4 }, ">0.1");
@@ -240,15 +235,15 @@ export default function ImmersiveGestionale() {
       ref={ref}
       heightVh={460}
       theme="platform"
-      label={CHAPTERS[4].title}
-      chapterIndex={4}
+      label={CHAPTERS[5].title}
+      chapterIndex={5}
     >
       {/* Reduced-motion: la ChapterCard a progress(1) finisce NASCOSTA → heading
           statico di capitolo in cima, sempre leggibile (coerente col fallback
           reduced della scena: carosello scrollabile + stato finale). */}
       {reduced && (
         <h2 className="text-accent-ink absolute top-4 left-6 z-20 font-mono text-xs font-bold tracking-[0.35em] uppercase">
-          {CHAPTERS[4].n} · {CHAPTERS[4].title}
+          {CHAPTERS[5].n} · {CHAPTERS[5].title}
         </h2>
       )}
       <div className="flex h-full pt-12">
@@ -450,7 +445,10 @@ export default function ImmersiveGestionale() {
       {/* Title card di capitolo (P12): apre la scena al posto del vecchio veil;
           animata da chapterIntro(tl). Le frasi successive restano caption
           lower-third DESCRITTIVE (spiegano, non vendono). */}
-      <ChapterCard chapter={CHAPTERS[4]} subtitle="Tutte le colonnine, in un unico gestionale." />
+      <ChapterCard
+        chapter={CHAPTERS[5]}
+        subtitle="Un gestionale su misura per la tua attività. Per esempio: le tue colonnine di ricarica."
+      />
       <Say i={1} variant="caption">
         Scrivi in italiano: i dati si filtrano da soli.
       </Say>

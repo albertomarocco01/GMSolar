@@ -4,6 +4,7 @@ import ChapterHUD from "@/components/home/ChapterHUD";
 import CinematicGrain from "@/components/home/CinematicGrain";
 import VelocitySkew from "@/components/home/VelocitySkew";
 import SolarTwinScene from "@/components/home/scenes/SolarTwinScene";
+import InterfacceScene from "@/components/home/scenes/InterfacceScene";
 import ClosingScene from "@/components/home/scenes/ClosingScene";
 
 // Scene-prodotto IMMERSIVE (full-screen, scrub, cursore + intermezzi descrittivi).
@@ -23,12 +24,14 @@ import ImmersiveGestionale from "@/components/home/immersive/ImmersiveGestionale
  *   Apertura (video, scuro): Solare (impianto, gemello digitale). Poi INTERAZIONE:
  *   Assistente. Poi CONTROLLO (i capi): Dashboard → Segnalazioni (la segnalazione
  *   parte dal bottone «Segnala un problema» della dashboard) → Gestionale.
- *   Poi il capitolo ricarica: Ricarica EV → Integrazioni → chiusura GM Solar.
- *   CAPITOLI (P12): la presentazione è scandita in 7 capitoli (CHAPTERS, 01→07:
- *   Siti vetrina → Assistente AI → Dashboard → Segnalazioni → Gestionale
- *   colonnine → App di ricarica → Integrazioni). Ogni scena apre con una title
- *   card SCURA numerata (ChapterCard); l'HUD in alto a destra (ChapterHUD) segue
- *   il capitolo corrente via `data-chapter` e sparisce sulla chiusura.
+ *   Poi il capitolo ricarica: Ricarica EV → Integrazioni → chiusura minimale
+ *   (solo «Rivedi la presentazione» su loop di sfondo).
+ *   CAPITOLI (P12): la presentazione è scandita in 8 capitoli (CHAPTERS, 01→08:
+ *   Siti vetrina → Interfacce grafiche moderne → Assistente AI → Dashboard →
+ *   Segnalazioni → Gestionali su misura → App con assistente AI integrato →
+ *   Integrazioni). Ogni scena apre con una title card numerata (ChapterCard);
+ *   l'HUD in alto a destra (ChapterHUD) segue il capitolo corrente via
+ *   `data-chapter` e sparisce sulla chiusura.
  */
 export default function HomePage() {
   return (
@@ -39,8 +42,12 @@ export default function HomePage() {
       <CinematicGrain />
       <VelocitySkew />
 
-      {/* APERTURA — video solare scuro (impianto, gemello digitale) */}
+      {/* APERTURA — video solare scuro (impianto, gemello digitale). SOLO video:
+          i componenti UI sono ora il capitolo dedicato qui sotto. */}
       <SolarTwinScene />
+
+      {/* INTERFACCE — i componenti UI premium su sfondo pulito, senza video */}
+      <InterfacceScene />
 
       {/* INTERAZIONE — come le persone usano il sito */}
       <ImmersiveAssistente />

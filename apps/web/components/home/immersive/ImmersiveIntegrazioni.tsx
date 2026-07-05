@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * @descrizione  Scena immersiva INTEGRAZIONI (07 · Integrazioni). Tema CHIARO,
+ * @descrizione  Scena immersiva INTEGRAZIONI (08 · Integrazioni). Tema CHIARO,
  *   tono DESCRITTIVO. Il focus visivo è il MOVIMENTO: una CARRELLATA di loghi
  *   su 3 righe orizzontali (6 per riga) che scorrono in direzioni alternate,
  *   pilotate dalla timeline scrubbata (ease "none" → deterministiche avanti e
@@ -306,8 +306,8 @@ export default function ImmersiveIntegrazioni() {
       ref={ref}
       heightVh={520}
       theme="platform"
-      label={CHAPTERS[6].title}
-      chapterIndex={6}
+      label={CHAPTERS[7].title}
+      chapterIndex={7}
     >
       <div className="relative flex h-full flex-col items-center justify-center px-6 py-16 sm:px-10">
         {/* Reduced-motion: a progress(1) la ChapterCard è nascosta → heading
@@ -315,7 +315,7 @@ export default function ImmersiveIntegrazioni() {
             tile piene" (nulla di animato, solo contesto leggibile). */}
         {reducedStatic && (
           <p className="text-muted absolute top-6 left-1/2 -translate-x-1/2 font-mono text-xs tracking-[0.35em] uppercase">
-            {CHAPTERS[6].n} · {CHAPTERS[6].title}
+            {CHAPTERS[7].n} · {CHAPTERS[7].title}
           </p>
         )}
         {/* CARRELLATA DI LOGHI — 3 righe orizzontali da 6 tile, pan alternato */}
@@ -429,7 +429,7 @@ export default function ImmersiveIntegrazioni() {
       {/* ── Title card di capitolo (P12) + caption descrittiva ───────────────
           La ChapterCard sostituisce la vecchia Say-veil di apertura (la frase
           del velo è il suo sottotitolo); la caption resta invariata. */}
-      <ChapterCard chapter={CHAPTERS[6]} subtitle="Ci integriamo con i sistemi di tutti i giorni." />
+      <ChapterCard chapter={CHAPTERS[7]} subtitle="Ci integriamo con i sistemi di tutti i giorni." />
       <Say i={1} variant="caption">
         Per esempio: le notifiche ti arrivano su WhatsApp.
       </Say>

@@ -7,18 +7,17 @@
  *   video solare ALL-KEYFRAME (`/assets/solar-twin.mp4`) scrubbato dallo scroll.
  *   Regia: TITLE CARD di capitolo 01 (P12, ChapterCard del kit immersive — la
  *   scena NON usa ImmersiveStage ma importa il kit capitoli) sui primissimi px
- *   di scroll → scrub del video
- *   avanti/indietro → card 3D premium (SuspendedCards) in stagger sul finale,
- *   con il video fermo sull'ultimo frame. Il cue "Scorri" grande in basso a
- *   sinistra parte con una MICRO-DEMO in loop (proxy → seek del video + dot del
- *   mousino in sync) che si uccide al primo scroll reale e rispetta la pausa
- *   globale della presentazione (`presentation:pausechange`).
+ *   di scroll → scrub del video avanti/indietro per TUTTA la corsa (le card 3D
+ *   premium vivono ora nel capitolo dedicato «Interfacce grafiche moderne»,
+ *   vedi InterfacceScene — qui resta SOLO il video). Il cue "Scorri" grande in
+ *   basso a sinistra parte con una MICRO-DEMO in loop (proxy → seek del video +
+ *   dot del mousino in sync) che si uccide al primo scroll reale e rispetta la
+ *   pausa globale della presentazione (`presentation:pausechange`).
  *   Porta l'ancora `id="vetrina"` (target dei link /#vetrina, es. kb assistente).
- *   Poiché la scena successiva (Assistente) è CHIARA, alza un velo chiaro sul
- *   finale → ingresso pulito, senza flash scuro.
+ *   Poiché la scena successiva è CHIARA, alza un velo chiaro sul finale →
+ *   ingresso pulito, senza flash scuro.
  *   reduced-motion → variante statica impilata e leggibile: heading di capitolo
- *   «01 · Siti vetrina» + header finto + poster + frase statica +
- *   SuspendedCards animated={false}.
+ *   «01 · Siti vetrina» + header finto + poster + frase statica.
  * @indice
  * - SolarTwinScene → scena autonoma (sticky + ScrollTrigger scrub + micro-demo)
  * - FakeSiteHeader → header mock del finto sito (decorativo, nessun link reale)
@@ -28,7 +27,6 @@ import { gsap, ScrollTrigger } from "@gmgroup/lib/gsap";
 import { useReducedMotion, useIsoLayoutEffect } from "@gmgroup/lib/motion";
 import ScrubVideo, { type ScrubVideoHandle } from "../ScrubVideo";
 import ScrollCue from "../ScrollCue";
-import SuspendedCards from "../vetrina/SuspendedCards";
 import { CHAPTERS, ChapterCard, maskReveal } from "../immersive/shared";
 
 // Derivati ALL-KEYFRAME obbligatori: il seek è istantaneo SOLO con questi.
@@ -39,9 +37,11 @@ const ARIA_LABEL = "Siti vetrina — anteprima di un sito con hero video scrolly
 /** Sottotitolo della title card di capitolo 01 — ex frase popup d'apertura. */
 const FRASE = "Con una forte narrativa, costruita tramite scrollytelling video.";
 
-/** Il video esaurisce la sua durata a questo progress di scroll: l'ultimo tratto
- *  (l'entrata delle card 3D) scorre con il video FERMO sull'ultimo frame. */
-const VIDEO_END = 0.8;
+/** Il video esaurisce la sua durata a questo progress di scroll. Ex 0.8: l'ultimo
+ *  tratto serviva all'entrata delle card 3D, ora migrate in InterfacceScene → il
+ *  video usa (quasi) TUTTA la corsa e raggiunge l'ultimo frame proprio quando il
+ *  velo chiaro d'uscita comincia a salire (0.92). */
+const VIDEO_END = 0.92;
 /** Escursione (in frazione di video) della micro-demo del cue: avanti/indietro. */
 const DEMO_SPAN = 0.06;
 /** Corsa verticale (px) del dot dentro il mousino, in sync con la micro-demo. */
@@ -62,21 +62,20 @@ export default function SolarTwinScene() {
     let disposeDemo: () => void = () => {};
 
     const ctx = gsap.context(() => {
-      // Stato iniziale: card 3D e velo d'uscita nascosti; cue visibile.
+      // Stato iniziale: velo d'uscita nascosto; cue visibile.
       gsap.set(".st-cue", { autoAlpha: 1 });
-      gsap.set(".vt-card", { autoAlpha: 0, y: 30, scale: 0.92 });
       gsap.set(".st-exit-veil", { autoAlpha: 0 });
 
       // ── TITLE CARD DI CAPITOLO 01 — INTRO ONE-SHOT (NON scrubbata) ─────────
       // La card NON dipende dallo scroll: è mostrata e TENUTA FERMA PRIMA che la
-      // presentazione parta. Velo OPACO (#0b1020) attivo dal frame 0, SOTTO il
-      // nero di IntroOverlay (dark→dark, nessuno stacco): copre l'hero finché la
-      // card non si solleva → si legge il TITOLO, poi si rivela l'hero e SOLO
-      // allora l'auto-scroll parte (evento `presentation:introdone` → AutoScroll).
-      // `delay` lascia sfumare il nero di IntroOverlay (~1.9s) prima del reveal.
+      // presentazione parta. Velo CHIARO (lo stesso della ChapterCard) attivo dal
+      // frame 0: copre l'hero finché la card non si solleva → si legge il TITOLO,
+      // poi si rivela l'hero e SOLO allora l'auto-scroll parte (evento
+      // `presentation:introdone` → AutoScroll). Il nero di IntroOverlay sfuma
+      // PRIMA del reveal del titolo (`delay` ~1.9s) → nessun flash brutale.
       // gsap.context la uccide al cleanup; sotto reduced-motion l'effect è saltato
       // (early-return) → resta l'heading statico e la card inline resta nascosta.
-      gsap.set(".imm-chapter", { autoAlpha: 1, backgroundColor: "#0b1020" });
+      gsap.set(".imm-chapter", { autoAlpha: 1 });
       gsap.set(".imm-chapter-kicker", { autoAlpha: 0, y: 18 });
       gsap.set(".imm-chapter-line", { scaleX: 0, transformOrigin: "left center" });
       gsap.set(".imm-chapter-sub", { autoAlpha: 0, y: 14 });
@@ -105,15 +104,7 @@ export default function SolarTwinScene() {
       // Cue "Scorri": sfuma appena parte lo scroll.
       tl.to(".st-cue", { autoAlpha: 0, duration: 0.04, ease: "power2.in" }, 0.05);
 
-      // FINALE — card 3D premium in stagger sull'ultimo tratto (~0.78→0.95),
-      // con il video sotto fermo sull'ultimo frame (vedi VIDEO_END).
-      tl.to(
-        ".vt-card",
-        { autoAlpha: 1, y: 0, scale: 1, duration: 0.09, ease: "back.out(1.6)", stagger: 0.025 },
-        0.78,
-      );
-
-      // Velo chiaro d'uscita → la scena successiva (Assistente) è chiara.
+      // Velo chiaro d'uscita → la scena successiva è chiara.
       tl.to(".st-exit-veil", { autoAlpha: 1, duration: 0.08, ease: "power2.in" }, 0.92);
 
       // Guardia di sviluppo: un tween oltre lo spacer allunga la timeline e
@@ -230,11 +221,6 @@ export default function SolarTwinScene() {
           <p className="font-display mt-10 text-center text-3xl font-bold tracking-tight text-balance sm:text-4xl">
             {FRASE}
           </p>
-          {/* Card premium in griglia piatta. Pannello scuro: le card sono in
-              vetro chiaro (testo bianco) pensato per fondi scuri/video. */}
-          <div className="mt-10 rounded-3xl bg-[#0b1020] p-6">
-            <SuspendedCards animated={false} />
-          </div>
         </div>
       </section>
     );
@@ -271,12 +257,6 @@ export default function SolarTwinScene() {
             aria-hidden
             className="absolute inset-x-0 bottom-0 h-1/3 bg-linear-to-t from-black/45 to-transparent"
           />
-
-          {/* FINALE — card 3D premium. Vivono DENTRO l'hero (sotto l'header):
-              non possono coprirlo. Entrano in stagger dalla timeline (.vt-card). */}
-          <div className="absolute inset-0 z-20">
-            <SuspendedCards animated />
-          </div>
 
           {/* Cue "Scorri" grande in basso a sinistra: il dot del mousino è
               pilotato dalla micro-demo (GSAP), non da keyframe CSS. */}

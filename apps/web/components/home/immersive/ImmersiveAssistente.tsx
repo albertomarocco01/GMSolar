@@ -1,8 +1,8 @@
 "use client";
 
 /**
- * @descrizione  Scena immersiva ASSISTENTE AI (capitolo 02, P12: si apre con la
- *   ChapterCard «02 · Assistente AI»; sotto reduced-motion un heading statico
+ * @descrizione  Scena immersiva ASSISTENTE AI (capitolo 03, P12: si apre con la
+ *   ChapterCard «03 · Assistente AI»; sotto reduced-motion un heading statico
  *   in cima supplisce alla card, nascosta a progress(1)). Full-screen, alta
  *   fedeltà: lo scroll scrubba un walkthrough che riprende il legacy
  *   `CableFinder` — una PAGINA PRODOTTI (cavi di ricarica) con in basso una
@@ -46,6 +46,7 @@ import {
   maskReveal,
   cameraTo,
   cameraReset,
+  cameraTrackType,
   rackFocus,
   hideCursor,
 } from "./shared";
@@ -87,14 +88,13 @@ export default function ImmersiveAssistente() {
     tl.to(".imm-bar-ring", { autoAlpha: 1, duration: 0.35, ease: "power2.out" }, "<0.45");
 
     // ③ Digitazione della richiesta carattere-per-carattere (kit: typeInField).
-    //    CAMERA · PUSH-IN (b): avvicinamento lento sulla barra per tutta la durata
-    //    del typing (scale 1.2, ease "documentaristico"). La camera parte per prima
-    //    e il typing si sovrappone: il cursore è già FERMO sulla barra (regola 2 ok,
-    //    nessuna partenza simultanea camera+cursore). Sostituisce il vecchio
-    //    clickZoom locale sulla barra (regola 4: i due punch non si sommano).
+    //    CAMERA · TRACK DEL CARET (item 4): invece del push-in FERMO sulla barra, la
+    //    camera TRASLA a dx seguendo il punto di scrittura (cameraTrackType sostituisce
+    //    cameraTo, regola 4). Il caret — già sulla barra dal beat ② — si porta al
+    //    centro-schermo = punto di scrittura e ci resta: il testo gli scorre sotto.
     tl.to(".imm-placeholder", { autoAlpha: 0, duration: 0.2, ease: "power2.in" });
-    cameraTo(tl, ".imm-bar", { scale: 1.2, duration: 1.2, ease: "power1.inOut" });
-    typeInField(tl, ".imm-typed", { steps: 30, duration: 1.2, position: "<0.1" });
+    cameraTrackType(tl, ".imm-typed", { scale: 1.2, duration: 1.2 });
+    typeInField(tl, ".imm-typed", { steps: 30, duration: 1.2, position: "<" });
     say(tl, 1);
 
     // ④ Invio → l'AI "ragiona": press del tasto (kit: pressButton), dots + un
@@ -196,8 +196,8 @@ export default function ImmersiveAssistente() {
       ref={ref}
       heightVh={520}
       theme="platform"
-      label={CHAPTERS[1].title}
-      chapterIndex={1}
+      label={CHAPTERS[2].title}
+      chapterIndex={2}
     >
       <div className="relative flex h-full flex-col overflow-hidden">
         {/* ── Fallback reduced-motion: a progress(1) la ChapterCard è nascosta →
@@ -205,7 +205,7 @@ export default function ImmersiveAssistente() {
             così lo scrub animato non ha elementi in più nel layout). ──────── */}
         {reduced && (
           <p className="border-border bg-surface text-accent-ink relative z-10 shrink-0 border-b px-6 py-2 font-mono text-xs font-semibold tracking-[0.3em] uppercase">
-            {CHAPTERS[1].n} · {CHAPTERS[1].title}
+            {CHAPTERS[2].n} · {CHAPTERS[2].title}
           </p>
         )}
         {/* ── Header della pagina prodotti (sito vetrina / e-commerce) ──────
@@ -466,7 +466,7 @@ export default function ImmersiveAssistente() {
       </div>
 
       {/* ── Title card di capitolo (apre la scena) + caption descrittive ──── */}
-      <ChapterCard chapter={CHAPTERS[1]} subtitle="Un assistente AI dentro il sito vetrina." />
+      <ChapterCard chapter={CHAPTERS[2]} subtitle="Un assistente AI dentro il sito vetrina." />
       <Say i={1} variant="caption">
         Capisce la richiesta in linguaggio naturale.
       </Say>

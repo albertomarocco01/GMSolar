@@ -39,6 +39,8 @@
  * │     o lieve). cameraWhip(tl, dir, opts?) — colpo di frusta sui cambi          │
  * │     pannello, finisce neutro da solo. rackFocus(tl, bg, opts?) /              │
  * │     rackFocusOff(tl, bg, opts?) — profondità dietro drawer/modali.            │
+ * │   cameraTrackType(tl, field, opts?) — trucca la camera a dx                   │
+ * │     col caret durante il typing (vedi blocco sotto).                          │
  * │   Vincoli d'uso: vedi «CAMERA · REGOLE DI SEQUENZIAMENTO» più sotto.          │
  * │                                                                               │
  * │ say(tl, i) → mostra/nasconde <Say i={i}>. <Say variant="veil"|"caption">:     │
@@ -46,8 +48,8 @@
  * │   caption = pill lower-third senza velo (frasi successive). say() rileva la   │
  * │   variante dal DOM. <ImmersiveStage>, <Cursor>, accentVars(theme) → util.     │
  * │                                                                               │
- * │ CAPITOLI (P12) — CHAPTERS (01→07) + <ChapterCard chapter={CHAPTERS[i]}        │
- * │   subtitle="…"/> + chapterIntro(tl): title card SCURA numerata che apre ogni  │
+ * │ CAPITOLI (P12) — CHAPTERS (01→08) + <ChapterCard chapter={CHAPTERS[i]}        │
+ * │   subtitle="…"/> + chapterIntro(tl): title card CHIARA numerata che apre ogni │
  * │   scena. chapterIntro va chiamata PRIMA di ogni altro beat e sostituisce il   │
  * │   vecchio say(tl, 0) col velo (la <Say i={0}> veil → <ChapterCard/>). Le      │
  * │   caption restano invariate. A progress(1) la card finisce nascosta.          │
@@ -564,6 +566,124 @@ export function cameraFollow(
 }
 
 /**
+ * CAMERA · TRACK DEL CARET (item 4): mentre un campo si DIGITA (typeInField), la
+ * camera non fa un push-in FERMO ma TRASLA verso destra seguendo il PUNTO DI
+ * SCRITTURA (il bordo destro del testo che si rivela), tenendolo in quadro. È
+ * l'effetto «la camera si sposta insieme al cursore».
+ *
+ * COME — due mosse su `.imm-camera` (niente proxy: la camera resta GSAP-owned, così
+ * il cameraReset successivo concatena pulito; il caret NON è un secondo driver
+ * function-based → nessuna doppia misura, vedi regola 2):
+ *   1) SETTLE (~0.3s): dalla posa corrente all'inquadratura dell'INIZIO del campo
+ *      (startX = shot.x + panPx) alla scala S → nessun salto d'ingresso.
+ *   2) PAN lineare startX→endX (endX = shot.x − panPx) per `duration`: da inizio a
+ *      FINE campo. panPx = min((larghezza·S)/2, clamp-bordo di cameraShot). Con
+ *      questo pan il punto di scrittura resta ESATTAMENTE al centro-schermo
+ *      (deriv.: writingX(p) = centro + (camX − shot.x) + w·S·(p − 0.5) = centro ⟺
+ *      camX = startX − 2·panPx·p, cioè la rampa lineare). Campo più largo del
+ *      consentito → panPx si clampa e il caret può scostarsi un filo: pan lieve,
+ *      accettato (per i campi della demo a 1920 il pan NON si clampa).
+ *
+ * CARET — strategia «caret FERMO al centro, il testo scorre sotto», la più robusta
+ * vs. il vincolo del kit (il cursore vive FUORI da `.imm-camera`, in coordinate
+ * schermo — vedi cursorDest): il caret finto va al centro-schermo durante il settle
+ * e ci RESTA per tutto il pan. Siccome anche il punto di scrittura è inchiodato al
+ * centro, il caret resta sul testo senza mai ri-misurare un bersaglio in movimento
+ * (niente drift a scrub). Perciò NON serve un `cursorTo(campo)` prima: ci pensa il
+ * track (mode "text").
+ *
+ * USO — sul beat di typing, al posto del push-in fermo (cameraTo/cameraFollow;
+ * regola 4, i due non si sommano):
+ *   cameraTrackType(tl, ".campo", { scale: 1.2, duration: D });
+ *   typeInField(tl, ".campo", { duration: D, position: "<" }); // "<" = inizio del PAN
+ * `position:"<"` sul typeInField lo allinea al PAN (ultima mossa aggiunta dal
+ * track): pan e digitazione partono insieme e durano uguale → il caret resta sul
+ * testo. Chiudere la scena con cameraReset (regola 3): a progress(1) la camera è
+ * neutra. Target mancante → la camera resta dov'è (no-op, come cameraTo).
+ */
+export function cameraTrackType(
+  tl: gsap.core.Timeline,
+  field: string | Element,
+  opts?: { scale?: number; duration?: number; ease?: string; position?: number | string },
+): gsap.core.Timeline {
+  const section = tl.data as HTMLElement | undefined;
+  const S = clampCamScale(opts?.scale ?? 1.2);
+  const duration = opts?.duration ?? 1.0;
+  const approach = Math.min(0.3, duration * 0.3);
+
+  // Estremi del pan attorno allo shot che centra il campo. Robusto a camera già
+  // trasformata (cameraShot lo è); larghezza NON scalata dal rect corrente.
+  const geom = (): { startX: number; endX: number; y: number } | null => {
+    if (!section) return null;
+    const shot = cameraShot(section, field, S);
+    const cam = section.querySelector<HTMLElement>(".imm-camera");
+    const el = typeof field === "string" ? section.querySelector<HTMLElement>(field) : field;
+    if (!shot || !cam || !el) return null;
+    const s0 = Number(gsap.getProperty(cam, "scaleX")) || 1;
+    const w0 = el.getBoundingClientRect().width / s0; // larghezza reale (non scalata)
+    const maxX = Math.max(0, (cam.offsetWidth / 2) * (S - 1)); // = clamp di cameraShot
+    const panPx = Math.min((w0 * S) / 2, maxX);
+    const clamp = (x: number) => Math.min(maxX, Math.max(-maxX, x));
+    return { startX: clamp(shot.x + panPx), endX: clamp(shot.x - panPx), y: shot.y };
+  };
+
+  // Punto di scrittura = centro-schermo, nello spazio (non scalato) del cursore.
+  const caretLeft = () => {
+    const c = section?.querySelector<HTMLElement>(".imm-cursor");
+    const p = (c?.offsetParent as HTMLElement | null) ?? section ?? null;
+    return window.innerWidth / 2 - (p?.getBoundingClientRect().left ?? 0);
+  };
+  const caretTop = () => {
+    const c = section?.querySelector<HTMLElement>(".imm-cursor");
+    const p = (c?.offsetParent as HTMLElement | null) ?? section ?? null;
+    return window.innerHeight / 2 - (p?.getBoundingClientRect().top ?? 0);
+  };
+
+  // 1) Settle morbido all'inquadratura dell'INIZIO campo (no salto d'ingresso).
+  tl.to(
+    ".imm-camera",
+    {
+      x: () => geom()?.startX ?? cameraCurrent(section).x,
+      y: () => geom()?.y ?? cameraCurrent(section).y,
+      scale: S,
+      duration: approach,
+      ease: "power2.inOut",
+    },
+    opts?.position ?? ">",
+  );
+  // 1b) Caret al centro-schermo (= punto di scrittura), mode text. Parallelo al
+  //     settle; resta lì per tutto il pan (il testo gli scorre sotto).
+  tl.to(
+    ".imm-cursor",
+    {
+      left: caretLeft,
+      top: caretTop,
+      autoAlpha: 1,
+      duration: approach,
+      ease: "power2.inOut",
+      onStart() {
+        setCursorMode(section, "text");
+      },
+      onReverseComplete() {
+        setCursorMode(section, "arrow");
+      },
+    },
+    "<",
+  );
+  // 2) PAN lineare INIZIO→FINE: la camera trasla a destra seguendo il caret. x
+  //    function-based (ri-misura a start / invalidateOnRefresh); y,scale restano.
+  return tl.to(
+    ".imm-camera",
+    {
+      x: () => geom()?.endX ?? cameraCurrent(section).x,
+      duration,
+      ease: opts?.ease ?? "none",
+    },
+    ">",
+  );
+}
+
+/**
  * WHIP-PAN sui cambi pannello: burst rapido (default 0.35s totali, expo in→out)
  * con xPercent ±3 + skewX 0→±1.2→0 su `.imm-camera` — lo "squash" da colpo di
  * frusta — in sync con il pan del `.imm-track`. `dir` = verso dove VA la vista:
@@ -808,7 +928,7 @@ export function Say({
   );
 }
 
-// ── Capitoli (P12): dati + title card scura numerata ─────────────────────────
+// ── Capitoli (P12): dati + title card chiara numerata ────────────────────────
 
 /**
  * CAPITOLI della presentazione, nell'ORDINE REALE delle scene in page.tsx.
@@ -817,36 +937,37 @@ export function Say({
  */
 export const CHAPTERS = [
   { n: "01", title: "Siti vetrina" },
-  { n: "02", title: "Assistente AI" },
-  { n: "03", title: "Dashboard" },
-  { n: "04", title: "Segnalazioni" },
-  { n: "05", title: "Gestionale colonnine" },
-  { n: "06", title: "App di ricarica" },
-  { n: "07", title: "Integrazioni" },
+  { n: "02", title: "Interfacce grafiche moderne" },
+  { n: "03", title: "Assistente AI" },
+  { n: "04", title: "Dashboard" },
+  { n: "05", title: "Segnalazioni" },
+  { n: "06", title: "Gestionali su misura" },
+  { n: "07", title: "App con assistente AI integrato" },
+  { n: "08", title: "Integrazioni" },
 ] as const;
 
 export type Chapter = (typeof CHAPTERS)[number];
 
 /**
- * TITLE CARD DI CAPITOLO: velo full-screen SCURO con trama a puntini accent e
- * titolo lime numerato — NETTAMENTE diversa dalle frasi di spiegazione (chiare):
- * il contrasto scuro/chiaro è il segnale di "cambio argomento". Sostituisce la
+ * TITLE CARD DI CAPITOLO: velo full-screen CHIARO con trama a puntini accent e
+ * titolo NERO grande numerato — si distingue dalle caption perché il titolo è
+ * grande e centrato (le caption sono pill piccole in basso). Sostituisce la
  * vecchia `<Say i={0}>` veil come PRIMO elemento di ogni scena; va animata con
  * `chapterIntro(tl)` (stesso pattern di Say/say). Le parole del titolo sono
  * avvolte in span `.imm-chapter-word` per il mask reveal parola-per-parola.
- * Lime pieno (`text-accent`) è ammesso qui perché il fondo è scuro.
+ * L'accent compare solo come `text-accent-ink` (kicker) e nella linea.
  */
 export function ChapterCard({ chapter, subtitle }: { chapter: Chapter; subtitle?: string }) {
   return (
     <div
-      className="imm-chapter pointer-events-none absolute inset-0 z-50 flex items-center justify-center bg-[#0b1020]/95"
+      className="imm-chapter bg-background/90 pointer-events-none absolute inset-0 z-50 flex items-center justify-center backdrop-blur-sm"
       // Nascosta finché chapterIntro non la fa entrare (e PRIMA che GSAP monti).
       style={{ opacity: 0 }}
       aria-hidden
     >
       {/* Trama a puntini accent tenue (pattern del vecchio ClosingScene) */}
       <div
-        className="absolute inset-0 opacity-40"
+        className="absolute inset-0 opacity-20"
         style={{
           backgroundImage:
             "radial-gradient(color-mix(in oklab, var(--accent) 20%, transparent) 1px, transparent 1.4px)",
@@ -855,12 +976,12 @@ export function ChapterCard({ chapter, subtitle }: { chapter: Chapter; subtitle?
       />
       <div className="relative flex max-w-4xl flex-col items-center px-6 text-center">
         {/* Kicker numerico «02 / 07» */}
-        <p className="imm-chapter-kicker text-accent font-mono text-xs tracking-[0.4em] uppercase">
+        <p className="imm-chapter-kicker text-accent-ink font-mono text-xs tracking-[0.4em] uppercase">
           {chapter.n} / {String(CHAPTERS.length).padStart(2, "0")}
         </p>
         {/* Titolo: parole in span per il mask reveal (nbsp DENTRO lo span → lo
             spazio si rivela insieme alla parola, niente riflusso). */}
-        <p className="imm-chapter-title font-display text-accent mt-5 text-5xl font-bold tracking-tight md:text-6xl">
+        <p className="imm-chapter-title font-display text-foreground mt-5 text-5xl font-bold tracking-tight md:text-6xl">
           {chapter.title.split(" ").map((word, i, arr) => (
             <span key={i} className="imm-chapter-word inline-block">
               {word}
@@ -871,7 +992,7 @@ export function ChapterCard({ chapter, subtitle }: { chapter: Chapter; subtitle?
         {/* Linea accent che si disegna (scaleX 0→1, origin left) */}
         <div className="imm-chapter-line bg-accent mt-6 h-[2px] w-24 origin-left" />
         {subtitle ? (
-          <p className="imm-chapter-sub mt-6 max-w-2xl text-base text-balance text-white/70">
+          <p className="imm-chapter-sub text-muted mt-6 max-w-2xl text-base text-balance">
             {subtitle}
           </p>
         ) : null}
@@ -895,7 +1016,7 @@ export function ChapterCard({ chapter, subtitle }: { chapter: Chapter; subtitle?
 export function chapterIntro(tl: gsap.core.Timeline) {
   const section = tl.data as HTMLElement | undefined;
   if (!section?.querySelector(".imm-chapter")) return;
-  // Velo scuro: fade veloce. fromTo → lo stato "nascosto" è applicato in build
+  // Velo chiaro: fade veloce. fromTo → lo stato "nascosto" è applicato in build
   // (immediateRender), prima del paint: niente flash.
   tl.fromTo(
     ".imm-chapter",

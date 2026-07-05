@@ -2,7 +2,7 @@
 
 /**
  * @descrizione  HUD DI CAPITOLO (P12): pill fissa in alto a destra che indica il
- *   capitolo corrente («02 · Dashboard») + mini-rail di 7 puntini (l'attivo è
+ *   capitolo corrente («04 · Dashboard») + mini-rail di 8 puntini (l'attivo è
  *   accent). È un indicatore di REGIA, non navigazione: `pointer-events-none` e
  *   `aria-hidden`.
  *   Rilevamento: UN solo IntersectionObserver sulle section `[data-chapter]`
@@ -69,28 +69,41 @@ export default function ChapterHUD() {
   // prima comparsa (nessun testo da cui sfumare), swap SECCO. Quando `active`
   // decade a null NON si tocca il testo: sfuma via l'intera pill col suo ultimo
   // contenuto (niente pill vuota durante il fade-out).
+  // Tutti i setState partono da TIMER (mai sincroni nell'effect: regola lint
+  // set-state-in-effect / render a cascata); nell'attesa del tick lo swap secco
+  // è già corretto a schermo via il fallback `shown ?? active` nel render.
   useEffect(() => {
     if (active === null || active === shown) return;
-    if (reduced || shown === null) {
-      setShown(active);
-      setFading(false);
-      return;
-    }
-    setFading(true);
-    const t = setTimeout(() => {
-      setShown(active);
-      setFading(false);
-    }, FADE_MS);
-    return () => clearTimeout(t);
+    const snap = reduced || shown === null;
+    const timers = snap
+      ? [
+          setTimeout(() => {
+            setShown(active);
+            setFading(false);
+          }, 0),
+        ]
+      : [
+          setTimeout(() => setFading(true), 0),
+          setTimeout(() => {
+            setShown(active);
+            setFading(false);
+          }, FADE_MS),
+        ];
+    return () => timers.forEach((t) => clearTimeout(t));
   }, [active, shown, reduced]);
 
-  const chapter = shown !== null ? CHAPTERS[shown] : null;
+  /** Indice mostrato: `shown` insegue `active` via timer; il fallback copre il
+   *  primo tick (swap secco) senza bisogno di setState sincroni. */
+  const displayIdx = shown ?? active;
+  const chapter = displayIdx !== null ? CHAPTERS[displayIdx] : null;
   const visible = active !== null;
 
   return (
     <div
       aria-hidden
-      className={`pointer-events-none fixed top-5 right-5 z-40 ${
+      // top-18: sotto la nav mock del finto sito (h-14) del capitolo 01,
+      // che altrimenti si sovrappone alla CTA «Richiedi preventivo».
+      className={`pointer-events-none fixed top-18 right-5 z-40 ${
         reduced ? "" : "transition-opacity duration-300"
       } ${visible ? "opacity-100" : "opacity-0"}`}
     >
@@ -109,12 +122,12 @@ export default function ChapterHUD() {
             </>
           ) : null}
         </span>
-        {/* Mini-rail dei 7 capitoli: puntino attivo accent, gli altri neutri */}
+        {/* Mini-rail degli 8 capitoli: puntino attivo accent, gli altri neutri */}
         <span className="flex items-center gap-1">
           {CHAPTERS.map((c, i) => (
             <span
               key={c.n}
-              className={`h-1.5 w-1.5 rounded-full ${i === shown ? "bg-accent-ink" : "bg-border"}`}
+              className={`h-1.5 w-1.5 rounded-full ${i === displayIdx ? "bg-accent-ink" : "bg-border"}`}
             />
           ))}
         </span>

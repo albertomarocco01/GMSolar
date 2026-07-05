@@ -1,12 +1,12 @@
 "use client";
 
 /**
- * @descrizione  Scena immersiva SEGNALAZIONI (capitolo 04) — viene SUBITO dopo
+ * @descrizione  Scena immersiva SEGNALAZIONI (capitolo 05) — viene SUBITO dopo
  *   la Dashboard e ne riparte: Schermata A = la STESSA dashboard in versione
  *   compatta (sidebar, topbar con il bottone «Segnala un problema» — identico
  *   `imm-report-btn` della scena precedente) ma con un DIFETTO mock visibile:
- *   nella card «Hero homepage» l'immagine è ROTTA (riquadro grigio con icona
- *   immagine spezzata + badge rosso «Immagine non trovata») — lo speculare
+ *   nella card «Hero homepage» l'immagine è ROTTA (foto reale «non caricata»:
+ *   grayscale + velo + chip «Immagine non disponibile») — lo speculare
  *   della card pubblicata con «impianto-2026.jpg» nella scena Dashboard.
  *
  *   • Beat ① — title card di capitolo «04 · Segnalazioni» (ChapterCard +
@@ -54,7 +54,7 @@ import {
   maskReveal,
   cameraTo,
   cameraReset,
-  cameraFollow,
+  cameraTrackType,
   rackFocus,
   rackFocusOff,
 } from "./shared";
@@ -74,10 +74,9 @@ const PAGINE = [
 /** URL rilevato IN AUTOMATICO dal modulo (il cliente non copia nulla). */
 const PAGINA_RILEVATA = "gmsolar.it/dashboard/contenuti";
 
-/** "Foto" corretta che sostituisce l'immagine rotta: lo stesso gradient della
- *  «impianto-2026.jpg» pubblicata nella scena Dashboard → continuità visiva. */
-const GRAD_FOTO_FIX =
-  "repeating-linear-gradient(-45deg, color-mix(in oklab, var(--accent) 12%, transparent) 0px, color-mix(in oklab, var(--accent) 12%, transparent) 3px, transparent 3px, transparent 12px), linear-gradient(135deg, color-mix(in oklab, var(--accent) 30%, transparent), color-mix(in oklab, var(--accent) 52%, transparent))";
+/** Foto corretta che sostituisce l'immagine rotta: la STESSA foto che la scena
+ *  Dashboard pubblica come «impianto-2026.jpg» → continuità visiva. */
+const FOTO_FIX = "/assets/products/pannello-01.jpg";
 
 // ── Componente ────────────────────────────────────────────────────────────────
 
@@ -130,13 +129,12 @@ export default function ImmersiveSegnalazioni() {
     clickZoom(tl, ".imm-seg-page", { position: ">0.1", scale: 1.06 });
     say(tl, 1); // «Il link della pagina si compila da solo.»
 
-    // CAMERA · lock (c) sul typing: la camera si aggancia al campo descrizione…
-    cameraFollow(tl, ".imm-seg-desc", { scale: 1.22 });
-    // …e il cursore (caret) parte per ultimo, a camera ferma (regola 2); poi la
-    // camera resta AGGANCIATA (nessun movimento) per tutta la digitazione.
-    // Il vecchio clickZoom su .imm-zoom-form è rimosso (regola 4).
-    cursorTo(tl, ".imm-seg-desc", { mode: "text" });
-    typeInField(tl, ".imm-seg-desc", { steps: 35, duration: 1.3, position: ">0.15" });
+    // CAMERA · track del caret (item 4): invece di agganciarsi FERMA al campo, la
+    // camera TRASLA a dx seguendo il punto di scrittura per tutta la digitazione
+    // (cameraTrackType sostituisce cameraFollow, regola 4). Il caret finto resta al
+    // centro-schermo = punto di scrittura; niente cursorTo(campo) dedicato.
+    cameraTrackType(tl, ".imm-seg-desc", { scale: 1.22, duration: 1.3 });
+    typeInField(tl, ".imm-seg-desc", { steps: 35, duration: 1.3, position: "<" });
 
     // «Invia segnalazione» → pressione + toast di ricezione con stato
     cursorTo(tl, ".imm-seg-send", { mode: "hand" });
@@ -196,14 +194,14 @@ export default function ImmersiveSegnalazioni() {
       ref={ref}
       heightVh={480}
       theme="platform"
-      label={CHAPTERS[3].title}
-      chapterIndex={3}
+      label={CHAPTERS[4].title}
+      chapterIndex={4}
     >
       {/* Reduced-motion: heading statico di capitolo (la ChapterCard animata a
           progress(1) è nascosta) — nella fascia alta libera (pt-10 del frame). */}
       {reduced ? (
         <h2 className="text-muted absolute top-3 left-1/2 z-40 -translate-x-1/2 font-mono text-xs font-semibold tracking-[0.35em] uppercase">
-          {CHAPTERS[3].n} · {CHAPTERS[3].title}
+          {CHAPTERS[4].n} · {CHAPTERS[4].title}
         </h2>
       ) : null}
 
@@ -302,24 +300,33 @@ export default function ImmersiveSegnalazioni() {
                   </div>
 
                   <div className="grid grid-cols-[260px_minmax(0,1fr)] gap-4">
-                    {/* Immagine ROTTA sotto; la foto corretta sopra, scoperta dal
+                    {/* Immagine ROTTA sotto (foto reale «non caricata»: grayscale +
+                        velo + chip discreto); la foto nitida sopra, scoperta dal
                         wipe (maskReveal) nel beat del fix */}
                     <div className="relative h-32 overflow-hidden rounded-lg">
-                      <div
-                        className="border-border bg-surface-2 absolute inset-0 flex flex-col items-center justify-center gap-2 rounded-lg border border-dashed"
-                        aria-hidden
-                      >
-                        <ImageOff className="text-muted h-6 w-6" aria-hidden />
-                        <span className="rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-semibold text-red-700">
-                          Immagine non trovata
+                      <div className="absolute inset-0" aria-hidden>
+                        <img
+                          src={FOTO_FIX}
+                          alt=""
+                          loading="lazy"
+                          decoding="async"
+                          className="h-full w-full object-cover grayscale"
+                        />
+                        <div className="bg-surface-2/80 absolute inset-0" />
+                        <span className="bg-background/90 border-border text-muted absolute bottom-2 left-2 flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-semibold">
+                          <ImageOff className="h-3 w-3" aria-hidden />
+                          Immagine non disponibile
                         </span>
                       </div>
-                      <div
-                        className="imm-img-fix absolute inset-0"
-                        style={{ background: GRAD_FOTO_FIX }}
-                        aria-hidden
-                      >
-                        <div className="flex h-full items-center justify-center">
+                      <div className="imm-img-fix absolute inset-0" aria-hidden>
+                        <img
+                          src={FOTO_FIX}
+                          alt=""
+                          loading="lazy"
+                          decoding="async"
+                          className="h-full w-full object-cover"
+                        />
+                        <div className="absolute inset-0 flex items-center justify-center">
                           <span className="bg-background/85 text-foreground rounded-lg px-3 py-1.5 text-xs font-semibold shadow-sm">
                             impianto-2026.jpg
                           </span>
@@ -452,7 +459,7 @@ export default function ImmersiveSegnalazioni() {
       </div>
 
       {/* Title card di capitolo (P12) — apre la scena al posto della vecchia veil */}
-      <ChapterCard chapter={CHAPTERS[3]} subtitle="Qualcosa non va? Lo segnali da dove sei." />
+      <ChapterCard chapter={CHAPTERS[4]} subtitle="Qualcosa non va? Lo segnali da dove sei." />
 
       {/* Frasi-intermezzo DESCRITTIVE (spiegano, non vendono) */}
       <Say i={1} variant="caption">

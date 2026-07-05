@@ -43,8 +43,9 @@ Route vive (le uniche che esistono):
 
 ## Fonte di verità
 
-Il piano e l'architettura aggiornati vivono in **`docs/PROGETTO.md`** e
-**`docs/ROADMAP-MULTIAGENTE.md`**. In caso di dubbio, quelli vincono su questo file.
+Il piano e l'architettura aggiornati vivono in **`docs/PROGETTO.md`**. La roadmap attiva è
+**`docs/roadmap-migliorie-2/00-ORCHESTRATORE.md`** (round di migliorie corrente; le roadmap
+precedenti sono deprecate ed eliminate). In caso di dubbio, quelli vincono su questo file.
 
 ---
 
