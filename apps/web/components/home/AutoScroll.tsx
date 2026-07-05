@@ -39,8 +39,10 @@ type LenisLike = {
 // ── Knob (cadenza cinematografica) ───────────────────────────────────────────
 /** Picco di velocità (px/SECONDO, indip. dal refresh rate) al CENTRO di ogni
  *  tratto anchor→anchor. Il profilo è una campana: lento in partenza, veloce a
- *  metà, lento in arrivo → "lento-veloce-lento" ad ogni scena (richiesta utente). */
-const PEAK_SPEED = 900;
+ *  metà, lento in arrivo → "lento-veloce-lento" ad ogni scena (richiesta utente).
+ *  Era 900: i beat centrali (typing, switch pannelli) sembravano "a 2x" e non si
+ *  leggevano → dimezzato, ritmo da presentazione. */
+const PEAK_SPEED = 450;
 /** Pavimento di velocità: ai bordi del tratto la campana → 0, questo evita lo stallo. */
 const MIN_SPEED = 120;
 /** Soglia (px) di "arrivo" all'anchor → clamp + sosta. */
