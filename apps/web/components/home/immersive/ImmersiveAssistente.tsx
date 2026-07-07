@@ -28,6 +28,7 @@
  *   Reduced-motion: stato finale (interfaccia generata visibile, griglia nascosta)
  *   leggibile — il kit porta la timeline a progress(1).
  */
+import { ShoppingCart } from "lucide-react";
 import { cn } from "@gmgroup/lib/utils";
 import { gsap } from "@gmgroup/lib/gsap";
 import { useReducedMotion } from "@gmgroup/lib/motion";
@@ -68,7 +69,19 @@ export default function ImmersiveAssistente() {
   // Reduced-motion: la timeline va a progress(1) → la ChapterCard finisce
   // nascosta. Serve un heading testuale statico del capitolo (vedi markup).
   const reduced = useReducedMotion();
-  const ref = useImmersiveScene((tl) => {
+  const ref = useImmersiveScene((tl, section) => {
+    /** Centro di un elemento nello spazio dell'offsetParent del dot volante
+     *  (.imm-fly). Misurato a tween start, a CAMERA NEUTRA (il volo parte dopo
+     *  il cameraReset) → coordinate corrette. */
+    const flyPt = (sel: string) => {
+      const el = section.querySelector<HTMLElement>(sel);
+      const fly = section.querySelector<HTMLElement>(".imm-fly");
+      const parent = (fly?.offsetParent as HTMLElement | null) ?? section;
+      if (!el) return { left: 0, top: 0 };
+      const r = el.getBoundingClientRect();
+      const pr = parent.getBoundingClientRect();
+      return { left: r.left + r.width / 2 - pr.left, top: r.top + r.height / 2 - pr.top };
+    };
     // ── Stato iniziale (selettori scoped alla section da gsap.context) ─────────
     gsap.set(".imm-placeholder", { autoAlpha: 1 });
     gsap.set(".imm-bar-ring", { autoAlpha: 0 });
@@ -166,10 +179,11 @@ export default function ImmersiveAssistente() {
       position: "<0.18",
     });
 
-    // ⑥ Il configuratore "funziona": il cursore preme la combinazione pre-scelta.
-    //    CAMERA · PUNCH (a) sulla scelta del configuratore: punch rapido + micro-
-    //    overshoot d'arrivo; camera PRIMA, cursore per ULTIMO (regola 2).
-    //    Sostituisce il clickZoom locale sul cluster del configuratore (regola 4).
+    // ⑥ Il configuratore "funziona": il cursore SCEGLIE la lunghezza «7 m»
+    //    (parte selezionata «5 m»: al click la selezione passa via crossfade
+    //    degli overlay .imm-len-sel-*, scrub-safe e leggibile a progress(1)).
+    //    CAMERA · PUNCH (a) sulla scelta: punch rapido + micro-overshoot;
+    //    camera PRIMA, cursore per ULTIMO (regola 2).
     cameraTo(tl, ".imm-config-pick", { scale: 1.42, duration: 0.45, ease: "expo.out" });
     cameraTo(tl, ".imm-config-pick", { scale: 1.35, duration: 0.25, ease: "back.out(1.2)" });
     cursorTo(tl, ".imm-config-pick", { mode: "hand" });
@@ -180,7 +194,46 @@ export default function ImmersiveAssistente() {
       back: 2.6,
       position: ">-0.05",
     });
+    // La selezione passa 5 m → 7 m (crossfade overlay, in coda al press).
+    tl.to(".imm-len-sel-0", { autoAlpha: 0, duration: 0.25, ease: "power2.in" }, ">-0.1");
+    tl.to(".imm-len-sel-1", { autoAlpha: 1, duration: 0.3, ease: "power2.out" }, "<");
     tl.to({}, { duration: 0.35 }); // hold breve sull'inquadratura del click
+
+    // ⑥b AGGIUNTA AL CARRELLO: punch di camera sulla CTA, press, label che passa
+    //    a «Aggiunto ✓» (con icona carrello), poi (a camera tornata neutra →
+    //    misure corrette) la MINIATURA del prodotto VOLA dalla CTA al badge
+    //    carrello dell'header, che pulsa e passa da 0 a 1. Tutto to/set
+    //    deterministico → scrub-safe; stato finale a progress(1): CTA
+    //    "Aggiunto ✓", carrello a 1.
+    cameraTo(tl, ".imm-cta", { scale: 1.4, duration: 0.45, ease: "expo.out" });
+    cameraTo(tl, ".imm-cta", { scale: 1.32, duration: 0.25, ease: "back.out(1.2)" });
+    cursorTo(tl, ".imm-cta", { mode: "hand" });
+    pressButton(tl, ".imm-cta", { down: 0.92, downDur: 0.1, upDur: 0.25, back: 2.4 });
+    tl.to(".imm-cta-label", { autoAlpha: 0, duration: 0.2, ease: "power2.in" }, ">-0.05");
+    tl.to(".imm-cta-done", { autoAlpha: 1, duration: 0.25, ease: "power2.out" }, "<");
+    cameraReset(tl, { duration: 0.9 });
+    hideCursor(tl, { duration: 0.3 });
+    // Volo della miniatura (dopo il reset: coordinate misurate a camera neutra).
+    tl.set(".imm-fly", {
+      left: () => flyPt(".imm-cta").left,
+      top: () => flyPt(".imm-cta").top,
+      autoAlpha: 1,
+      scale: 1,
+    });
+    tl.to(".imm-fly", {
+      left: () => flyPt(".imm-cart").left,
+      top: () => flyPt(".imm-cart").top,
+      scale: 0.4,
+      duration: 0.85,
+      ease: "power2.inOut",
+    });
+    tl.to(".imm-fly", { autoAlpha: 0, scale: 0.25, duration: 0.18, ease: "power2.in" });
+    // Il badge carrello "riceve": pulse + contatore 0 → 1.
+    tl.to(".imm-cart", { scale: 1.2, duration: 0.15, ease: "power2.out" }, "<");
+    tl.to(".imm-cart-0", { autoAlpha: 0, duration: 0.12 }, "<");
+    tl.to(".imm-cart-1", { autoAlpha: 1, duration: 0.15 }, "<");
+    tl.to(".imm-cart", { scale: 1, duration: 0.35, ease: "back.out(2.5)" });
+    tl.to({}, { duration: 0.4 }); // hold: si legge "Carrello · 1"
 
     // ⑦ CAMERA · reset PRIMA del beat finale (regola 3): a progress(1) la camera
     //    è neutra → reduced-motion pulito e hand-off `.imm-stage` senza conflitti.
@@ -194,7 +247,7 @@ export default function ImmersiveAssistente() {
   return (
     <ImmersiveStage
       ref={ref}
-      heightVh={520}
+      heightVh={640}
       theme="platform"
       label={CHAPTERS[2].title}
       chapterIndex={2}
@@ -205,7 +258,7 @@ export default function ImmersiveAssistente() {
             così lo scrub animato non ha elementi in più nel layout). ──────── */}
         {reduced && (
           <p className="border-border bg-surface text-accent-ink relative z-10 shrink-0 border-b px-6 py-2 font-mono text-xs font-semibold tracking-[0.3em] uppercase">
-            {CHAPTERS[2].n} · {CHAPTERS[2].title}
+            {CHAPTERS[2].title}
           </p>
         )}
         {/* ── Header della pagina prodotti (sito vetrina / e-commerce) ──────
@@ -225,8 +278,17 @@ export default function ImmersiveAssistente() {
               </span>
             ))}
           </nav>
-          <span className="bg-surface-2 text-muted rounded-full px-3 py-1 text-xs font-semibold">
-            Carrello · 0
+          {/* Badge carrello: icona + contatore a due stati (0 → 1) pilotato dal
+              beat "aggiungi al carrello" — .imm-cart pulsa all'arrivo del volo. */}
+          <span className="imm-cart bg-surface-2 text-muted flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold">
+            <ShoppingCart className="h-3.5 w-3.5 shrink-0" aria-hidden />
+            Carrello ·{" "}
+            <span className="relative inline-block w-[1ch]">
+              <span className="imm-cart-0">0</span>
+              <span className="imm-cart-1 text-accent-ink absolute top-0 left-0" style={{ opacity: 0 }}>
+                1
+              </span>
+            </span>
           </span>
         </header>
 
@@ -389,28 +451,50 @@ export default function ImmersiveAssistente() {
                   ))}
                 </div>
 
-                {/* Configuratore (mock): l'AI ha pre-selezionato la combinazione.
-                    `.imm-config-pick` = la scelta che il cursore "preme" (prima
-                    opzione selezionata); il punch è DI CAMERA (P11), non locale. */}
+                {/* Configuratore (mock): l'AI pre-seleziona «5 m»; il cursore poi
+                    SCEGLIE «7 m» (`.imm-config-pick`). La riga Lunghezza ha due
+                    stati: overlay "selezionato" .imm-len-sel-0 (5 m, visibile) e
+                    .imm-len-sel-1 (7 m, nascosto) — la timeline li crossfada al
+                    click. Il punch è DI CAMERA (P11), non locale. */}
                 <div className="mt-3 space-y-2">
                   {GENERATED.options.map((opt, oi) => (
                     <div key={opt.label} className="imm-genui-item">
                       <p className="text-muted text-[0.65rem] font-medium">{opt.label}</p>
                       <div className="mt-1 flex flex-wrap gap-1.5" aria-hidden>
-                        {opt.values.map((v, i) => (
-                          <span
-                            key={v}
-                            className={cn(
-                              "rounded-lg border px-2.5 py-1 text-xs",
-                              i === opt.selected
-                                ? "border-accent bg-accent-soft text-accent-ink font-semibold"
-                                : "border-border text-muted",
-                              oi === 0 && i === opt.selected && "imm-config-pick",
-                            )}
-                          >
-                            {v}
-                          </span>
-                        ))}
+                        {opt.values.map((v, i) => {
+                          // Riga Lunghezza: 5 m / 7 m con overlay a due stati.
+                          const dual = oi === 0 && (i === 0 || i === 1);
+                          return (
+                            <span
+                              key={v}
+                              className={cn(
+                                "rounded-lg border px-2.5 py-1 text-xs",
+                                !dual && i === opt.selected
+                                  ? "border-accent bg-accent-soft text-accent-ink font-semibold"
+                                  : "border-border text-muted",
+                                dual && "relative",
+                                oi === 0 && i === 1 && "imm-config-pick",
+                              )}
+                            >
+                              {dual && (
+                                <span
+                                  className={cn(
+                                    "border-accent text-accent-ink absolute inset-0 flex items-center justify-center rounded-lg border font-semibold",
+                                    `imm-len-sel-${i}`,
+                                  )}
+                                  style={{
+                                    opacity: i === 0 ? 1 : 0,
+                                    background:
+                                      "color-mix(in oklab, var(--accent) 14%, var(--background))",
+                                  }}
+                                >
+                                  {v}
+                                </span>
+                              )}
+                              {v}
+                            </span>
+                          );
+                        })}
                       </div>
                     </div>
                   ))}
@@ -434,14 +518,38 @@ export default function ImmersiveAssistente() {
                   <span className="text-foreground text-xl font-bold tracking-tight">
                     {GENERATED.price}
                   </span>
-                  <span className="bg-accent text-accent-contrast rounded-full px-4 py-2 text-sm font-semibold">
-                    {GENERATED.cta}
+                  <span className="imm-cta bg-accent text-accent-contrast relative rounded-full px-4 py-2 text-sm font-semibold">
+                    <span className="imm-cta-label inline-block">{GENERATED.cta}</span>
+                    <span
+                      className="imm-cta-done absolute inset-0 flex items-center justify-center gap-1.5"
+                      style={{ opacity: 0 }}
+                    >
+                      <ShoppingCart className="h-4 w-4 shrink-0" aria-hidden />
+                      Aggiunto ✓
+                    </span>
                   </span>
                 </div>
               </div>
             </div>
           </div>
         </div>
+
+        {/* MINIATURA volante "aggiunto al carrello": la foto del prodotto
+            configurato vola dalla CTA al badge carrello (timeline) — molto più
+            leggibile del vecchio dot accent. */}
+        <span
+          className="imm-fly border-border bg-surface pointer-events-none absolute z-30 block h-14 w-14 -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-xl border shadow-xl"
+          style={{ opacity: 0 }}
+          aria-hidden
+        >
+          <img
+            src="/assets/products/cavo-01.jpg"
+            alt=""
+            loading="lazy"
+            decoding="async"
+            className="h-full w-full object-cover"
+          />
+        </span>
 
         {/* ── Barra assistente AI (in basso) ─────────────────────────────── */}
         <div className="absolute inset-x-0 bottom-0 z-20 px-5 pb-5" aria-hidden>
@@ -470,7 +578,8 @@ export default function ImmersiveAssistente() {
       <Say i={1} variant="caption">
         Capisce la richiesta in linguaggio naturale.
       </Say>
-      <Say i={2} variant="caption">
+      {/* Spostata a destra: centrata coprirebbe l'indicatore "Genero l'interfaccia". */}
+      <Say i={2} variant="caption" pillClassName="bottom-24 right-[6vw]">
         E genera al volo l&apos;interfaccia su misura.
       </Say>
     </ImmersiveStage>

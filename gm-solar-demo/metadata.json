@@ -1,0 +1,6 @@
+{
+  "name": "GM Solar Demo",
+  "description": "An ambient background animation component.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

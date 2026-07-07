@@ -2,8 +2,8 @@
 
 /**
  * @descrizione  HUD DI CAPITOLO (P12): pill fissa in alto a destra che indica il
- *   capitolo corrente («04 · Dashboard») + mini-rail di 8 puntini (l'attivo è
- *   accent). È un indicatore di REGIA, non navigazione: `pointer-events-none` e
+ *   capitolo corrente («Dashboard» — solo titolo, senza numerazione) + mini-rail
+ *   di 8 puntini (l'attivo è accent). È un indicatore di REGIA, non navigazione: `pointer-events-none` e
  *   `aria-hidden`.
  *   Rilevamento: UN solo IntersectionObserver sulle section `[data-chapter]`
  *   (marcate da ImmersiveStage via prop `chapterIndex`; la scena Solare a mano).
@@ -101,32 +101,29 @@ export default function ChapterHUD() {
   return (
     <div
       aria-hidden
-      // top-18: sotto la nav mock del finto sito (h-14) del capitolo 01,
-      // che altrimenti si sovrappone alla CTA «Richiedi preventivo».
-      className={`pointer-events-none fixed top-18 right-5 z-40 ${
-        reduced ? "" : "transition-opacity duration-300"
-      } ${visible ? "opacity-100" : "opacity-0"}`}
+      // Capitolo 01: pill più in basso, SUL video (il finto sito ha una nav
+      // mock h-14 + CTA in alto a destra da non coprire). Dagli altri capitoli
+      // in poi risale ad "altezza header" (top-4).
+      className={`pointer-events-none fixed right-5 z-40 ${
+        displayIdx === 0 ? "top-28" : "top-4"
+      } ${reduced ? "" : "transition-[top,opacity] duration-300"} ${
+        visible ? "opacity-100" : "opacity-0"
+      }`}
     >
       <div className="border-border bg-background/80 flex items-center gap-2.5 rounded-full border px-3.5 py-1.5 text-xs backdrop-blur">
-        {/* «02 · Dashboard» — l'accent come TESTO su fondo chiaro usa accent-ink */}
+        {/* Solo il TITOLO del capitolo (numerazione rimossa su richiesta cliente) */}
         <span
           className={`text-foreground font-medium whitespace-nowrap ${
             reduced ? "" : "transition-opacity duration-150"
           } ${fading ? "opacity-0" : "opacity-100"}`}
         >
-          {chapter ? (
-            <>
-              <span className="text-accent-ink font-mono">{chapter.n}</span>
-              {" · "}
-              {chapter.title}
-            </>
-          ) : null}
+          {chapter ? chapter.title : null}
         </span>
         {/* Mini-rail degli 8 capitoli: puntino attivo accent, gli altri neutri */}
         <span className="flex items-center gap-1">
           {CHAPTERS.map((c, i) => (
             <span
-              key={c.n}
+              key={c.title}
               className={`h-1.5 w-1.5 rounded-full ${i === displayIdx ? "bg-accent-ink" : "bg-border"}`}
             />
           ))}

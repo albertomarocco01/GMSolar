@@ -205,11 +205,18 @@ export default function AutoScroll() {
     gsap.ticker.add(tick);
 
     let idle: ReturnType<typeof setTimeout> | undefined;
+    /** Intento "INDIETRO" (wheel/tasti verso l'alto): l'auto è SOLO-AVANTI, quindi
+     *  se riprendesse dopo l'idle trascinerebbe di nuovo l'utente verso il prossimo
+     *  anchor in basso — impossibile risalire una scena da 320svh a colpi di rotella
+     *  senza mai pause >2s. Finché l'intento è indietro l'auto NON riparte da sola:
+     *  si riarma al primo input verso il BASSO o alla ripresa esplicita (pill/click). */
+    let backward = false;
     /** Input utente → cede il controllo; idle → riprende (target ricalcolato nel tick). */
     const yield_ = (idleMs: number = IDLE_MS) => {
       if (lockedRef.current) return;
       if (autoRef.current) setAutoState(false);
       if (idle) clearTimeout(idle);
+      if (backward) return; // sta tornando indietro: nessun auto-resume
       idle = setTimeout(() => {
         if (!lockedRef.current && !atBottomRef.current) setAutoState(true);
       }, idleMs);
@@ -274,6 +281,7 @@ export default function AutoScroll() {
         lockedRef.current = false;
         setPaused(false);
         atBottomRef.current = false;
+        backward = false; // ripresa esplicita: si torna in modalità presentazione
         setAutoState(true);
         setGlobalPause(false);
       } else {
@@ -307,12 +315,23 @@ export default function AutoScroll() {
     // finirebbe nel parametro idleMs). onTouch dà più respiro (si legge col dito fermo).
     const onYield = () => yield_();
     const onTouch = () => yield_(TOUCH_IDLE_MS);
+    // Direzione dell'input: verso l'alto ⇒ intento "indietro" (vedi `backward`);
+    // verso il basso ⇒ intento normale, l'idle-resume si riarma.
+    const onWheel = (e: WheelEvent) => {
+      backward = e.deltaY < 0;
+      yield_();
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (["ArrowUp", "PageUp", "Home"].includes(e.key)) backward = true;
+      else if (["ArrowDown", "PageDown", "End", " "].includes(e.key)) backward = false;
+      yield_();
+    };
     window.addEventListener("mousemove", onMouseMove, opts);
-    window.addEventListener("wheel", onYield, opts);
+    window.addEventListener("wheel", onWheel, opts);
     window.addEventListener("touchstart", onTouch, opts);
     window.addEventListener("touchmove", onTouch, opts);
     window.addEventListener("pointerdown", onYield, opts);
-    window.addEventListener("keydown", onYield);
+    window.addEventListener("keydown", onKey);
     window.addEventListener("click", onClick);
     window.addEventListener("presentation:replay", onReplay);
 
@@ -333,11 +352,11 @@ export default function AutoScroll() {
       if (idle) clearTimeout(idle);
       if (pillTimer) clearTimeout(pillTimer);
       window.removeEventListener("mousemove", onMouseMove);
-      window.removeEventListener("wheel", onYield);
+      window.removeEventListener("wheel", onWheel);
       window.removeEventListener("touchstart", onTouch);
       window.removeEventListener("touchmove", onTouch);
       window.removeEventListener("pointerdown", onYield);
-      window.removeEventListener("keydown", onYield);
+      window.removeEventListener("keydown", onKey);
       window.removeEventListener("click", onClick);
       window.removeEventListener("presentation:replay", onReplay);
     };

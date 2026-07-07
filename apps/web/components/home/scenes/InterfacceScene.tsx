@@ -47,11 +47,12 @@ export default function InterfacceScene() {
     //    beat della timeline (sostituisce la vecchia <Say i={0}> col velo).
     chapterIntro(tl);
 
-    // ② Le card entrano in stagger, con un lieve overshoot (back.out).
+    // ② Le card entrano in stagger LENTO (richiesta: i popup compaiono con più
+    //    calma dopo il finale del video), con un lieve overshoot (back.out).
     tl.to(
       ".vt-card",
-      { autoAlpha: 1, y: 0, scale: 1, duration: 0.7, ease: "back.out(1.5)", stagger: 0.14 },
-      "+=0.1",
+      { autoAlpha: 1, y: 0, scale: 1, duration: 1.2, ease: "back.out(1.3)", stagger: 0.28 },
+      "+=0.2",
     );
 
     // ③ Caption descrittiva + hold finale leggibile (stato finale = card visibili,
@@ -63,7 +64,7 @@ export default function InterfacceScene() {
   return (
     <ImmersiveStage
       ref={ref}
-      heightVh={280}
+      heightVh={340}
       theme="platform"
       label={CHAPTERS[1].title}
       chapterIndex={1}
@@ -83,7 +84,7 @@ export default function InterfacceScene() {
             heading statico del capitolo in cima (solo `reduced`). */}
         {reduced && (
           <p className="border-border bg-surface text-accent-ink relative z-10 shrink-0 border-b px-6 py-2 font-mono text-xs font-semibold tracking-[0.3em] uppercase">
-            {CHAPTERS[1].n} · {CHAPTERS[1].title}
+            {CHAPTERS[1].title}
           </p>
         )}
 

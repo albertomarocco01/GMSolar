@@ -893,10 +893,15 @@ export function say(tl: gsap.core.Timeline, i: number) {
 export function Say({
   i,
   variant = "veil",
+  pillClassName,
   children,
 }: {
   i: number;
   variant?: "veil" | "caption";
+  /** Solo variant "caption": override di POSIZIONE della pill (es. quando il
+   *  lower-third centrato coprirebbe un elemento della scena — la pill si
+   *  sposta, la regia di say() non cambia). Default: centrata in basso. */
+  pillClassName?: string;
   children: React.ReactNode;
 }) {
   if (variant === "caption") {
@@ -906,7 +911,11 @@ export function Say({
         style={{ opacity: 0 }}
         aria-hidden
       >
-        <div className="border-border bg-background/90 absolute bottom-24 left-1/2 max-w-[70vw] -translate-x-1/2 rounded-full border px-6 py-3 shadow-lg backdrop-blur-sm">
+        <div
+          className={`border-border bg-background/90 absolute max-w-[70vw] rounded-full border px-6 py-3 shadow-lg backdrop-blur-sm ${
+            pillClassName ?? "bottom-24 left-1/2 -translate-x-1/2"
+          }`}
+        >
           <p className="font-display text-foreground text-center text-sm font-semibold tracking-tight text-balance sm:text-base">
             {children}
           </p>
@@ -934,30 +943,41 @@ export function Say({
  * CAPITOLI della presentazione, nell'ORDINE REALE delle scene in page.tsx.
  * Fonte unica per: title card (ChapterCard), HUD (ChapterHUD, che li importa da
  * qui) e attributo `data-chapter` (prop `chapterIndex` di ImmersiveStage).
+ * SOLO titoli: la numerazione «0X / 08» è stata rimossa ovunque (richiesta cliente).
  */
 export const CHAPTERS = [
-  { n: "01", title: "Siti vetrina" },
-  { n: "02", title: "Interfacce grafiche moderne" },
-  { n: "03", title: "Assistente AI" },
-  { n: "04", title: "Dashboard" },
-  { n: "05", title: "Segnalazioni" },
-  { n: "06", title: "Gestionali su misura" },
-  { n: "07", title: "App con assistente AI integrato" },
-  { n: "08", title: "Integrazioni" },
+  { title: "Siti vetrina" },
+  { title: "Interfacce grafiche moderne" },
+  { title: "Assistente AI" },
+  { title: "Dashboard" },
+  { title: "Segnalazioni" },
+  { title: "Gestionali su misura" },
+  { title: "App con assistente AI integrato" },
+  { title: "Integrazioni" },
 ] as const;
 
 export type Chapter = (typeof CHAPTERS)[number];
 
 /**
  * TITLE CARD DI CAPITOLO: velo full-screen CHIARO con trama a puntini accent e
- * titolo NERO grande numerato — si distingue dalle caption perché il titolo è
+ * titolo NERO grande — si distingue dalle caption perché il titolo è
  * grande e centrato (le caption sono pill piccole in basso). Sostituisce la
  * vecchia `<Say i={0}>` veil come PRIMO elemento di ogni scena; va animata con
- * `chapterIntro(tl)` (stesso pattern di Say/say). Le parole del titolo sono
- * avvolte in span `.imm-chapter-word` per il mask reveal parola-per-parola.
- * L'accent compare solo come `text-accent-ink` (kicker) e nella linea.
+ * `chapterIntro(tl)` (stesso pattern di Say/say). Il titolo si rivela con un
+ * UNICO wipe continuo sinistra→destra (maskReveal su `.imm-chapter-title`).
+ * L'accent compare solo nella linea sotto il titolo.
+ * `lift` = classe opzionale di offset verticale del blocco interno (es.
+ * "-translate-y-12" nella scena video, dove il titolo va più in alto).
  */
-export function ChapterCard({ chapter, subtitle }: { chapter: Chapter; subtitle?: string }) {
+export function ChapterCard({
+  chapter,
+  subtitle,
+  lift,
+}: {
+  chapter: Chapter;
+  subtitle?: string;
+  lift?: string;
+}) {
   return (
     <div
       className="imm-chapter bg-background/90 pointer-events-none absolute inset-0 z-50 flex items-center justify-center backdrop-blur-sm"
@@ -974,20 +994,16 @@ export function ChapterCard({ chapter, subtitle }: { chapter: Chapter; subtitle?
           backgroundSize: "22px 22px",
         }}
       />
-      <div className="relative flex max-w-4xl flex-col items-center px-6 text-center">
-        {/* Kicker numerico «02 / 07» */}
-        <p className="imm-chapter-kicker text-accent-ink font-mono text-xs tracking-[0.4em] uppercase">
-          {chapter.n} / {String(CHAPTERS.length).padStart(2, "0")}
-        </p>
-        {/* Titolo: parole in span per il mask reveal (nbsp DENTRO lo span → lo
-            spazio si rivela insieme alla parola, niente riflusso). */}
-        <p className="imm-chapter-title font-display text-foreground mt-5 text-5xl font-bold tracking-tight md:text-6xl">
-          {chapter.title.split(" ").map((word, i, arr) => (
-            <span key={i} className="imm-chapter-word inline-block">
-              {word}
-              {i < arr.length - 1 ? " " : ""}
-            </span>
-          ))}
+      {/* TARATURA MANUALE (titolo più in alto): il centraggio verticale è il
+          `flex items-center justify-center` del wrapper esterno; l'offset lo
+          porta la prop `lift` su QUESTO blocco (es. lift="-translate-y-12"
+          passato da SolarTwinScene) — cambia lì il valore per calibrare. */}
+      <div
+        className={`relative flex max-w-4xl flex-col items-center px-6 text-center ${lift ?? ""}`}
+      >
+        {/* Titolo: wipe continuo L→R sull'intero blocco (vedi chapterIntro). */}
+        <p className="imm-chapter-title font-display text-foreground text-5xl font-bold tracking-tight md:text-6xl">
+          {chapter.title}
         </p>
         {/* Linea accent che si disegna (scaleX 0→1, origin left) */}
         <div className="imm-chapter-line bg-accent mt-6 h-[2px] w-24 origin-left" />
@@ -1004,14 +1020,13 @@ export function ChapterCard({ chapter, subtitle }: { chapter: Chapter; subtitle?
 /**
  * Intro di capitolo: anima la <ChapterCard> DENTRO la timeline scrubbata. Va
  * chiamata PRIMA di ogni altro beat della scena (sostituisce il vecchio
- * `say(tl, 0)`). Sequenza: velo fade veloce → kicker fade+rise → titolo mask
- * reveal parola-per-parola (maskReveal, dir "l") → linea che si disegna →
- * (sottotitolo, se presente) → hold breve → uscita compatta (velo+contenuto
- * salgono e sfumano, power2.in). Occupa ~2.7s di timeline (≈ il primo 8–10%
- * con le durate correnti delle scene). Tutto fromTo/to deterministico →
- * scrub-safe; a progress(1) la card finisce NASCOSTA (autoAlpha 0), come il
- * vecchio veil — per reduced-motion le scene aggiungono un heading statico.
- * No-op se la scena non contiene una ChapterCard.
+ * `say(tl, 0)`). Sequenza: velo fade veloce → titolo che si COSTRUISCE con un
+ * unico wipe continuo sinistra→destra (maskReveal su `.imm-chapter-title`) →
+ * linea che si disegna → (sottotitolo, se presente) → hold breve → uscita
+ * compatta (velo+contenuto salgono e sfumano, power2.in). Tutto fromTo/to
+ * deterministico → scrub-safe; a progress(1) la card finisce NASCOSTA
+ * (autoAlpha 0), come il vecchio veil — per reduced-motion le scene
+ * aggiungono un heading statico. No-op se la scena non contiene una ChapterCard.
  */
 export function chapterIntro(tl: gsap.core.Timeline) {
   const section = tl.data as HTMLElement | undefined;
@@ -1023,19 +1038,12 @@ export function chapterIntro(tl: gsap.core.Timeline) {
     { autoAlpha: 0, y: 0 },
     { autoAlpha: 1, duration: 0.3, ease: "power2.out" },
   );
-  // Kicker «02 / 07»: fade + rise
-  tl.fromTo(
-    ".imm-chapter-kicker",
-    { autoAlpha: 0, y: 18 },
-    { autoAlpha: 1, y: 0, duration: 0.45, ease: "power3.out" },
-    "-=0.05",
-  );
-  // Titolo: mask reveal parola-per-parola (riusa maskReveal con stagger sugli span)
-  maskReveal(tl, ".imm-chapter-word", {
+  // Titolo: si genera progressivamente da sinistra a destra (wipe unico continuo).
+  maskReveal(tl, ".imm-chapter-title", {
     dir: "l",
-    duration: 0.5,
-    stagger: 0.09,
-    position: "-=0.15",
+    duration: 0.9,
+    ease: "power2.inOut",
+    position: "-=0.05",
   });
   // Linea accent che si disegna (origin left è nel markup della card)
   tl.fromTo(

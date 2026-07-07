@@ -37,11 +37,10 @@ const ARIA_LABEL = "Siti vetrina — anteprima di un sito con hero video scrolly
 /** Sottotitolo della title card di capitolo 01 — ex frase popup d'apertura. */
 const FRASE = "Con una forte narrativa, costruita tramite scrollytelling video.";
 
-/** Il video esaurisce la sua durata a questo progress di scroll. Ex 0.8: l'ultimo
- *  tratto serviva all'entrata delle card 3D, ora migrate in InterfacceScene → il
- *  video usa (quasi) TUTTA la corsa e raggiunge l'ultimo frame proprio quando il
- *  velo chiaro d'uscita comincia a salire (0.92). */
-const VIDEO_END = 0.92;
+/** Il video esaurisce la sua durata a questo progress di scroll. A 0.82 l'ultimo
+ *  frame (pannelli accesi) resta FERMO per un tratto leggibile (0.82 → 0.92)
+ *  prima che il velo chiaro d'uscita cominci a salire (0.92). */
+const VIDEO_END = 0.82;
 /** Escursione (in frazione di video) della micro-demo del cue: avanti/indietro. */
 const DEMO_SPAN = 0.06;
 /** Corsa verticale (px) del dot dentro il mousino, in sync con la micro-demo. */
@@ -76,19 +75,17 @@ export default function SolarTwinScene() {
       // gsap.context la uccide al cleanup; sotto reduced-motion l'effect è saltato
       // (early-return) → resta l'heading statico e la card inline resta nascosta.
       gsap.set(".imm-chapter", { autoAlpha: 1 });
-      gsap.set(".imm-chapter-kicker", { autoAlpha: 0, y: 18 });
       gsap.set(".imm-chapter-line", { scaleX: 0, transformOrigin: "left center" });
       gsap.set(".imm-chapter-sub", { autoAlpha: 0, y: 14 });
       const introTl = gsap.timeline({
         delay: 1.15,
         onComplete: () => window.dispatchEvent(new CustomEvent("presentation:introdone")),
       });
-      introTl.to(".imm-chapter-kicker", { autoAlpha: 1, y: 0, duration: 0.45, ease: "power3.out" });
-      maskReveal(introTl, ".imm-chapter-word", {
+      // Titolo: si genera con un unico wipe continuo sinistra→destra.
+      maskReveal(introTl, ".imm-chapter-title", {
         dir: "l",
-        duration: 0.55,
-        stagger: 0.09,
-        position: "-=0.1",
+        duration: 1.0,
+        ease: "power2.inOut",
       });
       introTl
         .to(".imm-chapter-line", { scaleX: 1, duration: 0.5, ease: "power2.inOut" }, "-=0.2")
@@ -137,13 +134,20 @@ export default function SolarTwinScene() {
         },
       });
 
-      // PAUSA GLOBALE (click → AutoScroll): congela/riprende la demo dallo
-      // stato in cui era. Dopo la kill il listener resta no-op finché la
-      // dispose non lo rimuove (removeEventListener è idempotente).
+      // PAUSA GLOBALE (click → AutoScroll): congela/riprende la demo E la
+      // title card d'apertura (introTl è one-shot fuori dallo scrub: senza
+      // questo, "ferma demo" durante l'intro non aveva effetto e la card
+      // proseguiva/svaniva da sola). Dopo la kill il listener resta no-op
+      // finché la dispose non lo rimuove (removeEventListener è idempotente).
       const onPauseChange = (e: Event) => {
         const paused = Boolean((e as CustomEvent<{ paused: boolean }>).detail?.paused);
-        if (paused) demo.pause();
-        else demo.resume();
+        if (paused) {
+          demo.pause();
+          if (introTl.progress() < 1) introTl.pause();
+        } else {
+          demo.resume();
+          if (introTl.progress() < 1) introTl.resume();
+        }
       };
       window.addEventListener("presentation:pausechange", onPauseChange);
 
@@ -208,7 +212,7 @@ export default function SolarTwinScene() {
               card animata resta nascosta → il numero/nome capitolo vive qui,
               come testo normale senza velo scuro. */}
           <h2 className="font-display text-foreground mb-8 text-xl font-bold tracking-tight">
-            {CHAPTERS[0].n} · {CHAPTERS[0].title}
+            {CHAPTERS[0].title}
           </h2>
           {/* Poster statico al posto del video scrubbato */}
           <img
@@ -269,7 +273,10 @@ export default function SolarTwinScene() {
             full-screen (copre anche l'header). Parte nascosta (opacity 0 inline);
             l'INTRO ONE-SHOT (non scrubbata, vedi effect) la mostra e la tiene
             ferma PRIMA dello scroll, poi la solleva rivelando l'hero. */}
-        <ChapterCard chapter={CHAPTERS[0]} subtitle={FRASE} />
+        {/* TARATURA MANUALE: `lift` alza il blocco titolo sul video — il valore
+            (-translate-y-12 ≈ 3rem) si cambia QUI; il punto di applicazione è il
+            blocco interno della ChapterCard (shared.tsx, commento omonimo). */}
+        <ChapterCard chapter={CHAPTERS[0]} subtitle={FRASE} lift="-translate-y-12" />
 
         {/* Barra di avanzamento accent (scaleX = progress) */}
         <div

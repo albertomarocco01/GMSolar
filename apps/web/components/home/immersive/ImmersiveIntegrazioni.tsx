@@ -315,7 +315,7 @@ export default function ImmersiveIntegrazioni() {
             tile piene" (nulla di animato, solo contesto leggibile). */}
         {reducedStatic && (
           <p className="text-muted absolute top-6 left-1/2 -translate-x-1/2 font-mono text-xs tracking-[0.35em] uppercase">
-            {CHAPTERS[7].n} · {CHAPTERS[7].title}
+            {CHAPTERS[7].title}
           </p>
         )}
         {/* CARRELLATA DI LOGHI — 3 righe orizzontali da 6 tile, pan alternato */}

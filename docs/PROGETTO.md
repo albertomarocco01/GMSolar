@@ -59,12 +59,16 @@ delle scene, tutte `<section>` figlie di `#top` (capitoli 01→08):
 
 Sistemi trasversali:
 
-- **Capitoli + HUD** (P12): ogni scena apre con una `ChapterCard` **chiara** numerata
-  (titolo nero grande, kicker `accent-ink`, in `shared.tsx`); `ChapterHUD.tsx` (montato in
-  `page.tsx`, sotto la nav mock del cap. 01) mostra capitolo corrente + mini-rail a 8 puntini.
+- **Capitoli + HUD** (P12): ogni scena apre con una `ChapterCard` **chiara** (titolo nero
+  grande che si rivela con un **wipe continuo sinistra→destra**; la numerazione «0X / 08» è
+  stata RIMOSSA ovunque, resta solo il titolo — in `shared.tsx`); `ChapterHUD.tsx` (montato
+  in `page.tsx`, sotto la nav mock del cap. 01) mostra il titolo del capitolo corrente +
+  mini-rail a 8 puntini.
 - **Scorrimento automatico** (`AutoScroll.tsx`): profilo di velocità **a campana** per tratto
   (lento → picco `PEAK_SPEED` a metà → lento, `sin(π·p)`; variante gaussiana commentata) con
-  `MIN_SPEED` anti-stallo e carry sub-pixel. La **pausa globale**
+  `MIN_SPEED` anti-stallo e carry sub-pixel. L'auto è **solo-avanti**: con input verso
+  l'ALTO (wheel/tasti) entra in intento «indietro» e NON riparte da sola finché l'utente
+  non scrolla di nuovo verso il basso (fix «impossibile risalire dalla scena video»). La **pausa globale**
   (click) congela auto-scroll + keyframe CSS + tween `repeat:-1` + video liberi
   (`data-presentation-paused` + evento `presentation:pausechange`). Replay = reload dalla cima.
 - **Rimossi**: le vecchie scene video drone e cavo EV, la ricerca Integrazioni, i dati

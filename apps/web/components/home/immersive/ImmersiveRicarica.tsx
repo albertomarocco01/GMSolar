@@ -14,8 +14,9 @@
  *        proxy+Intl), timer e costo live, bolla finale «Stallo prenotato».
  *   Il thread fa auto-scroll (translate Y misurato) per tenere a fuoco l'ultimo
  *   messaggio. Tema CHIARO, tono DESCRITTIVO. Usa il kit condiviso `./shared`.
- *   CAMERA (P11) — qui DISCRETA (il telefono è già centrato e piccolo, scale ≤1.15):
- *   push-in 1.15 sul typing (b) → punch leggero 1.12 sull'invio (a) → pull-back
+ *   CAMERA (P11) — qui DISCRETA (il telefono è già centrato e piccolo):
+ *   push-in 1.3 sul typing (b, più stretto per LEGGIBILITÀ del testo digitato)
+ *   → punch leggero 1.24 sull'invio (a) → pull-back
  *   reveal (f) sul messaggio nel thread → follow lieve 1.08 verso il CTA (c) →
  *   push-in lento 1.14 sulla ricarica 20→80% (b) → reset finale; rack focus
  *   leggerissimo (e) sulla griglia-mappa dietro il telefono quando si apre la
@@ -131,11 +132,31 @@ export default function ImmersiveRicarica() {
     // ── ② L'utente scrive nel campo (kit: typeInField) e invia ────────────────
     tl.to(".imm-rc-placeholder", { autoAlpha: 0, duration: 0.2, ease: "power2.out" });
     typeInField(tl, ".imm-rc-input-text", { steps: 28, duration: 0.95, position: "<" });
-    // (b) PUSH-IN lento sulla digitazione, camera DISCRETA (max scale 1.15 in
-    // tutta la scena). Sostituisce il vecchio clickZoom della barra: punch locale
-    // e punch di camera non si sommano sullo stesso beat (regola 4).
+    // La frase è più larga del campo (mockup telefono): come in un input vero,
+    // il testo SCORRE a sinistra mentre si digita così la coda resta visibile
+    // (prima veniva clippata dal box overflow-hidden). Overflow misurato a
+    // tween start (function-based) → segue il layout reale.
+    tl.to(
+      ".imm-rc-input-text",
+      {
+        x: () => {
+          const el = section.querySelector<HTMLElement>(".imm-rc-input-text");
+          const box = el?.parentElement;
+          if (!el || !box) return 0;
+          return Math.min(0, box.clientWidth - 24 - el.scrollWidth); // 24 = px-3 ×2
+        },
+        duration: 0.95,
+        ease: "none",
+      },
+      "<",
+    );
+    // (b) PUSH-IN sulla digitazione: 1.3 (era 1.15) — la scritta nel mockup
+    // telefono era troppo piccola per leggersi mentre si digita (richiesta
+    // leggibilità); il resto della scena resta su scale discrete. Sostituisce
+    // il vecchio clickZoom della barra: punch locale e punch di camera non si
+    // sommano sullo stesso beat (regola 4).
     cameraTo(tl, ".imm-zoom-local", {
-      scale: 1.15,
+      scale: 1.3,
       duration: 0.95,
       ease: "power1.inOut",
       position: "<",
@@ -143,7 +164,7 @@ export default function ImmersiveRicarica() {
     // (a) PUNCH leggero sul tasto invia: prima la camera (breve, expo.out), POI
     // il cursore-mano che atterra a inquadratura assestata (regola 2: mai
     // partenze simultanee camera+cursore sullo stesso target).
-    cameraTo(tl, ".imm-rc-send", { scale: 1.12, duration: 0.4, ease: "expo.out" });
+    cameraTo(tl, ".imm-rc-send", { scale: 1.24, duration: 0.4, ease: "expo.out" });
     cursorTo(tl, ".imm-rc-send", { mode: "hand" });
     pressButton(tl, ".imm-rc-send", {
       down: 0.86,
@@ -155,7 +176,7 @@ export default function ImmersiveRicarica() {
     // Il campo si svuota e il messaggio entra nel thread
     tl.to(
       ".imm-rc-input-text",
-      { clipPath: "inset(0 100% 0 0)", duration: 0.22, ease: "power2.in" },
+      { clipPath: "inset(0 100% 0 0)", x: 0, duration: 0.22, ease: "power2.in" },
       "<",
     );
     tl.to(".imm-rc-placeholder", { autoAlpha: 1, duration: 0.25 }, "<");
@@ -327,7 +348,7 @@ export default function ImmersiveRicarica() {
           leggibile del mockup. */}
       {reduced ? (
         <p className="text-foreground absolute top-6 left-1/2 z-20 -translate-x-1/2 font-mono text-xs font-bold tracking-[0.35em] uppercase">
-          {CHAPTERS[6].n} · {CHAPTERS[6].title}
+          {CHAPTERS[6].title}
         </p>
       ) : null}
 
@@ -383,14 +404,14 @@ export default function ImmersiveRicarica() {
               <div className="imm-rc-thread relative flex flex-col gap-2.5 px-3 py-3">
                 {/* Bolla di benvenuto (sempre visibile) */}
                 <div className="max-w-[86%] self-start">
-                  <div className="bg-surface-2 text-foreground rounded-2xl rounded-tl-sm px-3 py-2 text-[11.5px] leading-snug">
+                  <div className="bg-surface-2 text-foreground rounded-2xl rounded-tl-sm px-3 py-2 text-[13px] leading-snug">
                     Ciao! Posso trovarti una colonnina lungo il tuo percorso.
                   </div>
                 </div>
 
                 {/* Bolla utente — il messaggio "scritto" entra dopo l'invio */}
                 <div className="imm-rc-user-1 max-w-[86%] self-end" style={{ opacity: 0 }}>
-                  <div className="bg-accent text-accent-contrast rounded-2xl rounded-tr-sm px-3 py-2 text-[11.5px] leading-snug font-medium">
+                  <div className="bg-accent text-accent-contrast rounded-2xl rounded-tr-sm px-3 py-2 text-[13px] leading-snug font-medium">
                     Devo ricaricare lungo la A1 verso Milano
                   </div>
                 </div>
@@ -411,7 +432,7 @@ export default function ImmersiveRicarica() {
                     ))}
                   </div>
                   <div
-                    className="imm-rc-agent-1 bg-surface-2 text-foreground rounded-2xl rounded-tl-sm px-3 py-2 text-[11.5px] leading-snug"
+                    className="imm-rc-agent-1 bg-surface-2 text-foreground rounded-2xl rounded-tl-sm px-3 py-2 text-[13px] leading-snug"
                     style={{ opacity: 0 }}
                   >
                     Trovata una colonnina ultra-rapida sul percorso:
@@ -426,12 +447,12 @@ export default function ImmersiveRicarica() {
                   {/* Intestazione card */}
                   <div className="border-border flex items-center justify-between gap-2 border-b px-3 py-2.5">
                     <div className="min-w-0">
-                      <p className="text-foreground truncate text-[11px] font-semibold">
+                      <p className="text-foreground truncate text-[12px] font-semibold">
                         Hub Ultra-Rapido · A1
                       </p>
-                      <p className="text-muted text-[9px]">Rete partner</p>
+                      <p className="text-muted text-[10px]">Rete partner</p>
                     </div>
-                    <span className="bg-accent-soft text-accent-ink shrink-0 rounded-full px-2 py-0.5 text-[9.5px] font-bold">
+                    <span className="bg-accent-soft text-accent-ink shrink-0 rounded-full px-2 py-0.5 text-[10.5px] font-bold">
                       175 kW
                     </span>
                   </div>
@@ -550,17 +571,17 @@ export default function ImmersiveRicarica() {
                   <div className="grid grid-cols-4 gap-px">
                     {STATION_STATS.map((s) => (
                       <div key={s.l} className="imm-rc-stat bg-surface px-1.5 py-2 text-center">
-                        <p className="text-muted text-[7.5px] font-semibold tracking-wide uppercase">
+                        <p className="text-muted text-[8.5px] font-semibold tracking-wide uppercase">
                           {s.l}
                         </p>
-                        <p className="text-foreground mt-0.5 text-[10px] font-bold">{s.v}</p>
+                        <p className="text-foreground mt-0.5 text-[11px] font-bold">{s.v}</p>
                       </div>
                     ))}
                   </div>
 
                   {/* Azione: prenota lo stallo (il cursore vi fa "tap") */}
                   <div className="px-2.5 pb-2.5">
-                    <span className="imm-rc-book-btn bg-accent text-accent-contrast block rounded-xl py-2 text-center text-[10.5px] font-bold">
+                    <span className="imm-rc-book-btn bg-accent text-accent-contrast block rounded-xl py-2 text-center text-[12px] font-bold">
                       Prenota lo stallo
                     </span>
                   </div>
@@ -568,7 +589,7 @@ export default function ImmersiveRicarica() {
 
                 {/* Bolla utente 2 — conferma prenotazione */}
                 <div className="imm-rc-user-2 max-w-[86%] self-end" style={{ opacity: 0 }}>
-                  <div className="bg-accent text-accent-contrast rounded-2xl rounded-tr-sm px-3 py-2 text-[11.5px] leading-snug font-medium">
+                  <div className="bg-accent text-accent-contrast rounded-2xl rounded-tr-sm px-3 py-2 text-[13px] leading-snug font-medium">
                     Prenoto lo stallo
                   </div>
                 </div>
@@ -579,10 +600,10 @@ export default function ImmersiveRicarica() {
                   style={{ opacity: 0 }}
                 >
                   <div className="flex items-center justify-between">
-                    <p className="text-muted text-[8px] font-semibold tracking-widest uppercase">
+                    <p className="text-muted text-[9px] font-semibold tracking-widest uppercase">
                       In ricarica
                     </p>
-                    <span className="text-accent-ink flex items-center gap-1 text-[8.5px] font-bold">
+                    <span className="text-accent-ink flex items-center gap-1 text-[9.5px] font-bold">
                       <span
                         className="bg-accent h-1.5 w-1.5 animate-pulse rounded-full"
                         aria-hidden
@@ -608,7 +629,7 @@ export default function ImmersiveRicarica() {
                       }}
                     />
                   </div>
-                  <p className="text-muted mt-1 text-[8px]">
+                  <p className="text-muted mt-1 text-[9px]">
                     Obiettivo 80% · <span className="text-accent-ink font-semibold">~18 min</span>
                   </p>
 
@@ -618,20 +639,20 @@ export default function ImmersiveRicarica() {
                       <p className="text-foreground font-mono text-base font-bold">
                         <span className="imm-rc-cost">0,00 €</span>
                       </p>
-                      <p className="text-muted mt-0.5 text-[8px]">Costo</p>
+                      <p className="text-muted mt-0.5 text-[9px]">Costo</p>
                     </div>
                     <div className="bg-surface-2 flex-1 rounded-xl p-2 text-center">
                       <p className="text-foreground font-mono text-base font-bold">
                         <span className="imm-rc-timer">0 min</span>
                       </p>
-                      <p className="text-muted mt-0.5 text-[8px]">Durata</p>
+                      <p className="text-muted mt-0.5 text-[9px]">Durata</p>
                     </div>
                   </div>
                 </div>
 
                 {/* Bolla finale dell'agente */}
                 <div className="imm-rc-final max-w-[86%] self-start" style={{ opacity: 0 }}>
-                  <div className="bg-accent-soft text-accent-ink rounded-2xl rounded-tl-sm px-3 py-2 text-[11.5px] leading-snug font-semibold">
+                  <div className="bg-accent-soft text-accent-ink rounded-2xl rounded-tl-sm px-3 py-2 text-[13px] leading-snug font-semibold">
                     Stallo prenotato · navigazione avviata.
                   </div>
                 </div>
@@ -641,10 +662,10 @@ export default function ImmersiveRicarica() {
             {/* Barra di input — l'utente "scrive" qui (clip-path) */}
             <div className="imm-zoom-local border-border bg-background flex shrink-0 items-center gap-2 border-t px-2.5 py-2.5">
               <div className="bg-surface-2 relative flex h-8 flex-1 items-center overflow-hidden rounded-full px-3">
-                <span className="imm-rc-placeholder text-muted text-[10.5px]">
+                <span className="imm-rc-placeholder text-muted text-[12px]">
                   Scrivi all&apos;assistente…
                 </span>
-                <span className="imm-rc-input-text text-foreground absolute left-3 text-[10.5px] whitespace-nowrap">
+                <span className="imm-rc-input-text text-foreground absolute left-3 text-[12px] whitespace-nowrap">
                   Devo ricaricare lungo la A1 verso Milano
                 </span>
               </div>

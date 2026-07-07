@@ -201,7 +201,7 @@ export default function ImmersiveSegnalazioni() {
           progress(1) è nascosta) — nella fascia alta libera (pt-10 del frame). */}
       {reduced ? (
         <h2 className="text-muted absolute top-3 left-1/2 z-40 -translate-x-1/2 font-mono text-xs font-semibold tracking-[0.35em] uppercase">
-          {CHAPTERS[4].n} · {CHAPTERS[4].title}
+          {CHAPTERS[4].title}
         </h2>
       ) : null}
 

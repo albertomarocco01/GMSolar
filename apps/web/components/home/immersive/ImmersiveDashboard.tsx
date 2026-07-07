@@ -29,7 +29,6 @@ import {
   chapterIntro,
   cursorTo,
   hideCursor,
-  clickZoom,
   cameraTo,
   cameraReset,
   cameraFollow,
@@ -78,6 +77,18 @@ const fmtTempo = (n: number) => {
 
 /** Path SVG sparkline (viewBox 0 0 200 60). */
 const SPARK_D = "M0,54 L28,42 L56,46 L84,28 L112,32 L140,15 L168,19 L200,8";
+
+/** Path SVG del grafico DETTAGLIO visite (viewBox 0 0 400 80) — compare al
+ *  click sulla card KPI «Visite». */
+const DETAIL_D =
+  "M0,64 L44,58 L88,62 L132,44 L176,50 L220,34 L264,40 L308,22 L352,28 L400,10";
+
+/** Mini-KPI della vista Ordini (mock deterministici, coerenti con la tabella). */
+const ORD_STATS = [
+  { label: "Ordini del mese", value: 24, fmt: "int" },
+  { label: "In lavorazione", value: 3, fmt: "int" },
+  { label: "Incasso periodo", value: 16_889, fmt: "eur" },
+] as const;
 
 /** Altezze barre giornaliere (%). */
 const BARS = [32, 48, 41, 67, 58, 80, 72] as const;
@@ -145,6 +156,13 @@ export default function ImmersiveDashboard() {
     gsap.set(".imm-new-card", { autoAlpha: 0, scale: 0.85 });
     gsap.set(".imm-page-active", { autoAlpha: 0 });
     gsap.set(".imm-toast", { autoAlpha: 0, y: 8 });
+    // Mini-form «Nuovo prodotto», grafico dettaglio visite, KPI/dettaglio ordini:
+    // partono nascosti, li rivelano i rispettivi beat.
+    gsap.set(".imm-add-form", { autoAlpha: 0, y: 14, scale: 0.94 });
+    gsap.set(".imm-visits-detail", { autoAlpha: 0, y: 16 });
+    gsap.set(".imm-ord-stat", { autoAlpha: 0, y: 14 });
+    gsap.set(".imm-ord-detail", { autoAlpha: 0, y: 14 });
+    gsap.set(".imm-ord-active", { autoAlpha: 0 });
     tl.set(".imm-nav-ind", { top: () => navTop(0) });
 
     // ── ① Contenuti: si MODIFICA un contenuto ESISTENTE ───────────────────────
@@ -207,16 +225,40 @@ export default function ImmersiveDashboard() {
     cameraWhip(tl, "r", { position: "<0.35" });
     say(tl, 2); // «Il catalogo prodotti: aggiungi e aggiorni in un click.»
 
-    // Cursore (mano) sul bottone "Aggiungi prodotto" e lo preme
+    // Cursore (mano) sul bottone "Aggiungi prodotto" → si APRE il mini-form:
+    // i campi si COMPILANO (typing), la foto si carica (wipe), «Salva» → il
+    // form si chiude e la nuova card entra nel catalogo. Flusso leggibile al
+    // posto della vecchia comparsa istantanea della card.
     tl.to({}, { duration: 0.35 });
     cursorTo(tl, ".imm-add-btn", { mode: "hand" });
     pressButton(tl, ".imm-add-btn", { down: 0.93, downDur: 0.1, upDur: 0.18, back: 2.5 });
-    // La nuova card prodotto entra con back.out
+    tl.to(
+      ".imm-add-form",
+      { autoAlpha: 1, y: 0, scale: 1, duration: 0.5, ease: "back.out(1.6)" },
+      ">-0.05",
+    );
+    // Push-in discreto sul form; il typing avviene a camera FERMA (regola 2),
+    // il cursore parte DOPO il cameraTo → misura il layout assestato.
+    cameraTo(tl, ".imm-add-form", { scale: 1.18, duration: 0.6, ease: "power2.inOut" });
+    cursorTo(tl, ".imm-form-nome", { mode: "text", duration: 0.5 });
+    typeInField(tl, ".imm-form-nome", { steps: 18, duration: 0.7 });
+    cursorTo(tl, ".imm-form-prezzo", { mode: "text", duration: 0.4 });
+    typeInField(tl, ".imm-form-prezzo", { steps: 10, duration: 0.45 });
+    // La foto del prodotto "si carica" con un wipe
+    maskReveal(tl, ".imm-form-foto", { dir: "l", duration: 0.5 });
+    tl.to({}, { duration: 0.2 });
+    cursorTo(tl, ".imm-form-save", { mode: "hand", duration: 0.5 });
+    pressButton(tl, ".imm-form-save", { down: 0.93, downDur: 0.1, upDur: 0.18, back: 2.5 });
+    // Il form si chiude, la camera si riapre e la nuova card ENTRA nel catalogo
+    tl.to(".imm-add-form", { autoAlpha: 0, y: -10, scale: 0.97, duration: 0.35, ease: "power2.in" });
+    cameraReset(tl, { duration: 0.7, position: "<" });
+    hideCursor(tl, { position: "<" });
     tl.to(
       ".imm-new-card",
       { autoAlpha: 1, scale: 1, duration: 0.55, ease: "back.out(1.8)" },
-      "<0.08",
+      ">-0.1",
     );
+    tl.to({}, { duration: 0.3 }); // si vede la card al suo posto
 
     // ── ③ Visite ──────────────────────────────────────────────────────────────
     cursorTo(tl, navItems[2], { mode: "hand" }); // click "Visite"
@@ -253,14 +295,23 @@ export default function ImmersiveDashboard() {
     drawPath(tl, ".imm-spark-path", { duration: 1.2, ease: "power2.inOut", position: "<0.4" });
     // Barre crescono dal basso con stagger
     tl.to(".imm-bar", { scaleY: 1, duration: 0.6, stagger: 0.07, ease: "back.out(1.7)" }, "<0.3");
-    // Tocco: il cursore "apre" una card KPI (punch LOCALE dentro l'inquadratura
-    // tenuta a 1.15: la camera è FERMA → misura corretta e nessun cameraTo
-    // sommato al clickZoom su questo beat — regola 4).
+    // Click LEGGIBILE sulla card KPI «Visite» → si apre il GRAFICO DI DETTAGLIO
+    // dedicato (prima era un punch rapido senza payoff). La camera è ferma a
+    // 1.15 durante il click (misura corretta, regola 4: niente cameraTo qui).
+    tl.to({}, { duration: 0.3 });
     cursorTo(tl, ".imm-kpi-zoom", { mode: "hand" });
-    clickZoom(tl, ".imm-kpi-zoom", { position: ">-0.05", scale: 1.08 });
-    // Chiusura dell'inquadratura KPI (regola 3): da qui in poi solo whip
+    tl.to({}, { duration: 0.2 });
+    pressButton(tl, ".imm-kpi-zoom", { down: 0.95, downDur: 0.12, upDur: 0.25, back: 2.2 });
+    // Chiusura del push-in KPI PRIMA del reveal (regola 3): il dettaglio sta
+    // più in basso e va letto a inquadratura piena; da qui in poi solo whip
     // auto-neutri → a progress(1) e sul beat finale la camera è neutra.
-    cameraReset(tl);
+    cameraReset(tl, { duration: 0.7 });
+    hideCursor(tl, { position: "<" });
+    // Il grafico dedicato entra, la linea si disegna, l'area si riempie…
+    tl.to(".imm-visits-detail", { autoAlpha: 1, y: 0, duration: 0.5, ease: "power2.out" });
+    drawPath(tl, ".imm-detail-path", { duration: 1.1, ease: "power2.inOut", position: ">-0.2" });
+    tl.to(".imm-detail-area", { opacity: 1, duration: 0.5, ease: "power2.out" }, ">-0.3");
+    tl.to({}, { duration: 0.7 }); // …e c'è TEMPO per leggerlo
 
     // ── ④ Ordini ──────────────────────────────────────────────────────────────
     cursorTo(tl, navItems[3], { mode: "hand" }); // click "Ordini"
@@ -268,12 +319,37 @@ export default function ImmersiveDashboard() {
     tl.to(".imm-track", { xPercent: -75, duration: 1.1, ease: "expo.inOut" }, "<0.1");
     cameraWhip(tl, "r", { position: "<0.35" }); // WHIP (d) in sync col pan
     say(tl, 4); // «Gli ordini, con data e canale, in un'unica vista.»
+    // Mini-KPI ordini: entrano e CONTANO prima della tabella (vista ampliata)
+    tl.to(
+      ".imm-ord-stat",
+      { autoAlpha: 1, y: 0, duration: 0.45, stagger: 0.08, ease: "back.out(1.6)" },
+      "<0.25",
+    );
+    countUp(
+      tl,
+      ORD_STATS.map((s, i) => ({
+        el: `.imm-ord-stat-val-${i}`,
+        to: s.value,
+        format:
+          s.fmt === "eur"
+            ? (n: number) => `${FMT.format(Math.round(n))} €`
+            : (n: number) => FMT.format(Math.round(n)),
+      })),
+      { duration: 1.0, ease: "power2.out", position: "<0.2" },
+    );
     // Righe tabella entrano con slide+fade staggered
     tl.to(
       ".imm-ord-row",
       { autoAlpha: 1, x: 0, duration: 0.5, stagger: 0.09, ease: "power3.out" },
       "<0.3",
     );
+    // Click sulla PRIMA riga → si apre il DETTAGLIO dell'ordine (righe articolo,
+    // spedizione, consegna): la vista ordini non è più solo la lista.
+    cursorTo(tl, ".imm-ord-first", { mode: "hand", duration: 0.7 });
+    pressButton(tl, ".imm-ord-first", { down: 0.98, downDur: 0.1, upDur: 0.2, back: 2 });
+    tl.to(".imm-ord-active", { autoAlpha: 1, duration: 0.25, ease: "power2.out" }, "<");
+    tl.to(".imm-ord-detail", { autoAlpha: 1, y: 0, duration: 0.5, ease: "power2.out" });
+    tl.to({}, { duration: 0.6 }); // si legge il dettaglio
 
     // ── Finale: aggancio alla scena Segnalazioni ──────────────────────────────
     // Il cursore si POSIZIONA sul bottone «Segnala un problema» SENZA premerlo.
@@ -285,7 +361,10 @@ export default function ImmersiveDashboard() {
   return (
     <ImmersiveStage
       ref={ref}
-      heightVh={560}
+      // 720 → 900: i beat aggiunti (mini-form prodotto, grafico dettaglio
+      // visite, dettaglio ordine) hanno bisogno di più corsa di scroll per
+      // restare leggibili allo stesso ritmo.
+      heightVh={900}
       theme="platform"
       label={CHAPTERS[3].title}
       chapterIndex={3}
@@ -296,7 +375,7 @@ export default function ImmersiveDashboard() {
           binario = carosello). Ancorato al contenitore sticky del kit. */}
       {reduced && (
         <h2 className="text-muted absolute top-3 left-5 z-20 font-mono text-xs font-semibold tracking-[0.35em] uppercase">
-          {CHAPTERS[3].n} · {CHAPTERS[3].title}
+          {CHAPTERS[3].title}
         </h2>
       )}
       {/* Stessi token della scena Gestionale adiacente: fondi, grigi e accent
@@ -549,8 +628,8 @@ export default function ImmersiveDashboard() {
               </div>
             </div>
 
-            {/* ② PRODOTTI: griglia densa a 3 colonne ─────────────────────────── */}
-            <div className="w-1/4 shrink-0 overflow-hidden p-5">
+            {/* ② PRODOTTI: griglia densa a 3 colonne + mini-form di aggiunta ─── */}
+            <div className="relative w-1/4 shrink-0 overflow-hidden p-5">
               <div className="mx-auto max-w-5xl">
                 <div className="mb-3 flex items-center justify-between">
                   <p className="text-foreground font-semibold">Catalogo prodotti</p>
@@ -581,7 +660,7 @@ export default function ImmersiveDashboard() {
                     </div>
                   ))}
 
-                  {/* Nuova card: entra con back.out al click del cursore */}
+                  {/* Nuova card: entra con back.out dopo il «Salva» del form */}
                   <div className="imm-new-card border-accent/40 bg-accent/5 rounded-xl border-2 p-3 shadow-sm">
                     <img
                       src="/assets/products/cavo-05.jpg"
@@ -593,6 +672,64 @@ export default function ImmersiveDashboard() {
                     <p className="text-foreground text-sm font-semibold">Batteria 10 kWh</p>
                     <p className="text-accent-ink text-xs font-bold">3.200 €</p>
                   </div>
+                </div>
+              </div>
+
+              {/* Mini-form «Nuovo prodotto»: si apre al click su «+ Aggiungi
+                  prodotto», i campi si digitano da soli (typeInField), la foto
+                  si carica con un wipe, «Salva prodotto» lo chiude e fa entrare
+                  la card qui sopra. Parte nascosto (set nel build). */}
+              <div
+                className="imm-add-form border-border bg-background absolute top-1/2 left-1/2 z-10 w-80 -translate-x-1/2 -translate-y-1/2 rounded-2xl border p-4 shadow-2xl"
+                style={{ opacity: 0 }}
+                aria-hidden
+              >
+                <p className="text-foreground mb-3 text-sm font-semibold">Nuovo prodotto</p>
+                <div className="space-y-2.5">
+                  <div>
+                    <label className="text-muted mb-1 block text-[11px] font-semibold tracking-wider uppercase">
+                      Nome
+                    </label>
+                    <div className="border-border bg-surface-2 text-foreground min-h-[32px] overflow-hidden rounded-lg border px-3 py-1.5 text-sm">
+                      <span className="imm-form-nome inline-block whitespace-nowrap">
+                        Batteria 10 kWh
+                      </span>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-muted mb-1 block text-[11px] font-semibold tracking-wider uppercase">
+                      Prezzo
+                    </label>
+                    <div className="border-border bg-surface-2 text-foreground min-h-[32px] overflow-hidden rounded-lg border px-3 py-1.5 text-sm">
+                      <span className="imm-form-prezzo inline-block whitespace-nowrap">3.200 €</span>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-muted mb-1 block text-[11px] font-semibold tracking-wider uppercase">
+                      Foto
+                    </label>
+                    <div className="flex items-center gap-2">
+                      <span className="imm-form-foto block h-10 w-14 overflow-hidden rounded-lg">
+                        <img
+                          src="/assets/products/cavo-05.jpg"
+                          alt=""
+                          loading="lazy"
+                          decoding="async"
+                          className="h-full w-full object-cover"
+                        />
+                      </span>
+                      <span className="text-muted text-xs">batteria-10kwh.jpg</span>
+                    </div>
+                  </div>
+                </div>
+                <div className="mt-3 flex justify-end">
+                  <button
+                    className="imm-form-save bg-accent text-accent-contrast rounded-lg px-4 py-1.5 text-sm font-semibold"
+                    tabIndex={-1}
+                    aria-hidden
+                  >
+                    Salva prodotto
+                  </button>
                 </div>
               </div>
             </div>
@@ -699,13 +836,85 @@ export default function ImmersiveDashboard() {
                     </div>
                   </div>
                 </div>
+
+                {/* Grafico DETTAGLIO visite: compare al click sulla card KPI
+                    «Visite» (beat ③) — area chart dedicato, con tempo di lettura. */}
+                <div
+                  className="imm-visits-detail border-border bg-surface mt-3 rounded-xl border p-4 shadow-sm"
+                  style={{ opacity: 0 }}
+                  aria-hidden
+                >
+                  <div className="mb-2 flex items-center justify-between">
+                    <p className="text-muted text-[11px] font-semibold tracking-wider uppercase">
+                      Dettaglio visite · per settimana
+                    </p>
+                    <span className="text-accent-ink text-[11px] font-semibold">
+                      ▲ 12% vs periodo precedente
+                    </span>
+                  </div>
+                  <svg
+                    viewBox="0 0 400 80"
+                    className="h-24 w-full"
+                    preserveAspectRatio="none"
+                    aria-hidden
+                  >
+                    <defs>
+                      <linearGradient id="imm-db2-detail-grad" x1="0" y1="0" x2="0" y2="1">
+                        {/* var() non è valido negli attributi SVG di presentazione → style */}
+                        <stop offset="0%" style={{ stopColor: "var(--accent)" }} stopOpacity="0.2" />
+                        <stop
+                          offset="100%"
+                          style={{ stopColor: "var(--accent)" }}
+                          stopOpacity="0"
+                        />
+                      </linearGradient>
+                    </defs>
+                    {/* Area: si riempie dopo che la linea si è disegnata */}
+                    <path
+                      className="imm-detail-area"
+                      d={`${DETAIL_D} L400,80 L0,80 Z`}
+                      fill="url(#imm-db2-detail-grad)"
+                      style={{ opacity: 0 }}
+                    />
+                    <path
+                      className="imm-detail-path stroke-accent"
+                      d={DETAIL_D}
+                      fill="none"
+                      strokeWidth="2.5"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                  <div className="text-muted mt-1 flex justify-between text-[9px] font-medium">
+                    {["Sett. 1", "Sett. 2", "Sett. 3", "Sett. 4"].map((s) => (
+                      <span key={s}>{s}</span>
+                    ))}
+                  </div>
+                </div>
               </div>
             </div>
 
-            {/* ④ ORDINI: tabella compatta con Data e Canale ──────────────────── */}
+            {/* ④ ORDINI: mini-KPI + tabella + dettaglio ordine ───────────────── */}
             <div className="w-1/4 shrink-0 overflow-hidden p-5">
               <div className="mx-auto max-w-5xl">
                 <p className="text-foreground mb-3 font-semibold">Ordini recenti</p>
+
+                {/* Mini-KPI della vista ordini: entrano e contano prima della tabella */}
+                <div className="mb-3 grid grid-cols-3 gap-3">
+                  {ORD_STATS.map((s, i) => (
+                    <div
+                      key={s.label}
+                      className="imm-ord-stat border-border bg-surface rounded-xl border p-3 shadow-sm"
+                    >
+                      <p
+                        className={`imm-ord-stat-val-${i} text-accent-ink font-display text-xl font-bold tabular-nums`}
+                      >
+                        0
+                      </p>
+                      <p className="text-muted mt-0.5 text-xs">{s.label}</p>
+                    </div>
+                  ))}
+                </div>
 
                 <div className="border-border bg-surface overflow-hidden rounded-xl border shadow-sm">
                   {/* Intestazione tabella */}
@@ -718,13 +927,23 @@ export default function ImmersiveDashboard() {
                     <span>Stato</span>
                   </div>
 
-                  {/* Righe compatte: entrano con slide+fade staggered */}
+                  {/* Righe compatte: entrano con slide+fade staggered. La PRIMA
+                      (`imm-ord-first`) è il bersaglio del click che apre il
+                      dettaglio; `imm-ord-active` = highlight della selezione. */}
                   <div className="divide-border divide-y">
-                    {ORDINI.map((o) => (
+                    {ORDINI.map((o, oi) => (
                       <div
                         key={o.n}
-                        className="imm-ord-row grid grid-cols-[auto_1fr_auto_auto_auto_auto] items-center gap-3 px-4 py-2 text-sm"
+                        className={`imm-ord-row relative grid grid-cols-[auto_1fr_auto_auto_auto_auto] items-center gap-3 px-4 py-2 text-sm ${
+                          oi === 0 ? "imm-ord-first" : ""
+                        }`}
                       >
+                        {oi === 0 && (
+                          <span
+                            className="imm-ord-active bg-accent-soft pointer-events-none absolute inset-0"
+                            aria-hidden
+                          />
+                        )}
                         <span className="text-muted font-mono text-xs">{o.n}</span>
                         <span className="text-foreground font-medium">{o.cliente}</span>
                         <span className="text-muted font-mono text-xs">{o.data}</span>
@@ -745,6 +964,45 @@ export default function ImmersiveDashboard() {
                       Totale periodo
                     </span>
                     <span className="text-foreground font-mono text-sm font-bold">16.889 €</span>
+                  </div>
+                </div>
+
+                {/* DETTAGLIO ordine #1042: si apre al click sulla prima riga —
+                    righe articolo, spedizione e consegna (somma = 2.340 €). */}
+                <div
+                  className="imm-ord-detail border-accent/40 bg-surface mt-3 rounded-xl border-2 p-4 shadow-sm"
+                  style={{ opacity: 0 }}
+                  aria-hidden
+                >
+                  <div className="mb-2.5 flex items-center justify-between">
+                    <p className="text-foreground text-sm font-semibold">
+                      Ordine <span className="font-mono">#1042</span> · Rossi S.r.l.
+                    </p>
+                    <span className="rounded-full bg-emerald-100 px-2.5 py-0.5 text-[11px] font-semibold text-emerald-700">
+                      Completato
+                    </span>
+                  </div>
+                  <div className="divide-border divide-y text-sm">
+                    {[
+                      { articolo: "Wallbox 22 kW", qta: "×2", importo: "1.798 €" },
+                      { articolo: "Cavo Type 2 · 5 m", qta: "×3", importo: "447 €" },
+                      { articolo: "Spedizione espressa", qta: "—", importo: "95 €" },
+                    ].map((r) => (
+                      <div
+                        key={r.articolo}
+                        className="grid grid-cols-[1fr_auto_auto] items-center gap-4 py-1.5"
+                      >
+                        <span className="text-foreground">{r.articolo}</span>
+                        <span className="text-muted text-xs">{r.qta}</span>
+                        <span className="text-foreground font-mono text-xs">{r.importo}</span>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="border-border mt-1 flex items-center justify-between border-t pt-2">
+                    <span className="text-muted text-xs">
+                      Consegna: <span className="text-foreground font-semibold">30/06 · Torino</span>
+                    </span>
+                    <span className="text-foreground font-mono text-sm font-bold">2.340 €</span>
                   </div>
                 </div>
               </div>

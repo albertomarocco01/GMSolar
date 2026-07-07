@@ -1,52 +1,20 @@
 "use client";
 
 /**
- * @descrizione  CHIUSURA della presentazione, minimale: SOLO il bottone
- *   «Rivedi la presentazione» centrato, su un loop di sfondo discreto (due aloni
- *   accent che "respirano" in scale/opacity). Il loop rispetta reduced-motion
- *   (aloni statici) e la pausa globale della presentazione
- *   (`presentation:pausechange` + attributo `data-presentation-paused` al mount).
+ * @descrizione  CHIUSURA della presentazione: titolo «GM Solar Demo», bottone
+ *   «Rivedi la presentazione» e contatti del team, su uno sfondo animato
+ *   discreto (bolle accent che rimbalzano — vedi ClosingBubbles — + trama a
+ *   puntini). Lo sfondo rispetta reduced-motion (frame statico) e la pausa
+ *   globale della presentazione (`presentation:pausechange` +
+ *   `data-presentation-paused`).
  * @indice
- * - ClosingScene → ultima sezione: replay centrato + aloni in loop
+ * - ClosingScene → ultima sezione: titolo + replay + contatti + sfondo a bolle
  */
-import { useRef } from "react";
 import Section from "@gmgroup/ui/Section";
-import { gsap } from "@gmgroup/lib/gsap";
-import { prefersReducedMotion, useIsoLayoutEffect } from "@gmgroup/lib/motion";
+import ClosingBubbles from "@/components/home/ClosingBubbles";
 import ReplayButton from "@/components/home/ReplayButton";
 
 export default function ClosingScene() {
-  const haloRef = useRef<HTMLDivElement>(null);
-
-  useIsoLayoutEffect(() => {
-    const root = haloRef.current;
-    if (!root || prefersReducedMotion()) return; // reduced-motion: aloni statici
-
-    const ctx = gsap.context(() => {
-      // Un solo tween yoyo infinito sui due aloni (solo transform/opacity);
-      // FUORI da ogni timeline scrubbata → repeat:-1 è ammesso qui.
-      const breathe = gsap.to(".cl-halo", {
-        scale: 1.18,
-        opacity: 0.7,
-        duration: 5, // ~10s a ciclo completo (andata+ritorno)
-        ease: "sine.inOut",
-        yoyo: true,
-        repeat: -1,
-        stagger: { each: 1.6, repeat: -1, yoyo: true },
-        // Montaggio a presentazione GIÀ in pausa (es. remount): parte congelato.
-        paused: document.documentElement.hasAttribute("data-presentation-paused"),
-      });
-      const onPauseChange = (e: Event) => {
-        const paused = Boolean((e as CustomEvent<{ paused: boolean }>).detail?.paused);
-        if (paused) breathe.pause();
-        else breathe.resume();
-      };
-      window.addEventListener("presentation:pausechange", onPauseChange);
-      return () => window.removeEventListener("presentation:pausechange", onPauseChange);
-    }, root);
-    return () => ctx.revert();
-  }, []);
-
   return (
     <Section
       fullBleed
@@ -55,15 +23,69 @@ export default function ClosingScene() {
       {/* Riga accent in alto: richiama la barra di progresso delle scene-video. */}
       <div aria-hidden className="bg-accent absolute inset-x-0 top-0 z-10 h-1" />
 
-      {/* Loop di sfondo discreto: due aloni accent che respirano dietro il CTA. */}
-      <div ref={haloRef} aria-hidden className="pointer-events-none absolute inset-0 -z-10">
-        <span className="cl-halo bg-accent-soft absolute -top-24 -left-24 h-[55vh] w-[55vh] rounded-full opacity-40 blur-3xl" />
-        <span className="cl-halo bg-accent/5 absolute -right-32 -bottom-32 h-[65vh] w-[65vh] rounded-full opacity-50 blur-3xl" />
+      {/* Sfondo animato discreto: bolle accent che rimbalzano (canvas) + trama
+          a puntini accent tenue (richiama le ChapterCard). */}
+      <div aria-hidden className="pointer-events-none absolute inset-0 -z-10">
+        <div
+          className="absolute inset-0 opacity-15"
+          style={{
+            backgroundImage:
+              "radial-gradient(color-mix(in oklab, var(--accent) 22%, transparent) 1px, transparent 1.4px)",
+            backgroundSize: "24px 24px",
+          }}
+        />
+        <ClosingBubbles />
       </div>
 
-      {/* Solo il CTA di replay, centrato: riavvia la presentazione. */}
-      <div className="relative z-10 flex justify-center px-6">
+      {/* Chiusura: titolo, replay e contatti del team. */}
+      <div className="relative z-10 flex flex-col items-center gap-10 px-6 py-16 text-center">
+        <div>
+          <p className="text-accent-ink font-mono text-xs tracking-[0.4em] uppercase">
+            Fine della presentazione
+          </p>
+          <h2 className="font-display text-foreground mt-4 text-5xl font-bold tracking-tight md:text-6xl">
+            GM Solar Demo
+          </h2>
+        </div>
+
         <ReplayButton />
+
+        {/* Contatti (richiesti dal cliente per la chiusura della demo). */}
+        <div className="flex flex-col gap-4 sm:flex-row sm:gap-6">
+          {[
+            {
+              nome: "Alberto Marocco",
+              tel: "389 660 5643",
+              telHref: "+393896605643",
+              email: "albertomarocco.dev@gmail.com",
+            },
+            {
+              nome: "Jacopo Finzi",
+              tel: "366 352 0980",
+              telHref: "+393663520980",
+              email: "jacopofinzi.dev@gmail.com",
+            },
+          ].map((c) => (
+            <div
+              key={c.nome}
+              className="border-border bg-background/80 rounded-2xl border px-8 py-5 text-left shadow-lg backdrop-blur-sm"
+            >
+              <p className="font-display text-foreground text-base font-bold tracking-tight">
+                {c.nome}
+              </p>
+              <p className="mt-1.5 text-sm">
+                <a href={`tel:${c.telHref}`} className="text-muted hover:text-foreground">
+                  {c.tel}
+                </a>
+              </p>
+              <p className="text-sm">
+                <a href={`mailto:${c.email}`} className="text-accent-ink hover:underline">
+                  {c.email}
+                </a>
+              </p>
+            </div>
+          ))}
+        </div>
       </div>
     </Section>
   );

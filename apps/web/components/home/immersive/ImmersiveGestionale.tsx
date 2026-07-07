@@ -243,7 +243,7 @@ export default function ImmersiveGestionale() {
           reduced della scena: carosello scrollabile + stato finale). */}
       {reduced && (
         <h2 className="text-accent-ink absolute top-4 left-6 z-20 font-mono text-xs font-bold tracking-[0.35em] uppercase">
-          {CHAPTERS[5].n} · {CHAPTERS[5].title}
+          {CHAPTERS[5].title}
         </h2>
       )}
       <div className="flex h-full pt-12">
