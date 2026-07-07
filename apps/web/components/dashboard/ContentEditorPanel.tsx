@@ -4,7 +4,7 @@
  */
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Save, X } from "lucide-react";
 import Button from "@gmgroup/ui/Button";
 import type { ContentBlock } from "@/data/telemetry";
@@ -20,6 +20,7 @@ export default function ContentEditorPanel({ block, onClose, onSave }: Props) {
   const [contenuto, setContenuto] = useState(block.contenuto);
   const [stato, setStato] = useState<ContentBlock["stato"]>(block.stato);
   const [toastVisible, setToastVisible] = useState(false);
+  const toastTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   // Quando cambia il blocco selezionato, ri-sincronizza i campi DURANTE il render
   // (pattern React "adjusting state when a prop changes": niente effect, niente
@@ -45,8 +46,10 @@ export default function ContentEditorPanel({ block, onClose, onSave }: Props) {
     };
     onSave(updated);
     setToastVisible(true);
-    const t = setTimeout(() => setToastVisible(false), 3000);
-    return () => clearTimeout(t);
+    // Salvataggi ravvicinati: annulla il timeout precedente, il toast resta
+    // visibile 3s dall'ULTIMO salvataggio.
+    clearTimeout(toastTimer.current);
+    toastTimer.current = setTimeout(() => setToastVisible(false), 3000);
   }
 
   return (

@@ -32,7 +32,8 @@ export const metadata: Metadata = {
   alternates: { canonical: "/" },
   openGraph: { type: "website", siteName: GROUP.name, locale: "it_IT", url: "/" },
   twitter: { card: "summary_large_image" },
-  robots: { index: true, follow: true },
+  // Demo non-produzione: fuori dai motori di ricerca (in sync con app/robots.ts).
+  robots: { index: false, follow: false },
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {

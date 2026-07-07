@@ -142,11 +142,7 @@ export default function FlowDiagram({ scenarioId }: FlowDiagramProps) {
       <div className="overflow-x-auto pb-2" aria-hidden>
         <div className="flex items-center" style={{ minWidth: `${minW}px` }}>
           {steps.map((step, i) => (
-            <div
-              key={step.id}
-              className="flex items-center"
-              style={{ flex: i < n - 1 ? "0 0 auto" : "0 0 auto" }}
-            >
+            <div key={step.id} className="flex items-center" style={{ flex: "0 0 auto" }}>
               {/* Nodo */}
               <FlowNode icon={step.icon} label={step.label} completed={completedUpTo >= i} />
 

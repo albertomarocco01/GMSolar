@@ -416,6 +416,21 @@ Verificato dopo il prune: `pnpm typecheck`/`lint`/`build` ✅ verdi; due passate
 
 ---
 
+## [AUDIT 2026-07-06] Proposte zona condivisa (⏳ DA AUTORIZZARE, non applicate)
+
+1. **`packages/lib/src/assets.ts` — rimuovere `VIDEOS` e `POSTERS` (o l'intero file).**
+   Nessun consumatore nel repo (grep su apps+packages) e i path puntano ad asset che NON
+   esistono più in `public/assets` (`gm-solar-drone.mp4` / `gm-solar-drone-poster.webp`
+   rimossi col decommission 3-mondi; oggi ci sono solo solar-twin/SolarPanels/Cavo). È
+   dead code con puntatori rotti: chi lo importasse in futuro otterrebbe 404. Se si
+   rimuove il file intero, togliere anche l'export `./assets` da `packages/lib/package.json`.
+2. **`packages/tokens/tokens.css` riga ~11 — commento stantio.** Dice che i neutri
+   "cambiano in light/dark via prefers-color-scheme", ma il tema è SEMPRE chiaro
+   (regola di progetto: tema chiaro forzato, nessun dark-mode). Solo commento, zero
+   runtime: allineare a "sempre chiaro".
+
+---
+
 ## [DECOMMISSION 3-MONDI] Rimozione codice deprecato (2026-06-29)
 
 Rimosso tutto il codice del vecchio progetto "3 siti vetrina" (solar/mobility/shop branded),
