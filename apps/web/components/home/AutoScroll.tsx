@@ -321,9 +321,38 @@ export default function AutoScroll() {
       backward = e.deltaY < 0;
       yield_();
     };
+    // SOLO-AVANTI dalla PRESENTAZIONE: la rotella in avanti (giù) è BLOCCATA —
+    // avanzare tocca all'auto-scroll, che si (ri)avvia con Spazio/click. La rotella
+    // indietro (su) passa: riavvolgimento libero col mouse. Capture + non-passive
+    // per fermare l'evento PRIMA che Lenis lo processi → scroll avanti manuale
+    // impossibile (richiesta utente: presentazione più fluida, niente scrub a mano).
+    const blockForwardWheel = (e: WheelEvent) => {
+      if (e.deltaY > 0) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+    };
+    window.addEventListener("wheel", blockForwardWheel, { capture: true, passive: false });
     const onKey = (e: KeyboardEvent) => {
+      // Barra spaziatrice = pausa/ripresa GLOBALE, identica al click. Stesso guard
+      // del click (esclude a/button focalizzati: lì agisce il loro onClick nativo,
+      // sennò doppio toggle che si annulla). preventDefault: di default lo spazio
+      // scrollerebbe di un viewport.
+      if (e.key === " " || e.code === "Space") {
+        const t = e.target as Element | null;
+        if (t && t.closest("a, button, [data-no-pause]")) return;
+        e.preventDefault();
+        togglePause();
+        return;
+      }
       if (["ArrowUp", "PageUp", "Home"].includes(e.key)) backward = true;
-      else if (["ArrowDown", "PageDown", "End", " "].includes(e.key)) backward = false;
+      else if (["ArrowDown", "PageDown", "End"].includes(e.key)) {
+        // Avanti solo via presentazione: i tasti di avanzamento sono bloccati
+        // (coerente con la rotella). Si riparte con Spazio/click.
+        backward = false;
+        e.preventDefault();
+        return;
+      }
       yield_();
     };
     window.addEventListener("mousemove", onMouseMove, opts);
@@ -353,6 +382,7 @@ export default function AutoScroll() {
       if (pillTimer) clearTimeout(pillTimer);
       window.removeEventListener("mousemove", onMouseMove);
       window.removeEventListener("wheel", onWheel);
+      window.removeEventListener("wheel", blockForwardWheel, { capture: true });
       window.removeEventListener("touchstart", onTouch);
       window.removeEventListener("touchmove", onTouch);
       window.removeEventListener("pointerdown", onYield);

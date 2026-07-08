@@ -87,13 +87,20 @@ const ScrubVideo = forwardRef<ScrubVideoHandle, ScrubVideoProps>(function ScrubV
 
     // Lerp del currentTime verso il target: seek fluido, niente thrash. fastSeek va
     // al keyframe più vicino (≤ time): con video all-keyframe è frame-accurate e veloce.
-    const tick = () => {
+    // Passo INDIPENDENTE dal refresh rate: il fattore fisso 0.25/frame "correva" e
+    // scattava su schermi a 120/144Hz — ora il catch-up è calcolato sul delta-time
+    // reale (costante di tempo TAU) → stessa fluidità a ogni frequenza di refresh.
+    const TAU = 0.06; // costante di tempo del catch-up (s): più bassa = più reattivo
+    let last = performance.now();
+    const tick = (now: number) => {
       raf = requestAnimationFrame(tick);
+      const dt = Math.min(0.05, (now - last) / 1000); // clamp: tab in background non fa salti
+      last = now;
       if (!readyRef.current || v.seeking) return;
       const cur = v.currentTime;
       const d = targetRef.current - cur;
       if (Math.abs(d) < 0.015) return; // già a destinazione
-      const next = cur + d * 0.25;
+      const next = cur + d * (1 - Math.exp(-dt / TAU));
       if (typeof v.fastSeek === "function") v.fastSeek(next);
       else v.currentTime = next;
     };

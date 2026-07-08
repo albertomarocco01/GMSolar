@@ -184,7 +184,7 @@ export default function ImmersiveSegnalazioni() {
       { autoAlpha: 1, y: 0, duration: 0.45, ease: "back.out(1.7)" },
       ">-0.35",
     );
-    say(tl, 2); // «Il team riceve, sistema, e tu vedi il fix.»
+    say(tl, 2); // «Riceviamo la segnalazione, sistemiamo, e vedi la versione aggiornata.»
 
     tl.to({}, { duration: 0.6 }); // hold finale
   });
@@ -300,21 +300,16 @@ export default function ImmersiveSegnalazioni() {
                   </div>
 
                   <div className="grid grid-cols-[260px_minmax(0,1fr)] gap-4">
-                    {/* Immagine ROTTA sotto (foto reale «non caricata»: grayscale +
-                        velo + chip discreto); la foto nitida sopra, scoperta dal
-                        wipe (maskReveal) nel beat del fix */}
+                    {/* Immagine ROTTA sotto: PLACEHOLDER puro (nessuna foto dietro →
+                        niente spoiler del fix). La foto nitida sopra è scoperta dal
+                        wipe (maskReveal) solo nel beat del fix */}
                     <div className="relative h-32 overflow-hidden rounded-lg">
-                      <div className="absolute inset-0" aria-hidden>
-                        <img
-                          src={FOTO_FIX}
-                          alt=""
-                          loading="lazy"
-                          decoding="async"
-                          className="h-full w-full object-cover grayscale"
-                        />
-                        <div className="bg-surface-2/80 absolute inset-0" />
-                        <span className="bg-background/90 border-border text-muted absolute bottom-2 left-2 flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-semibold">
-                          <ImageOff className="h-3 w-3" aria-hidden />
+                      <div
+                        className="bg-surface-2 absolute inset-0 flex flex-col items-center justify-center gap-1.5"
+                        aria-hidden
+                      >
+                        <ImageOff className="text-muted h-6 w-6" aria-hidden />
+                        <span className="text-muted text-[10px] font-semibold">
                           Immagine non disponibile
                         </span>
                       </div>
@@ -466,7 +461,7 @@ export default function ImmersiveSegnalazioni() {
         Il link della pagina si compila da solo.
       </Say>
       <Say i={2} variant="caption">
-        Il team riceve, sistema, e tu vedi il fix.
+        Riceviamo la segnalazione, sistemiamo, e vedi la versione aggiornata.
       </Say>
     </ImmersiveStage>
   );

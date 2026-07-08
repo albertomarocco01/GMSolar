@@ -305,9 +305,11 @@ export default function SolarTwinScene() {
 }
 
 /**
- * Header mock del finto sito vetrina: logo (quadratino accent + wordmark),
- * nav mock e CTA «Richiedi preventivo». TUTTO decorativo: nessun link reale
- * (solo <span>/<div> con aria-hidden) — è scenografia, non navigazione.
+ * Header mock del finto sito vetrina, modellato sul sito attuale GM Solar:
+ * logo (anello accent + wordmark «GM SOLAR» con tagline) + nav generica
+ * (Home · Chi Siamo · Tipologia di Impianti · Servizi · Gallery · Privacy) +
+ * CTA «Contattaci». TUTTO decorativo: nessun link reale (solo <span>/<div>
+ * con aria-hidden) — è scenografia, non navigazione.
  */
 function FakeSiteHeader() {
   return (
@@ -315,23 +317,32 @@ function FakeSiteHeader() {
       aria-hidden
       className="border-border bg-background/90 relative z-30 flex h-14 shrink-0 items-center justify-between border-b px-6 backdrop-blur md:px-[4vw]"
     >
-      {/* Logo */}
+      {/* Logo: anello accent + wordmark con tagline (stile GM Solar) */}
       <div className="flex items-center gap-2.5">
-        <span className="bg-accent h-4 w-4 rounded-[5px]" />
-        <span className="font-display text-foreground text-base font-bold tracking-tight">
-          GM Solar
+        <span className="border-accent flex h-7 w-7 items-center justify-center rounded-full border-2">
+          <span className="bg-accent h-2.5 w-2.5 rounded-full" />
+        </span>
+        <span className="leading-none">
+          <span className="font-display text-foreground block text-base font-extrabold tracking-tight">
+            GM SOLAR
+          </span>
+          <span className="text-accent-ink mt-0.5 block text-[9px] font-semibold tracking-[0.18em] uppercase">
+            Energie Rinnovabili
+          </span>
         </span>
       </div>
-      {/* Nav mock + CTA */}
+      {/* Nav mock + CTA — voci del sito attuale GM Solar (decorative) */}
       <div className="flex items-center gap-8">
-        <div className="text-muted hidden items-center gap-7 text-sm font-medium md:flex">
-          <span>Impianti</span>
-          <span>Accumulo</span>
-          <span>Ricarica</span>
-          <span>Contatti</span>
+        <div className="text-muted hidden items-center gap-6 text-sm font-medium lg:flex">
+          <span>Home</span>
+          <span>Chi Siamo</span>
+          <span>Tipologia di Impianti</span>
+          <span>Servizi</span>
+          <span>Gallery</span>
+          <span>Privacy</span>
         </div>
-        <span className="bg-accent text-accent-contrast rounded-full px-4 py-1.5 text-sm font-semibold">
-          Richiedi preventivo
+        <span className="bg-accent text-accent-contrast rounded-full px-5 py-1.5 text-sm font-semibold">
+          Contattaci
         </span>
       </div>
     </div>

@@ -101,11 +101,13 @@ export default function ChapterHUD() {
   return (
     <div
       aria-hidden
-      // Capitolo 01: pill più in basso, SUL video (il finto sito ha una nav
-      // mock h-14 + CTA in alto a destra da non coprire). Dagli altri capitoli
-      // in poi risale ad "altezza header" (top-4).
+      // Capitolo 01: pill appena SOTTO l'header del finto sito (h-14) → vicina
+      // all'header come richiesto, senza coprire la nav mock né il CTA. Dagli
+      // altri capitoli in poi risale ad "altezza header" (top-4). ECCEZIONE
+      // cap. 03 (Assistente AI): badge carrello in alto a dx (header h-14) che
+      // la pill coprirebbe → resta sotto l'header (top-20) anche qui.
       className={`pointer-events-none fixed right-5 z-40 ${
-        displayIdx === 0 ? "top-28" : "top-4"
+        displayIdx === 0 || displayIdx === 2 ? "top-20" : "top-4"
       } ${reduced ? "" : "transition-[top,opacity] duration-300"} ${
         visible ? "opacity-100" : "opacity-0"
       }`}

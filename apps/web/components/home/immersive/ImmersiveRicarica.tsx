@@ -38,7 +38,6 @@ import {
   clickZoom,
   useImmersiveScene,
   pressButton,
-  typeInField,
   countUp,
   maskReveal,
   cameraTo,
@@ -93,7 +92,9 @@ export default function ImmersiveRicarica() {
     // ── Stato iniziale ────────────────────────────────────────────────────────
     gsap.set(".imm-rc-thread", { y: 0 });
     gsap.set(".imm-rc-placeholder", { autoAlpha: 1 });
-    gsap.set(".imm-rc-input-text", { clipPath: "inset(0 100% 0 0)" });
+    // Le parole del messaggio partono nascoste (set pre-paint → niente flash);
+    // il beat ② le rivela in cascata.
+    gsap.set(".imm-rc-word", { autoAlpha: 0, y: 4 });
     gsap.set(".imm-rc-user-1", { autoAlpha: 0, y: 14 });
     gsap.set(".imm-rc-typing", { autoAlpha: 0 });
     gsap.set(".imm-rc-agent-1", { autoAlpha: 0, x: -18 });
@@ -129,25 +130,15 @@ export default function ImmersiveRicarica() {
     // beat camera è il push-in sul typing di ②.
     chapterIntro(tl);
 
-    // ── ② L'utente scrive nel campo (kit: typeInField) e invia ────────────────
+    // ── ② L'utente scrive nel campo (reveal parola-per-parola) e invia ─────────
     tl.to(".imm-rc-placeholder", { autoAlpha: 0, duration: 0.2, ease: "power2.out" });
-    typeInField(tl, ".imm-rc-input-text", { steps: 28, duration: 0.95, position: "<" });
-    // La frase è più larga del campo (mockup telefono): come in un input vero,
-    // il testo SCORRE a sinistra mentre si digita così la coda resta visibile
-    // (prima veniva clippata dal box overflow-hidden). Overflow misurato a
-    // tween start (function-based) → segue il layout reale.
+    // Digitazione PAROLA-PER-PAROLA: la frase compare da sinistra e VA A CAPO su
+    // due righe (input più alto), così l'intero messaggio resta LEGGIBILE quando
+    // finisce di scriversi. Prima era single-line con overflow + scroll-x: a fine
+    // scrittura la testa del messaggio finiva clippata fuori dal campo del telefono.
     tl.to(
-      ".imm-rc-input-text",
-      {
-        x: () => {
-          const el = section.querySelector<HTMLElement>(".imm-rc-input-text");
-          const box = el?.parentElement;
-          if (!el || !box) return 0;
-          return Math.min(0, box.clientWidth - 24 - el.scrollWidth); // 24 = px-3 ×2
-        },
-        duration: 0.95,
-        ease: "none",
-      },
+      ".imm-rc-word",
+      { autoAlpha: 1, y: 0, duration: 0.14, ease: "power2.out", stagger: 0.12 },
       "<",
     );
     // (b) PUSH-IN sulla digitazione: 1.3 (era 1.15) — la scritta nel mockup
@@ -173,12 +164,8 @@ export default function ImmersiveRicarica() {
       back: 2.4,
       position: ">-0.05",
     });
-    // Il campo si svuota e il messaggio entra nel thread
-    tl.to(
-      ".imm-rc-input-text",
-      { clipPath: "inset(0 100% 0 0)", x: 0, duration: 0.22, ease: "power2.in" },
-      "<",
-    );
+    // Il campo si svuota (le parole si dissolvono) e il messaggio entra nel thread
+    tl.to(".imm-rc-word", { autoAlpha: 0, duration: 0.22, ease: "power2.in" }, "<");
     tl.to(".imm-rc-placeholder", { autoAlpha: 1, duration: 0.25 }, "<");
     tl.to(
       ".imm-rc-user-1",
@@ -659,14 +646,22 @@ export default function ImmersiveRicarica() {
               </div>
             </div>
 
-            {/* Barra di input — l'utente "scrive" qui (clip-path) */}
-            <div className="imm-zoom-local border-border bg-background flex shrink-0 items-center gap-2 border-t px-2.5 py-2.5">
-              <div className="bg-surface-2 relative flex h-8 flex-1 items-center overflow-hidden rounded-full px-3">
-                <span className="imm-rc-placeholder text-muted text-[12px]">
+            {/* Barra di input — l'utente "scrive" qui parola per parola; il testo
+                VA A CAPO su due righe (campo più alto) così l'intero messaggio
+                resta leggibile quando finisce di scriversi. Placeholder e testo
+                condividono la stessa cella grid (crossfade, altezza = due righe). */}
+            <div className="imm-zoom-local border-border bg-background flex shrink-0 items-end gap-2 border-t px-2.5 py-2.5">
+              <div className="bg-surface-2 grid min-h-8 flex-1 items-center rounded-2xl px-3 py-1.5">
+                <span className="imm-rc-placeholder text-muted col-start-1 row-start-1 text-[12px]">
                   Scrivi all&apos;assistente…
                 </span>
-                <span className="imm-rc-input-text text-foreground absolute left-3 text-[12px] whitespace-nowrap">
-                  Devo ricaricare lungo la A1 verso Milano
+                <span className="imm-rc-input-text text-foreground col-start-1 row-start-1 text-[12px] leading-snug">
+                  {"Devo ricaricare lungo la A1 verso Milano".split(" ").map((w, i, arr) => (
+                    <span key={i}>
+                      <span className="imm-rc-word inline-block">{w}</span>
+                      {i < arr.length - 1 ? " " : ""}
+                    </span>
+                  ))}
                 </span>
               </div>
               <span

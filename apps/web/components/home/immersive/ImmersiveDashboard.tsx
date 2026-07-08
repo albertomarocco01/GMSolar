@@ -3,21 +3,20 @@
 /**
  * @descrizione  Scena immersiva DASHBOARD multi-sito (tema CHIARO). Full-screen
  *   admin panel denso in light mode: sidebar con 4 voci (Contenuti / Prodotti /
- *   Visite / Ordini), topbar con bottone «Segnala un problema» (visibile dal
- *   primo frame — aggancio alla scena Segnalazioni) e track orizzontale a 4
- *   schermate scrubbed dallo scroll. Beat ①: il cursore MODIFICA un contenuto
+ *   Visite / Ordini) e track orizzontale a 4 schermate scrubbed dallo scroll.
+ *   Beat ①: il cursore MODIFICA un contenuto
  *   ESISTENTE del sito (lista «Pagine del sito» → editor «Hero homepage» già
  *   compilato: sostituzione immagine con wipe, riscrittura titolo, Pubblica →
  *   toast). Poi catalogo prodotti (griglia 3 col), KPI compatti + grafici
  *   affiancati, tabella ordini con Data/Canale. Tono DESCRITTIVO. Kit ./shared.
  *   CAMERA (P11): follow sidebar→editor, push-in sul typing del titolo, punch su
  *   «Pubblica» + pull-back reveal sul toast, whip su OGNI pan del binario,
- *   push-in lento sui KPI durante il countUp → reset. La camera è NEUTRA sul
- *   beat finale (cursore su «Segnala un problema») e a progress(1).
+ *   push-in lento sui KPI durante il countUp → reset. La camera è NEUTRA a
+ *   progress(1). Ritmo TARATO PER LETTURA (utente non tecnico): typing e countUp
+ *   lenti + pause di lettura dopo ogni contenuto che atterra.
  *   Reduced-motion: timeline a progress(1) → stato finale leggibile (editor con
  *   foto e titolo nuovi, KPI pieni, tabella completa; binario = carosello).
  */
-import { MessageSquareWarning } from "lucide-react";
 import { gsap } from "@gmgroup/lib/gsap";
 import { useReducedMotion } from "@gmgroup/lib/motion";
 import {
@@ -240,13 +239,15 @@ export default function ImmersiveDashboard() {
     // Push-in discreto sul form; il typing avviene a camera FERMA (regola 2),
     // il cursore parte DOPO il cameraTo → misura il layout assestato.
     cameraTo(tl, ".imm-add-form", { scale: 1.18, duration: 0.6, ease: "power2.inOut" });
+    tl.to({}, { duration: 0.4 }); // si legge il form vuoto «Nuovo prodotto» prima del typing
+    // Typing LENTO e leggibile (l'utente deve poter leggere nome e prezzo).
     cursorTo(tl, ".imm-form-nome", { mode: "text", duration: 0.5 });
-    typeInField(tl, ".imm-form-nome", { steps: 18, duration: 0.7 });
+    typeInField(tl, ".imm-form-nome", { steps: 22, duration: 1.2 });
     cursorTo(tl, ".imm-form-prezzo", { mode: "text", duration: 0.4 });
-    typeInField(tl, ".imm-form-prezzo", { steps: 10, duration: 0.45 });
+    typeInField(tl, ".imm-form-prezzo", { steps: 12, duration: 0.75 });
     // La foto del prodotto "si carica" con un wipe
-    maskReveal(tl, ".imm-form-foto", { dir: "l", duration: 0.5 });
-    tl.to({}, { duration: 0.2 });
+    maskReveal(tl, ".imm-form-foto", { dir: "l", duration: 0.6 });
+    tl.to({}, { duration: 0.7 }); // pausa: il form compilato resta leggibile prima del «Salva»
     cursorTo(tl, ".imm-form-save", { mode: "hand", duration: 0.5 });
     pressButton(tl, ".imm-form-save", { down: 0.93, downDur: 0.1, upDur: 0.18, back: 2.5 });
     // Il form si chiude, la camera si riapre e la nuova card ENTRA nel catalogo
@@ -258,7 +259,7 @@ export default function ImmersiveDashboard() {
       { autoAlpha: 1, scale: 1, duration: 0.55, ease: "back.out(1.8)" },
       ">-0.1",
     );
-    tl.to({}, { duration: 0.3 }); // si vede la card al suo posto
+    tl.to({}, { duration: 1.0 }); // pausa: si legge la nuova card al suo posto nel catalogo
 
     // ── ③ Visite ──────────────────────────────────────────────────────────────
     cursorTo(tl, navItems[2], { mode: "hand" }); // click "Visite"
@@ -281,13 +282,13 @@ export default function ImmersiveDashboard() {
         to: k.target,
         format: k.fmt === "time" ? fmtTempo : (n: number) => FMT.format(Math.round(n)),
       })),
-      { duration: 1.4, ease: "power2.out", position: "<0.3" },
+      { duration: 2.2, ease: "power2.out", position: "<0.3" }, // countUp LENTO: i numeri salgono leggibili
     );
     // PUSH-IN (b) lento sulla fila KPI per TUTTA la durata del countUp (parte
     // insieme al counter; il cursore è fermo in sidebar → nessun conflitto).
     cameraTo(tl, ".imm-kpi-grid", {
       scale: 1.15,
-      duration: 1.4, // = durata del countUp
+      duration: 2.2, // = durata del countUp
       ease: "power1.inOut",
       position: "<",
     });
@@ -298,7 +299,7 @@ export default function ImmersiveDashboard() {
     // Click LEGGIBILE sulla card KPI «Visite» → si apre il GRAFICO DI DETTAGLIO
     // dedicato (prima era un punch rapido senza payoff). La camera è ferma a
     // 1.15 durante il click (misura corretta, regola 4: niente cameraTo qui).
-    tl.to({}, { duration: 0.3 });
+    tl.to({}, { duration: 0.7 }); // pausa: i KPI restano leggibili prima del click
     cursorTo(tl, ".imm-kpi-zoom", { mode: "hand" });
     tl.to({}, { duration: 0.2 });
     pressButton(tl, ".imm-kpi-zoom", { down: 0.95, downDur: 0.12, upDur: 0.25, back: 2.2 });
@@ -311,7 +312,7 @@ export default function ImmersiveDashboard() {
     tl.to(".imm-visits-detail", { autoAlpha: 1, y: 0, duration: 0.5, ease: "power2.out" });
     drawPath(tl, ".imm-detail-path", { duration: 1.1, ease: "power2.inOut", position: ">-0.2" });
     tl.to(".imm-detail-area", { opacity: 1, duration: 0.5, ease: "power2.out" }, ">-0.3");
-    tl.to({}, { duration: 0.7 }); // …e c'è TEMPO per leggerlo
+    tl.to({}, { duration: 1.4 }); // …e c'è TEMPO PIENO per leggerlo
 
     // ── ④ Ordini ──────────────────────────────────────────────────────────────
     cursorTo(tl, navItems[3], { mode: "hand" }); // click "Ordini"
@@ -335,36 +336,33 @@ export default function ImmersiveDashboard() {
             ? (n: number) => `${FMT.format(Math.round(n))} €`
             : (n: number) => FMT.format(Math.round(n)),
       })),
-      { duration: 1.0, ease: "power2.out", position: "<0.2" },
+      { duration: 1.7, ease: "power2.out", position: "<0.2" }, // countUp LENTO: i numeri restano leggibili
     );
     // Righe tabella entrano con slide+fade staggered
     tl.to(
       ".imm-ord-row",
-      { autoAlpha: 1, x: 0, duration: 0.5, stagger: 0.09, ease: "power3.out" },
+      { autoAlpha: 1, x: 0, duration: 0.5, stagger: 0.14, ease: "power3.out" },
       "<0.3",
     );
+    tl.to({}, { duration: 0.7 }); // pausa: la tabella ordini resta leggibile prima del click
     // Click sulla PRIMA riga → si apre il DETTAGLIO dell'ordine (righe articolo,
     // spedizione, consegna): la vista ordini non è più solo la lista.
     cursorTo(tl, ".imm-ord-first", { mode: "hand", duration: 0.7 });
     pressButton(tl, ".imm-ord-first", { down: 0.98, downDur: 0.1, upDur: 0.2, back: 2 });
     tl.to(".imm-ord-active", { autoAlpha: 1, duration: 0.25, ease: "power2.out" }, "<");
     tl.to(".imm-ord-detail", { autoAlpha: 1, y: 0, duration: 0.5, ease: "power2.out" });
-    tl.to({}, { duration: 0.6 }); // si legge il dettaglio
-
-    // ── Finale: aggancio alla scena Segnalazioni ──────────────────────────────
-    // Il cursore si POSIZIONA sul bottone «Segnala un problema» SENZA premerlo.
-    say(tl, 5); // «Qualcosa non va? C'è "Segnala un problema".»
-    cursorTo(tl, ".imm-report-btn", { mode: "hand", duration: 1.0 });
-    tl.to({}, { duration: 0.6 }); // pausa finale (hold sul bottone)
+    // Chiusura scena: pausa PIENA sul dettaglio ordine (la scena finisce qui; il
+    // gancio «Segnala un problema» è rimosso — quel capitolo arriva scrollando).
+    tl.to({}, { duration: 1.4 });
   });
 
   return (
     <ImmersiveStage
       ref={ref}
-      // 720 → 900: i beat aggiunti (mini-form prodotto, grafico dettaglio
-      // visite, dettaglio ordine) hanno bisogno di più corsa di scroll per
-      // restare leggibili allo stesso ritmo.
-      heightVh={900}
+      // 900 → 1200: typing/countUp rallentati + pause di lettura hanno bisogno
+      // di più corsa di scroll → scrub più dolce, tutto resta leggibile anche
+      // per un utente non tecnico che scrolla veloce.
+      heightVh={1200}
       theme="platform"
       label={CHAPTERS[3].title}
       chapterIndex={3}
@@ -446,17 +444,6 @@ export default function ImmersiveDashboard() {
               <span className="bg-accent text-accent-contrast rounded-full px-3 py-1 text-[11px] font-semibold">
                 Shop ✓
               </span>
-              {/* «Segnala un problema»: VISIBILE dal primo frame (nessun set/anim di
-                  comparsa). A fine timeline il cursore ci si posiziona sopra senza
-                  premerlo → aggancio narrativo alla scena Segnalazioni (P6). */}
-              <button
-                className="imm-report-btn bg-accent-soft text-accent-ink flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold"
-                tabIndex={-1}
-                aria-hidden
-              >
-                <MessageSquareWarning className="h-3.5 w-3.5" aria-hidden />
-                Segnala un problema
-              </button>
             </div>
           </div>
 
@@ -1030,9 +1017,6 @@ export default function ImmersiveDashboard() {
       </Say>
       <Say i={4} variant="caption">
         Gli ordini, con data e canale, in un&apos;unica vista.
-      </Say>
-      <Say i={5} variant="caption">
-        Qualcosa non va? C&apos;è «Segnala un problema».
       </Say>
     </ImmersiveStage>
   );
