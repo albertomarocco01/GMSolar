@@ -43,8 +43,10 @@ delle scene, tutte `<section>` figlie di `#top` (capitoli 01→08):
    SOLO video (niente card 3D). Apre con una **title card di capitolo one-shot** (chiara,
    titolo nero) mostrata e **tenuta ferma PRIMA** che parta lo scroll (evento
    `presentation:introdone` → AutoScroll), poi si solleva rivelando l'hero.
-2. **Interfacce grafiche moderne** (`scenes/InterfacceScene.tsx`) — i componenti UI premium
-   (`SuspendedCards`) su pannello scuro morbido dentro sezione chiara, **senza video**.
+2. **Interfacce grafiche moderne** (`scenes/InterfacceScene.tsx`) — bento chiaro di
+   componenti UI (`vetrina/BentoKit`): card chiare su sezione chiara, heading in-scena,
+   micro-animazioni scrubbate (counter, sparkline, barre, ring, mockup che si assembla),
+   **senza video** e senza pannello scuro.
 3. **Assistente AI** · 4. **Dashboard** · 5. **Segnalazioni** · 6. **Gestionali su misura**
    · 7. **App con assistente AI integrato** · 8. **Integrazioni** — scene immersive
    (`components/home/immersive/`) costruite sul kit `shared.tsx` (`useImmersiveScene`):
