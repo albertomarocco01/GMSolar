@@ -1005,10 +1005,8 @@ export function ChapterCard({
         <p className="imm-chapter-title font-display text-foreground text-5xl font-bold tracking-tight md:text-6xl">
           {chapter.title}
         </p>
-        {/* Linea accent che si disegna (scaleX 0→1, origin left) */}
-        <div className="imm-chapter-line bg-accent mt-6 h-[2px] w-24 origin-left" />
         {subtitle ? (
-          <p className="imm-chapter-sub text-muted mt-6 max-w-2xl text-base text-balance">
+          <p className="imm-chapter-sub text-muted mt-4 max-w-2xl text-base text-balance">
             {subtitle}
           </p>
         ) : null}
@@ -1045,20 +1043,13 @@ export function chapterIntro(tl: gsap.core.Timeline) {
     ease: "power2.inOut",
     position: "-=0.05",
   });
-  // Linea accent che si disegna (origin left è nel markup della card)
-  tl.fromTo(
-    ".imm-chapter-line",
-    { scaleX: 0 },
-    { scaleX: 1, duration: 0.5, ease: "power2.inOut" },
-    "-=0.2",
-  );
-  // Sottotitolo opzionale
+  // Sottotitolo opzionale (subito sotto il titolo, senza linea in mezzo)
   if (section.querySelector(".imm-chapter-sub")) {
     tl.fromTo(
       ".imm-chapter-sub",
       { autoAlpha: 0, y: 14 },
       { autoAlpha: 1, y: 0, duration: 0.45, ease: "power3.out" },
-      "-=0.3",
+      "-=0.25",
     );
   }
   // Hold breve, poi USCITA COMPATTA: velo+contenuto salgono e sfumano insieme.

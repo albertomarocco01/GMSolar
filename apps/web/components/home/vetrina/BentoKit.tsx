@@ -152,22 +152,40 @@ function MockupCard({ className }: { className?: string }) {
           <span className="h-2 w-2 rounded-full bg-emerald-400" />
         </span>
         <span className="ml-1 truncate rounded-full bg-white/10 px-2 py-0.5 text-[10px] text-white/60">
-          anteprima.demo
+          iltuosito.it
         </span>
       </div>
-      {/* skeleton del contenuto: hero lime + strutture bianche traslucide */}
+      {/* contenuto del sito: hero lime con nav + sezione a 3 feature riempite
+          (i figli entrano con la loro .vt-mock-piece: nessun hook extra) */}
       <div className="flex flex-1 flex-col gap-2.5 p-4">
-        <div className="vt-mock-piece bg-accent relative h-24 overflow-hidden rounded-lg">
-          {/* accenno di headline dentro l'hero */}
+        <div className="vt-mock-piece bg-accent relative h-24 overflow-hidden rounded-lg p-3">
+          {/* nav del sito: logo + voci di menu */}
+          <div className="flex items-center justify-between" aria-hidden>
+            <span className="block h-2 w-10 rounded-full bg-black/45" />
+            <span className="flex gap-1.5">
+              <span className="block h-1.5 w-5 rounded-full bg-black/25" />
+              <span className="block h-1.5 w-5 rounded-full bg-black/25" />
+              <span className="block h-1.5 w-5 rounded-full bg-black/25" />
+            </span>
+          </div>
+          {/* headline dell'hero */}
+          <span className="absolute bottom-7 left-3 block h-3.5 w-36 rounded-full bg-black/40" />
           <span className="absolute bottom-3 left-3 block h-2.5 w-24 rounded-full bg-black/25" />
-          <span className="absolute bottom-8 left-3 block h-3.5 w-36 rounded-full bg-black/40" />
         </div>
         <div className="vt-mock-piece h-2.5 w-4/5 rounded-full bg-white/20" />
-        <div className="vt-mock-piece h-2.5 w-3/5 rounded-full bg-white/12" />
+        {/* sezione feature: 3 card con icona + righe di testo (sito finito) */}
         <div className="grid grid-cols-3 gap-2 pt-1">
-          <div className="vt-mock-piece h-14 rounded-md bg-white/8" />
-          <div className="vt-mock-piece h-14 rounded-md bg-white/8" />
-          <div className="vt-mock-piece h-14 rounded-md bg-white/8" />
+          {[0, 1, 2].map((i) => (
+            <div
+              key={i}
+              className="vt-mock-piece flex h-16 flex-col gap-1.5 rounded-md bg-white/8 p-2"
+              aria-hidden
+            >
+              <span className="bg-accent/80 block h-4 w-4 rounded" />
+              <span className="block h-1.5 w-full rounded-full bg-white/25" />
+              <span className="block h-1.5 w-2/3 rounded-full bg-white/15" />
+            </div>
+          ))}
         </div>
         <div className="vt-mock-piece h-2.5 w-2/3 rounded-full bg-white/12" />
         <div className="mt-auto flex items-center justify-between pt-1">

@@ -37,10 +37,10 @@ const ARIA_LABEL = "Siti vetrina — anteprima di un sito con hero video scrolly
 /** Sottotitolo della title card di capitolo 01 — ex frase popup d'apertura. */
 const FRASE = "Con una forte narrativa, costruita tramite scrollytelling video.";
 
-/** Il video esaurisce la sua durata a questo progress di scroll. A 0.82 l'ultimo
- *  frame (pannelli accesi) resta FERMO per un tratto leggibile (0.82 → 0.92)
- *  prima che il velo chiaro d'uscita cominci a salire (0.92). */
-const VIDEO_END = 0.82;
+/** Il video esaurisce la sua durata a questo progress di scroll. A 0.90 l'ultimo
+ *  frame (pannelli accesi) resta fermo solo un attimo (0.90 → 0.95) prima che il
+ *  velo chiaro d'uscita salga: coda "morta" corta → si passa presto a Interfacce. */
+const VIDEO_END = 0.9;
 /** Escursione (in frazione di video) della micro-demo del cue: avanti/indietro. */
 const DEMO_SPAN = 0.06;
 /** Corsa verticale (px) del dot dentro il mousino, in sync con la micro-demo. */
@@ -75,7 +75,6 @@ export default function SolarTwinScene() {
       // gsap.context la uccide al cleanup; sotto reduced-motion l'effect è saltato
       // (early-return) → resta l'heading statico e la card inline resta nascosta.
       gsap.set(".imm-chapter", { autoAlpha: 1 });
-      gsap.set(".imm-chapter-line", { scaleX: 0, transformOrigin: "left center" });
       gsap.set(".imm-chapter-sub", { autoAlpha: 0, y: 14 });
       const introTl = gsap.timeline({
         delay: 1.15,
@@ -88,8 +87,7 @@ export default function SolarTwinScene() {
         ease: "power2.inOut",
       });
       introTl
-        .to(".imm-chapter-line", { scaleX: 1, duration: 0.5, ease: "power2.inOut" }, "-=0.2")
-        .to(".imm-chapter-sub", { autoAlpha: 1, y: 0, duration: 0.45, ease: "power3.out" }, "-=0.25")
+        .to(".imm-chapter-sub", { autoAlpha: 1, y: 0, duration: 0.45, ease: "power3.out" }, "-=0.2")
         // HOLD leggibile: il titolo resta FERMO ~2.4s (gap "+=2.4" prima dell'uscita).
         .to(".imm-chapter", { autoAlpha: 0, y: -48, duration: 0.7, ease: "power2.in" }, "+=2.4");
 
@@ -102,7 +100,7 @@ export default function SolarTwinScene() {
       tl.to(".st-cue", { autoAlpha: 0, duration: 0.04, ease: "power2.in" }, 0.05);
 
       // Velo chiaro d'uscita → la scena successiva è chiara.
-      tl.to(".st-exit-veil", { autoAlpha: 1, duration: 0.08, ease: "power2.in" }, 0.92);
+      tl.to(".st-exit-veil", { autoAlpha: 1, duration: 0.05, ease: "power2.in" }, 0.95);
 
       // Guardia di sviluppo: un tween oltre lo spacer allunga la timeline e
       // ScrollTrigger rimapperebbe TUTTI i beat in anticipo sul frame video.
@@ -239,7 +237,7 @@ export default function SolarTwinScene() {
       // Capitolo 01 per l'HUD (ChapterHUD osserva le section [data-chapter]);
       // a mano perché la scena non passa da ImmersiveStage (prop chapterIndex).
       data-chapter={0}
-      className="relative isolate h-[320svh]"
+      className="relative isolate h-[250svh]"
     >
       <div className="sticky top-0 flex h-svh flex-col overflow-hidden">
         {/* FINTO SITO — header di sito vetrina (decorativo) */}

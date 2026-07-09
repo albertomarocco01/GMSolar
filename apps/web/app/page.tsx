@@ -1,6 +1,5 @@
 import IntroOverlay from "@/components/home/IntroOverlay";
 import AutoScroll from "@/components/home/AutoScroll";
-import ChapterHUD from "@/components/home/ChapterHUD";
 import CinematicGrain from "@/components/home/CinematicGrain";
 import VelocitySkew from "@/components/home/VelocitySkew";
 import SolarTwinScene from "@/components/home/scenes/SolarTwinScene";
@@ -29,16 +28,13 @@ import ImmersiveGestionale from "@/components/home/immersive/ImmersiveGestionale
  *   CAPITOLI (P12): la presentazione è scandita in 8 capitoli (CHAPTERS, 01→08:
  *   Siti vetrina → Interfacce grafiche moderne → Assistente AI → Dashboard →
  *   Segnalazioni → Gestionali su misura → App con assistente AI integrato →
- *   Integrazioni). Ogni scena apre con una title card numerata (ChapterCard);
- *   l'HUD in alto a destra (ChapterHUD) segue il capitolo corrente via
- *   `data-chapter` e sparisce sulla chiusura.
+ *   Integrazioni). Ogni scena apre con una title card numerata (ChapterCard).
  */
 export default function HomePage() {
   return (
     <div id="top">
       <IntroOverlay />
       <AutoScroll />
-      <ChapterHUD />
       <CinematicGrain />
       <VelocitySkew />
 
