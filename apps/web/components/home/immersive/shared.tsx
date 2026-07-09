@@ -49,10 +49,12 @@
  * │   variante dal DOM. <ImmersiveStage>, <Cursor>, accentVars(theme) → util.     │
  * │                                                                               │
  * │ CAPITOLI (P12) — CHAPTERS (01→08) + <ChapterCard chapter={CHAPTERS[i]}        │
- * │   subtitle="…"/> + chapterIntro(tl): title card CHIARA numerata che apre ogni │
- * │   scena. chapterIntro va chiamata PRIMA di ogni altro beat e sostituisce il   │
- * │   vecchio say(tl, 0) col velo (la <Say i={0}> veil → <ChapterCard/>). Le      │
- * │   caption restano invariate. A progress(1) la card finisce nascosta.          │
+ * │   subtitle="…"/> + chapterIntro(tl): title card CHIARA che apre ogni scena.   │
+ * │   chapterIntro va chiamata PRIMA di ogni altro beat e sostituisce il vecchio  │
+ * │   say(tl, 0) col velo (la <Say i={0}> veil → <ChapterCard/>). Le caption      │
+ * │   restano invariate. RITMO UNIFORME della demo: il velo è acceso già durante  │
+ * │   l'hand-off d'entrata ⇒ prima il BIANCO, poi la SCRITTA, POI il contenuto.   │
+ * │   A progress(1) la card finisce nascosta.                                     │
  * │   `chapterIndex` su <ImmersiveStage> marca la section per l'HUD (ChapterHUD). │
  * └───────────────────────────────────────────────────────────────────────────┘
  */
@@ -980,7 +982,12 @@ export function ChapterCard({
 }) {
   return (
     <div
-      className="imm-chapter bg-background/90 pointer-events-none absolute inset-0 z-50 flex items-center justify-center backdrop-blur-sm"
+      // Velo OPACO (non bg-background/90 + blur): la regia è «prima il bianco,
+      // poi la scritta, POI il contenuto» — a 90% la scena dietro traspare, e
+      // dove è scura (il sipario ink di InterfacceScene) si vede un rettangolo
+      // grigio salire insieme al velo. Opaco = bianco pulito, e via il
+      // backdrop-filter full-screen durante l'hand-off.
+      className="imm-chapter bg-background pointer-events-none absolute inset-0 z-50 flex items-center justify-center"
       // Nascosta finché chapterIntro non la fa entrare (e PRIMA che GSAP monti).
       style={{ opacity: 0 }}
       aria-hidden
@@ -1018,31 +1025,32 @@ export function ChapterCard({
 /**
  * Intro di capitolo: anima la <ChapterCard> DENTRO la timeline scrubbata. Va
  * chiamata PRIMA di ogni altro beat della scena (sostituisce il vecchio
- * `say(tl, 0)`). Sequenza: velo fade veloce → titolo che si COSTRUISCE con un
- * unico wipe continuo sinistra→destra (maskReveal su `.imm-chapter-title`) →
- * linea che si disegna → (sottotitolo, se presente) → hold breve → uscita
- * compatta (velo+contenuto salgono e sfumano, power2.in). Tutto fromTo/to
- * deterministico → scrub-safe; a progress(1) la card finisce NASCOSTA
- * (autoAlpha 0), come il vecchio veil — per reduced-motion le scene
- * aggiungono un heading statico. No-op se la scena non contiene una ChapterCard.
+ * `say(tl, 0)`).
+ *
+ * REGIA (uniforme su TUTTA la demo): PRIMA IL BIANCO CON LA SCRITTA, POI IL
+ * CONTENUTO. Il velo è ACCESO GIÀ IN BUILD (`gsap.set` fuori dalla timeline) →
+ * durante l'hand-off d'ENTRATA (`.imm-stage`, "top bottom"→"top top", cioè PRIMA
+ * che la timeline scrubbata parta) la scena che sale in campo è già coperta dal
+ * velo chiaro: non si intravede la sua chrome vuota. Quando il primo beat parte:
+ * titolo che si COSTRUISCE con un unico wipe sinistra→destra (il velo è già lì)
+ * → (sottotitolo) → hold breve → uscita compatta (velo+contenuto salgono e
+ * sfumano) → SOLO ORA il contenuto della scena si anima.
+ *
+ * Tutto to/fromTo deterministico → scrub-safe: scrubbando indietro l'uscita
+ * reversa e il velo torna acceso. A progress(1) la card finisce NASCOSTA
+ * (autoAlpha 0) — per reduced-motion le scene aggiungono un heading statico.
+ * No-op se la scena non contiene una ChapterCard.
  */
 export function chapterIntro(tl: gsap.core.Timeline) {
   const section = tl.data as HTMLElement | undefined;
   if (!section?.querySelector(".imm-chapter")) return;
-  // Velo chiaro: fade veloce. fromTo → lo stato "nascosto" è applicato in build
-  // (immediateRender), prima del paint: niente flash.
-  tl.fromTo(
-    ".imm-chapter",
-    { autoAlpha: 0, y: 0 },
-    { autoAlpha: 1, duration: 0.3, ease: "power2.out" },
-  );
+  // Velo ACCESO in build (prima del paint, prima dell'hand-off d'entrata): non è
+  // un tween della timeline, quindi copre già la scena mentre entra in campo.
+  // Il titolo resta clippato (maskReveal, immediateRender) → si vede il bianco
+  // NUDO durante la traversata, la scritta arriva col primo beat scrubbato.
+  gsap.set(".imm-chapter", { autoAlpha: 1, y: 0 });
   // Titolo: si genera progressivamente da sinistra a destra (wipe unico continuo).
-  maskReveal(tl, ".imm-chapter-title", {
-    dir: "l",
-    duration: 0.9,
-    ease: "power2.inOut",
-    position: "-=0.05",
-  });
+  maskReveal(tl, ".imm-chapter-title", { dir: "l", duration: 0.9, ease: "power2.inOut" });
   // Sottotitolo opzionale (subito sotto il titolo, senza linea in mezzo)
   if (section.querySelector(".imm-chapter-sub")) {
     tl.fromTo(
@@ -1113,6 +1121,10 @@ export const ImmersiveStage = forwardRef<
       ref={ref}
       aria-label={label}
       data-chapter={chapterIndex}
+      // AutoScroll: anchor extra a FINE SCRUB → il tratto seguente (l'hand-off
+      // di 100svh verso la scena dopo: solo cross-fade di veli, nessun contenuto
+      // leggibile) si attraversa VELOCE invece che al passo bell della scena.
+      data-fast-handoff="true"
       className="relative"
       style={{ ...accentVars(theme), height: `${heightVh}vh` }}
     >

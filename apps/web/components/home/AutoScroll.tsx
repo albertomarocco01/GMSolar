@@ -56,6 +56,21 @@ const TOUCH_IDLE_MS = 4500;
 /** Dopo quanto la pill si auto-nasconde. */
 const PILL_HIDE_MS = 3500;
 
+// ── Hand-off "fast" (opt-in: sezioni con data-fast-handoff) ─────────────────
+/** Le sezioni marcate ricevono un anchor EXTRA a fine scrub (bottom − viewport):
+ *  il tratto da lì all'inizio della scena dopo è il puro hand-off (velo/cross-fade
+ *  su fondo uniforme, nessun contenuto leggibile) → si attraversa VELOCE invece
+ *  che a passo bell (era ~4-5s di bianco tra video solare e Interfacce). */
+const HANDOFF_PEAK = 4200;
+const HANDOFF_MIN = 650;
+/** Sosta ridotta (ms) sugli anchor adiacenti a un tratto fast: lì la schermata è
+ *  vuota, sostare i 300ms pieni allungherebbe solo il bianco. */
+const HANDOFF_DWELL_MS = 100;
+
+/** Anchor di riposo: posizione scroll-Y assoluta + flag `fast` (il TRATTO che
+ *  PARTE da questo anchor è un hand-off vuoto → profilo veloce, sosta ridotta). */
+type Anchor = { p: number; fast: boolean };
+
 export default function AutoScroll() {
   const reduced = useReducedMotion();
   const [auto, setAuto] = useState(true);
@@ -73,8 +88,8 @@ export default function AutoScroll() {
    *  l'auto si bloccava a ~65px dall'anchor. Accumuliamo la frazione e avanziamo di
    *  interi → moto garantito a ogni cadenza di refresh, velocità media preservata. */
   const carryRef = useRef(0);
-  /** Anchor di riposo (posizioni scroll-Y assolute), ordinati crescenti. */
-  const anchorsRef = useRef<number[]>([]);
+  /** Anchor di riposo (posizioni scroll-Y assolute + flag fast), ordinati crescenti. */
+  const anchorsRef = useRef<Anchor[]>([]);
 
   const setAutoState = (v: boolean) => {
     autoRef.current = v;
@@ -104,11 +119,30 @@ export default function AutoScroll() {
     const computeAnchors = () => {
       const scenes = Array.from(document.querySelectorAll<HTMLElement>("#top > section"));
       const sy = window.scrollY;
-      const limit =
-        getLenis()?.limit || document.documentElement.scrollHeight - window.innerHeight;
-      const raw = scenes.map((el) => Math.round(el.getBoundingClientRect().top + sy));
-      raw.push(Math.round(limit));
-      anchorsRef.current = Array.from(new Set(raw.filter((v) => v >= 0))).sort((a, b) => a - b);
+      const limit = getLenis()?.limit || document.documentElement.scrollHeight - window.innerHeight;
+      const raw: Anchor[] = [];
+      for (const el of scenes) {
+        const r = el.getBoundingClientRect();
+        const top = Math.round(r.top + sy);
+        raw.push({ p: top, fast: false });
+        // Opt-in (data-fast-handoff): anchor extra a FINE SCRUB della scena →
+        // il tratto da lì al top della scena dopo è hand-off vuoto = fast.
+        if (el.dataset.fastHandoff) {
+          const end = Math.round(top + r.height - window.innerHeight);
+          if (end > top) raw.push({ p: end, fast: true });
+        }
+      }
+      raw.push({ p: Math.round(limit), fast: false });
+      raw.sort((a, b) => a.p - b.p);
+      // Dedupe per posizione (a pari posizione il flag fast vince).
+      const out: Anchor[] = [];
+      for (const a of raw) {
+        if (a.p < 0) continue;
+        const last = out[out.length - 1];
+        if (last && last.p === a.p) last.fast = last.fast || a.fast;
+        else out.push({ ...a });
+      }
+      anchorsRef.current = out;
     };
 
     // Avanzamento dentro il ticker GSAP: gira DOPO lenis.raf (registrato prima da
@@ -137,7 +171,7 @@ export default function AutoScroll() {
       // Primo anchor DAVANTI alla posizione corrente (l'auto va solo in avanti).
       let idx = -1;
       for (let i = 0; i < anchors.length; i++) {
-        if (anchors[i] > scroll + ARRIVE_EPS) {
+        if (anchors[i].p > scroll + ARRIVE_EPS) {
           idx = i;
           break;
         }
@@ -150,14 +184,19 @@ export default function AutoScroll() {
       }
       atBottomRef.current = false;
 
-      const target = Math.min(anchors[idx], limit);
-      const from = idx > 0 ? anchors[idx - 1] : 0; // anchor di partenza (per l'ease-in)
+      const target = Math.min(anchors[idx].p, limit);
+      const from = idx > 0 ? anchors[idx - 1].p : 0; // anchor di partenza (per l'ease-in)
+      // Tratto fast = quello che PARTE da un anchor fast (fine scrub → scena dopo).
+      const fast = idx > 0 && anchors[idx - 1].fast;
       const dist = target - scroll;
 
       if (dist <= ARRIVE_EPS) {
-        // Atterrato: allinea di precisione e SOSTA (max: non accorcia un hold esterno).
+        // Atterrato: allinea di precisione e SOSTA (max: non accorcia un hold
+        // esterno). Sosta RIDOTTA sugli anchor adiacenti a un tratto fast: lì lo
+        // schermo è vuoto (velo/hand-off), i 300ms pieni allungherebbero il bianco.
         lenis.scrollTo(target, { immediate: true });
-        holdUntilRef.current = Math.max(holdUntilRef.current, performance.now() + DWELL_MS);
+        const dwell = fast || anchors[idx].fast ? HANDOFF_DWELL_MS : DWELL_MS;
+        holdUntilRef.current = Math.max(holdUntilRef.current, performance.now() + dwell);
         carryRef.current = 0;
         return;
       }
@@ -174,7 +213,11 @@ export default function AutoScroll() {
       // più lunghe, ~0.34 ai bordi anziché 0), se preferisci il look di Gauss:
       //   const bell = Math.exp(-((pc - 0.5) ** 2) / (2 * 0.34 * 0.34));
       const bell = Math.sin(Math.PI * pc);
-      const v = Math.max(MIN_SPEED, PEAK_SPEED * bell);
+      // Tratto fast: stessa campana, picco e pavimento alti → il vuoto si
+      // attraversa in ~0.4-0.5s (contenuto invisibile: nessun jank percepibile).
+      const v = fast
+        ? Math.max(HANDOFF_MIN, HANDOFF_PEAK * bell)
+        : Math.max(MIN_SPEED, PEAK_SPEED * bell);
       // Passo desiderato (px) + resto sub-pixel accumulato. Avanziamo di INTERI: sotto
       // la soglia di 1px Lenis riarrotonderebbe a zero → il resto matura in frame futuri.
       const desired = v * (Math.min(deltaMs, 50) / 1000) + carryRef.current; // clamp anti-salto
@@ -378,9 +421,7 @@ export default function AutoScroll() {
 
   if (reduced) return null;
 
-  const label = auto
-    ? "Scorri per il controllo manuale"
-    : "Manuale · scorri per navigare";
+  const label = auto ? "Scorri per il controllo manuale" : "Manuale · scorri per navigare";
 
   return (
     <>

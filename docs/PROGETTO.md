@@ -43,10 +43,12 @@ delle scene, tutte `<section>` figlie di `#top` (capitoli 01→08):
    SOLO video (niente card 3D). Apre con una **title card di capitolo one-shot** (chiara,
    titolo nero) mostrata e **tenuta ferma PRIMA** che parta lo scroll (evento
    `presentation:introdone` → AutoScroll), poi si solleva rivelando l'hero.
-2. **Interfacce grafiche moderne** (`scenes/InterfacceScene.tsx`) — bento chiaro di
-   componenti UI (`vetrina/BentoKit`): card chiare su sezione chiara, heading in-scena,
-   micro-animazioni scrubbate (counter, sparkline, barre, ring, mockup che si assembla),
-   **senza video** e senza pannello scuro.
+2. **Interfacce grafiche moderne** (`scenes/InterfacceScene.tsx`) — **snippet di sito
+   vetrina** (`vetrina/VetrinaTeaser`): quattro sezioni modellate su gmsolar.it (Chi è GM
+   Solar, i numeri, Tipologia di impianti, I nostri servizi) dentro finestre che le
+   RITAGLIANO ai bordi, scoperte da un sipario ink che si scosta. Micro-vita scrubbata:
+   headline che si digita + CTA premuta, counter dei 4 numeri, tile a maschera, righe dei
+   servizi in cascata. **Senza video**, fondo chiaro (un solo snippet su fondo ink).
 3. **Assistente AI** · 4. **Dashboard** · 5. **Segnalazioni** · 6. **Gestionali su misura**
    · 7. **App con assistente AI integrato** · 8. **Integrazioni** — scene immersive
    (`components/home/immersive/`) costruite sul kit `shared.tsx` (`useImmersiveScene`):

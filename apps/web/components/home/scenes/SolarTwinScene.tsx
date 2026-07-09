@@ -37,10 +37,11 @@ const ARIA_LABEL = "Siti vetrina — anteprima di un sito con hero video scrolly
 /** Sottotitolo della title card di capitolo 01 — ex frase popup d'apertura. */
 const FRASE = "Con una forte narrativa, costruita tramite scrollytelling video.";
 
-/** Il video esaurisce la sua durata a questo progress di scroll. A 0.90 l'ultimo
- *  frame (pannelli accesi) resta fermo solo un attimo (0.90 → 0.95) prima che il
- *  velo chiaro d'uscita salga: coda "morta" corta → si passa presto a Interfacce. */
-const VIDEO_END = 0.9;
+/** Il video esaurisce la sua durata a questo progress di scroll. Quasi a fine
+ *  corsa: NIENTE coda morta — il velo chiaro d'uscita (0.95→1) sale SOPRA gli
+ *  ultimi frame, e l'anchor "fast" di AutoScroll (data-fast-handoff) rallenta
+ *  comunque il finale → il video "si posa" e si passa SUBITO a Interfacce. */
+const VIDEO_END = 0.97;
 /** Escursione (in frazione di video) della micro-demo del cue: avanti/indietro. */
 const DEMO_SPAN = 0.06;
 /** Corsa verticale (px) del dot dentro il mousino, in sync con la micro-demo. */
@@ -99,7 +100,8 @@ export default function SolarTwinScene() {
       // Cue "Scorri": sfuma appena parte lo scroll.
       tl.to(".st-cue", { autoAlpha: 0, duration: 0.04, ease: "power2.in" }, 0.05);
 
-      // Velo chiaro d'uscita → la scena successiva è chiara.
+      // Velo chiaro d'uscita → la scena successiva è chiara. Sale SOPRA gli
+      // ultimi frame del video (VIDEO_END 0.97 > 0.95): fine video ≈ fine scrub.
       tl.to(".st-exit-veil", { autoAlpha: 1, duration: 0.05, ease: "power2.in" }, 0.95);
 
       // Guardia di sviluppo: un tween oltre lo spacer allunga la timeline e
@@ -237,6 +239,9 @@ export default function SolarTwinScene() {
       // Capitolo 01 per l'HUD (ChapterHUD osserva le section [data-chapter]);
       // a mano perché la scena non passa da ImmersiveStage (prop chapterIndex).
       data-chapter={0}
+      // AutoScroll: anchor extra a FINE SCRUB → il tratto vuoto (velo chiaro +
+      // hand-off) verso Interfacce si attraversa veloce invece che a passo bell.
+      data-fast-handoff="true"
       className="relative isolate h-[250svh]"
     >
       <div className="sticky top-0 flex h-svh flex-col overflow-hidden">
