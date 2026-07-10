@@ -90,7 +90,6 @@ export default function InterfacceScene() {
     <ImmersiveStage
       ref={ref}
       heightVh={440}
-      theme="platform"
       label={CHAPTERS[1].title}
       chapterIndex={1}
     >

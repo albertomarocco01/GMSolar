@@ -326,7 +326,6 @@ export default function ImmersiveRicarica() {
     <ImmersiveStage
       ref={ref}
       heightVh={520}
-      theme="platform"
       label={CHAPTERS[6].title}
       chapterIndex={6}
     >

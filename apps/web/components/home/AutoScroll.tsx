@@ -145,8 +145,26 @@ export default function AutoScroll() {
       anchorsRef.current = out;
     };
 
-    // Avanzamento dentro il ticker GSAP: gira DOPO lenis.raf (registrato prima da
-    // LenisProvider), quindi legge una posizione coerente nello stesso frame.
+    // computeAnchors legge il layout (getBoundingClientRect su ogni scena +
+    // scrollHeight): un layout sincrono forzato. `resize` ne spara decine al
+    // secondo e ogni `ScrollTrigger.refresh()` ne aggiunge uno → coalesciamo su
+    // un solo frame. Il tick, se trova la lista vuota, la ricalcola comunque.
+    let anchorsRaf = 0;
+    const scheduleAnchors = () => {
+      if (anchorsRaf) return;
+      anchorsRaf = requestAnimationFrame(() => {
+        anchorsRaf = 0;
+        computeAnchors();
+      });
+    };
+
+    // Avanzamento dentro il ticker GSAP (lo stesso che pilota lenis.raf e
+    // ScrollTrigger: un solo orologio). NB: `LenisProvider` è un ANTENATO nel
+    // layout, quindi il suo effect gira DOPO questo e il suo callback finisce in
+    // coda al ticker: qui leggiamo la posizione già integrata dal frame
+    // precedente e scriviamo con `immediate: true` (che ferma l'animazione
+    // interna di Lenis) → il raf successivo non la contraddice. Nessuna
+    // dipendenza dall'ordine, ma non invertirlo assumendo il contrario.
     const tick = (_time: number, deltaMs: number) => {
       const lenis = getLenis();
       if (
@@ -232,7 +250,7 @@ export default function AutoScroll() {
 
     // Setup: primo calcolo (deferito così il layout delle scene è pronto) +
     // ricalcolo su refresh/resize.
-    const raf0 = requestAnimationFrame(computeAnchors);
+    scheduleAnchors();
     // Rilascio dell'intro gate: alla title card d'apertura uscita (evento) o al
     // failsafe. Al rilascio, una sosta breve (DWELL_MS) prima del primo movimento.
     const releaseIntro = () => {
@@ -243,8 +261,8 @@ export default function AutoScroll() {
     // Failsafe > durata reale della card tenuta ferma (~4.9s con delay+reveal+hold+exit):
     // se l'evento non arriva, l'auto-scroll riparte comunque e non resta bloccato.
     const introFailsafe = setTimeout(releaseIntro, 8000);
-    ScrollTrigger.addEventListener("refresh", computeAnchors);
-    window.addEventListener("resize", computeAnchors, { passive: true });
+    ScrollTrigger.addEventListener("refresh", scheduleAnchors);
+    window.addEventListener("resize", scheduleAnchors, { passive: true });
     gsap.ticker.add(tick);
 
     let idle: ReturnType<typeof setTimeout> | undefined;
@@ -400,12 +418,12 @@ export default function AutoScroll() {
       if (lockedRef.current) setGlobalPause(false);
       document.documentElement.removeAttribute("data-presentation-paused");
       window.removeEventListener("presentation:pausechange", onPauseChange);
-      cancelAnimationFrame(raf0);
+      if (anchorsRaf) cancelAnimationFrame(anchorsRaf);
       clearTimeout(introFailsafe);
       window.removeEventListener("presentation:introdone", releaseIntro);
       gsap.ticker.remove(tick);
-      ScrollTrigger.removeEventListener("refresh", computeAnchors);
-      window.removeEventListener("resize", computeAnchors);
+      ScrollTrigger.removeEventListener("refresh", scheduleAnchors);
+      window.removeEventListener("resize", scheduleAnchors);
       if (idle) clearTimeout(idle);
       if (pillTimer) clearTimeout(pillTimer);
       window.removeEventListener("mousemove", onMouseMove);

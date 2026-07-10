@@ -248,7 +248,6 @@ export default function ImmersiveAssistente() {
     <ImmersiveStage
       ref={ref}
       heightVh={640}
-      theme="platform"
       label={CHAPTERS[2].title}
       chapterIndex={2}
     >

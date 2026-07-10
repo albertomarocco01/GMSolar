@@ -193,7 +193,6 @@ export default function ImmersiveSegnalazioni() {
     <ImmersiveStage
       ref={ref}
       heightVh={480}
-      theme="platform"
       label={CHAPTERS[4].title}
       chapterIndex={4}
     >

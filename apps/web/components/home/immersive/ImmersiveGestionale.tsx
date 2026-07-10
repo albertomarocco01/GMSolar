@@ -333,7 +333,6 @@ export default function ImmersiveGestionale() {
     <ImmersiveStage
       ref={ref}
       heightVh={700}
-      theme="platform"
       label={CHAPTERS[5].title}
       chapterIndex={5}
     >

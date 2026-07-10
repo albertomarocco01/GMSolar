@@ -27,7 +27,7 @@ import { gsap, ScrollTrigger } from "@gmgroup/lib/gsap";
 import { useReducedMotion, useIsoLayoutEffect } from "@gmgroup/lib/motion";
 import ScrubVideo, { type ScrubVideoHandle } from "../ScrubVideo";
 import ScrollCue from "../ScrollCue";
-import { CHAPTERS, ChapterCard, maskReveal } from "../immersive/shared";
+import { CHAPTERS, ChapterCard, maskReveal, scheduleRefresh } from "../immersive/shared";
 
 // Derivati ALL-KEYFRAME obbligatori: il seek è istantaneo SOLO con questi.
 const SRC = "/assets/solar-twin.mp4";
@@ -187,7 +187,7 @@ export default function SolarTwinScene() {
         },
       });
 
-      ScrollTrigger.refresh();
+      scheduleRefresh();
     }, stage);
 
     return () => {

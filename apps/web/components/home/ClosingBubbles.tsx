@@ -4,9 +4,10 @@
  * @descrizione  Sfondo animato della scena di CHIUSURA: bolle accent traslucide
  *   che fluttuano e rimbalzano sui bordi del viewport (canvas 2D, rAF, fisica
  *   time-based). Generato con Google AI Studio e adattato al progetto:
- *   rispetta reduced-motion (frame statico), si ferma a tab nascosta e con la
- *   pausa globale della presentazione (`presentation:pausechange` +
- *   `data-presentation-paused`). Leggera repulsione attorno al cursore.
+ *   rispetta reduced-motion (frame statico), si ferma a tab nascosta, fuori dal
+ *   viewport (IntersectionObserver) e con la pausa globale della presentazione
+ *   (`presentation:pausechange` + `data-presentation-paused`). Leggera
+ *   repulsione attorno al cursore.
  * @indice
  * - ClosingBubbles → canvas full-bleed con le bolle animate
  */
@@ -49,6 +50,11 @@ export default function ClosingBubbles({
     // Pausa globale della presentazione: montaggio a presentazione già in pausa
     // (es. remount) → parte congelato, come il vecchio loop GSAP.
     let presentationPaused = document.documentElement.hasAttribute("data-presentation-paused");
+    // La scena di chiusura sta in fondo a ~30.000px di scrollytelling: senza
+    // questo, il canvas girava (clear + 12 gradienti radiali full-viewport a
+    // ogni frame) per TUTTA la presentazione, invisibile. Parte fermo e si
+    // sveglia solo quando entra in campo.
+    let offscreen = true;
     let width = 0;
     let height = 0;
 
@@ -56,6 +62,7 @@ export default function ClosingBubbles({
     let mouseY = -1000;
 
     const handleMouseMove = (e: MouseEvent) => {
+      if (offscreen) return; // niente layout forzato mentre la scena non è in campo
       const rect = canvas.getBoundingClientRect();
       mouseX = e.clientX - rect.left;
       mouseY = e.clientY - rect.top;
@@ -159,7 +166,7 @@ export default function ClosingBubbles({
 
     const update = (time: number) => {
       // Congelato: il loop muore qui e riparte dai gestori di resume.
-      if (isHidden || presentationPaused) return;
+      if (isHidden || presentationPaused || offscreen) return;
 
       if (!lastTime) lastTime = time;
       const dt = Math.min((time - lastTime) / 1000, 0.1); // step max 100ms
@@ -187,21 +194,30 @@ export default function ClosingBubbles({
         const currentSpeed = Math.sqrt(b.vx * b.vx + b.vy * b.vy);
         const targetSpeed = b.baseSpeed;
 
+        // Ri-normalizzazione alla velocità base. I rapporti dividono per la
+        // velocità corrente: a velocità ESATTAMENTE nulla (repulsione che annulla
+        // il moto) darebbero Infinity → NaN su x/y, e la bolla sparirebbe per
+        // sempre. Con velocità nulla si rilancia in una direzione qualsiasi.
         if (currentSpeed > targetSpeed) {
           const damping = Math.pow(0.85, dt * 60); // smorzamento indipendente dal frame-rate
           b.vx *= damping;
           b.vy *= damping;
 
           const newSpeed = Math.sqrt(b.vx * b.vx + b.vy * b.vy);
-          if (newSpeed < targetSpeed) {
+          if (newSpeed < targetSpeed && newSpeed > 0) {
             const ratio = targetSpeed / newSpeed;
             b.vx *= ratio;
             b.vy *= ratio;
           }
         } else if (currentSpeed < targetSpeed) {
-          const ratio = targetSpeed / currentSpeed;
-          b.vx *= ratio;
-          b.vy *= ratio;
+          if (currentSpeed === 0) {
+            b.vx = targetSpeed;
+            b.vy = 0;
+          } else {
+            const ratio = targetSpeed / currentSpeed;
+            b.vx *= ratio;
+            b.vy *= ratio;
+          }
         }
 
         b.x += b.vx * dt;
@@ -237,7 +253,7 @@ export default function ClosingBubbles({
 
     // Riavvia il loop solo se nessuna causa di pausa è ancora attiva.
     const resumeIfIdle = () => {
-      if (prefersReducedMotion || isHidden || presentationPaused) return;
+      if (prefersReducedMotion || isHidden || presentationPaused || offscreen) return;
       lastTime = performance.now();
       animationFrameId = requestAnimationFrame(update);
     };
@@ -266,7 +282,7 @@ export default function ClosingBubbles({
         if (b.y > maxY) b.y = maxY;
       });
 
-      if (prefersReducedMotion || isHidden || presentationPaused) {
+      if (prefersReducedMotion || isHidden || presentationPaused || offscreen) {
         render();
       }
     };
@@ -300,14 +316,22 @@ export default function ClosingBubbles({
     initBubbles();
     render();
 
-    if (!prefersReducedMotion) {
-      lastTime = performance.now();
-      animationFrameId = requestAnimationFrame(update);
-    }
+    // Sveglia/addormenta il loop all'entrata e all'uscita dal viewport. Un
+    // margine generoso lo fa trovare già in moto quando la scena arriva.
+    const io = new IntersectionObserver(
+      ([e]) => {
+        const nowOff = !e.isIntersecting;
+        if (nowOff === offscreen) return;
+        offscreen = nowOff;
+        if (!offscreen) resumeIfIdle();
+      },
+      { rootMargin: "50% 0px" },
+    );
+    io.observe(canvas);
 
     window.addEventListener("resize", handleResize);
     window.addEventListener("mousemove", handleMouseMove);
-    window.addEventListener("mouseleave", handleMouseLeave);
+    document.addEventListener("mouseleave", handleMouseLeave);
     window.addEventListener("presentation:pausechange", handlePauseChange);
     document.addEventListener("visibilitychange", handleVisibilityChange);
 
@@ -315,9 +339,10 @@ export default function ClosingBubbles({
       if (animationFrameId) {
         cancelAnimationFrame(animationFrameId);
       }
+      io.disconnect();
       window.removeEventListener("resize", handleResize);
       window.removeEventListener("mousemove", handleMouseMove);
-      window.removeEventListener("mouseleave", handleMouseLeave);
+      document.removeEventListener("mouseleave", handleMouseLeave);
       window.removeEventListener("presentation:pausechange", handlePauseChange);
       document.removeEventListener("visibilitychange", handleVisibilityChange);
     };

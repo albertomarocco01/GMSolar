@@ -46,7 +46,7 @@
  * │ say(tl, i) → mostra/nasconde <Say i={i}>. <Say variant="veil"|"caption">:     │
  * │   veil = frase grande su velo full-screen (PRIMA frase della scena);          │
  * │   caption = pill lower-third senza velo (frasi successive). say() rileva la   │
- * │   variante dal DOM. <ImmersiveStage>, <Cursor>, accentVars(theme) → util.     │
+ * │   variante dal DOM. <ImmersiveStage>, <Cursor> → util.                        │
  * │                                                                               │
  * │ CAPITOLI (P12) — CHAPTERS (01→08) + <ChapterCard chapter={CHAPTERS[i]}        │
  * │   subtitle="…"/> + chapterIntro(tl): title card CHIARA che apre ogni scena.   │
@@ -64,30 +64,22 @@ import { gsap, ScrollTrigger } from "@gmgroup/lib/gsap";
 import { prefersReducedMotion, useIsoLayoutEffect } from "@gmgroup/lib/motion";
 
 /**
- * Accent UNICO de-brandizzato: il LIME del gruppo su TUTTE le scene (erano temi
- * per-mondo solar/mobility/shop, collassati su richiesta del cliente). `c` =
- * colore del TESTO sopra l'accent pieno. Resta una mappa — con fallback in
- * accentVars() — per non rompere le firme `theme="…"` delle scene.
+ * Refresh di ScrollTrigger COALESCATO. Ogni scena, al mount, ha bisogno che le
+ * posizioni dei trigger siano ricalcolate dopo che TUTTE le scene hanno preso
+ * altezza. Chiamare `ScrollTrigger.refresh()` dentro ogni scena significava 7
+ * refresh full-page nello stesso commit (ognuno rimisura ogni trigger e fa
+ * scattare i listener "refresh" — incluso il ricalcolo degli anchor di
+ * AutoScroll): lavoro quadratico nel momento peggiore, il primo paint.
+ * Qui il refresh viene accodato una sola volta al prossimo frame.
  */
-const THEMES: Record<string, { a: string; s: string; c: string }> = {
-  platform: { a: "#84cc16", s: "#65a30d", c: "#0b1020" },
-};
-
-/** Accent completo per tema: include i derivati (soft/ink/ring) perché a :root
- *  sono "cotti" sull'accent del gruppo e un override del solo --accent non basta. */
-export function accentVars(theme: string): React.CSSProperties {
-  const t = THEMES[theme] ?? THEMES.platform;
-  const v: Record<string, string> = {
-    "--accent": t.a,
-    "--accent-strong": t.s,
-    "--accent-contrast": t.c,
-    "--accent-soft": `color-mix(in oklab, ${t.a} 14%, transparent)`,
-    // ink = accent LEGGIBILE come testo (mix verso il fondo scuro). 38% → ~AAA su
-    // chiaro anche con il lime (allineato ai token del gruppo).
-    "--accent-ink": `color-mix(in oklab, ${t.a}, #0b1020 38%)`,
-    "--accent-ring": `color-mix(in oklab, ${t.a} 55%, transparent)`,
-  };
-  return v as unknown as React.CSSProperties;
+let refreshQueued = false;
+export function scheduleRefresh() {
+  if (refreshQueued) return;
+  refreshQueued = true;
+  requestAnimationFrame(() => {
+    refreshQueued = false;
+    ScrollTrigger.refresh();
+  });
 }
 
 // ── Cursore finto: tipi + helper ─────────────────────────────────────────────
@@ -853,7 +845,7 @@ export function useImmersiveScene(build: (tl: gsap.core.Timeline, section: HTMLE
           },
         );
       }
-      ScrollTrigger.refresh();
+      scheduleRefresh();
     }, section);
     return () => ctx.revert();
   }, []);
@@ -1102,12 +1094,17 @@ export function Cursor() {
   );
 }
 
-/** Cornice full-screen sticky di una scena-prodotto: stage + cursore. */
+/** Cornice full-screen sticky di una scena-prodotto: stage + cursore.
+ *  L'accent NON viene ridefinito qui: la scena eredita i token di :root
+ *  (`--accent`, `--accent-ink`, …). Prima un `accentVars(theme)` ri-derivava
+ *  l'intera palette da hex hardcoded e ricalcolava `--accent-ink` al 38% di mix
+ *  verso il foreground — cioè esattamente il valore che tokens.css documenta
+ *  come SOTTO la soglia WCAG AA (4.17–4.37:1); ogni scena immersiva annullava
+ *  così la correzione al 46%. Rimosso: unico accent, unica fonte. */
 export const ImmersiveStage = forwardRef<
   HTMLElement,
   {
     heightVh: number;
-    theme: string;
     label: string;
     /** Indice del capitolo in CHAPTERS (0-based) → imposta `data-chapter` sul
      *  <section>: è ciò che ChapterHUD osserva per capire il capitolo corrente.
@@ -1115,7 +1112,7 @@ export const ImmersiveStage = forwardRef<
     chapterIndex?: number;
     children: React.ReactNode;
   }
->(function ImmersiveStage({ heightVh, theme, label, chapterIndex, children }, ref) {
+>(function ImmersiveStage({ heightVh, label, chapterIndex, children }, ref) {
   return (
     <section
       ref={ref}
@@ -1126,7 +1123,7 @@ export const ImmersiveStage = forwardRef<
       // leggibile) si attraversa VELOCE invece che al passo bell della scena.
       data-fast-handoff="true"
       className="relative"
-      style={{ ...accentVars(theme), height: `${heightVh}vh` }}
+      style={{ height: `${heightVh}vh` }}
     >
       <div className="bg-background sticky top-0 h-svh overflow-hidden">
         {/* Gerarchia layer (vedi CAMERA · REGOLE DI SEQUENZIAMENTO):

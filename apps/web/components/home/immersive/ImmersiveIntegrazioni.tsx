@@ -305,7 +305,6 @@ export default function ImmersiveIntegrazioni() {
     <ImmersiveStage
       ref={ref}
       heightVh={520}
-      theme="platform"
       label={CHAPTERS[7].title}
       chapterIndex={7}
     >

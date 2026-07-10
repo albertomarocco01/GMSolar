@@ -363,7 +363,6 @@ export default function ImmersiveDashboard() {
       // di più corsa di scroll → scrub più dolce, tutto resta leggibile anche
       // per un utente non tecnico che scrolla veloce.
       heightVh={1200}
-      theme="platform"
       label={CHAPTERS[3].title}
       chapterIndex={3}
     >
