@@ -98,6 +98,13 @@ export default function AutoScroll() {
     setAuto(v);
   };
 
+  // Scrollbar nascosta durante la presentazione (auto O scroll manuale con la
+  // rotella): riappare SOLO in pausa volontaria. Attributo su <html> + <style> sotto.
+  useEffect(() => {
+    document.documentElement.toggleAttribute("data-autoscrolling", !paused && !reduced);
+    return () => document.documentElement.removeAttribute("data-autoscrolling");
+  }, [paused, reduced]);
+
   useEffect(() => {
     // Reduced-motion: nessun auto-scroll (scroll nativo). Lettura SINCRONA così il
     // ticker non parte mai (l'hook `reduced` può ritardare di un render in
@@ -452,6 +459,8 @@ export default function AutoScroll() {
           transition-opacity e deve poter apparire). Sotto reduced-motion il
           componente ritorna null → né <style> né attributo esistono mai. */}
       <style>{`
+        html[data-autoscrolling] { scrollbar-width: none; }
+        html[data-autoscrolling]::-webkit-scrollbar { display: none; }
         html[data-presentation-paused] #top *,
         html[data-presentation-paused] #top *::before,
         html[data-presentation-paused] #top *::after {
