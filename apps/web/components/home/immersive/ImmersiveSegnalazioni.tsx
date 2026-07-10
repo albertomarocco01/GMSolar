@@ -133,8 +133,8 @@ export default function ImmersiveSegnalazioni() {
     // camera TRASLA a dx seguendo il punto di scrittura per tutta la digitazione
     // (cameraTrackType sostituisce cameraFollow, regola 4). Il caret finto resta al
     // centro-schermo = punto di scrittura; niente cursorTo(campo) dedicato.
-    cameraTrackType(tl, ".imm-seg-desc", { scale: 1.22, duration: 1.3 });
-    typeInField(tl, ".imm-seg-desc", { steps: 35, duration: 1.3, position: "<" });
+    cameraTrackType(tl, ".imm-seg-desc", { scale: 1.22, duration: 2.1 });
+    typeInField(tl, ".imm-seg-desc", { steps: 35, duration: 2.1, position: "<" });
 
     // «Invia segnalazione» → pressione + toast di ricezione con stato
     cursorTo(tl, ".imm-seg-send", { mode: "hand" });

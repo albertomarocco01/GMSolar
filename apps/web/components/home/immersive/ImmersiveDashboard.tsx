@@ -195,8 +195,8 @@ export default function ImmersiveDashboard() {
     // porta lui il caret al centro-schermo: niente cursorTo(campo) dedicato.
     tl.to({}, { duration: 0.2 });
     tl.to(".imm-title-old", { autoAlpha: 0, duration: 0.15, ease: "power1.out" });
-    cameraTrackType(tl, ".imm-title-new", { scale: 1.2, duration: 1.0 });
-    typeInField(tl, ".imm-title-new", { steps: 32, duration: 1.0, position: "<" });
+    cameraTrackType(tl, ".imm-title-new", { scale: 1.2, duration: 1.6 });
+    typeInField(tl, ".imm-title-new", { steps: 32, duration: 1.6, position: "<" });
 
     // «Pubblica» → PUNCH (a) DI CAMERA + toast. Camera PRIMA — snap expo.out e
     // micro-overshoot back.out(1.2) sull'arrivo — poi il cursore (regola 2);
@@ -242,9 +242,9 @@ export default function ImmersiveDashboard() {
     tl.to({}, { duration: 0.4 }); // si legge il form vuoto «Nuovo prodotto» prima del typing
     // Typing LENTO e leggibile (l'utente deve poter leggere nome e prezzo).
     cursorTo(tl, ".imm-form-nome", { mode: "text", duration: 0.5 });
-    typeInField(tl, ".imm-form-nome", { steps: 22, duration: 1.2 });
+    typeInField(tl, ".imm-form-nome", { steps: 22, duration: 1.9 });
     cursorTo(tl, ".imm-form-prezzo", { mode: "text", duration: 0.4 });
-    typeInField(tl, ".imm-form-prezzo", { steps: 12, duration: 0.75 });
+    typeInField(tl, ".imm-form-prezzo", { steps: 12, duration: 1.2 });
     // La foto del prodotto "si carica" con un wipe
     maskReveal(tl, ".imm-form-foto", { dir: "l", duration: 0.6 });
     tl.to({}, { duration: 0.7 }); // pausa: il form compilato resta leggibile prima del «Salva»

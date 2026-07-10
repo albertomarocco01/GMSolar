@@ -59,7 +59,7 @@ export default function InterfacceScene() {
 
     // ③ Gli snippet prendono vita.
     // — «Chi è GM Solar»: la headline si scrive, poi la CTA si preme da sola
-    typeInField(tl, ".vw-f1-type", { steps: 14, duration: 0.8, position: ">-0.15" });
+    typeInField(tl, ".vw-f1-type", { steps: 14, duration: 1.3, position: ">-0.15" });
     pressButton(tl, ".vw-f1-cta", { down: 0.92, back: 2.5, position: ">0.1" });
     // — i numeri della sezione statistiche contano insieme
     countUp(

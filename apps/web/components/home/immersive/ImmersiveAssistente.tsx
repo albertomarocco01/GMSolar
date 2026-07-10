@@ -106,8 +106,8 @@ export default function ImmersiveAssistente() {
     //    cameraTo, regola 4). Il caret — già sulla barra dal beat ② — si porta al
     //    centro-schermo = punto di scrittura e ci resta: il testo gli scorre sotto.
     tl.to(".imm-placeholder", { autoAlpha: 0, duration: 0.2, ease: "power2.in" });
-    cameraTrackType(tl, ".imm-typed", { scale: 1.2, duration: 1.2 });
-    typeInField(tl, ".imm-typed", { steps: 30, duration: 1.2, position: "<" });
+    cameraTrackType(tl, ".imm-typed", { scale: 1.2, duration: 1.9 });
+    typeInField(tl, ".imm-typed", { steps: 30, duration: 1.9, position: "<" });
     say(tl, 1);
 
     // ④ Invio → l'AI "ragiona": press del tasto (kit: pressButton), dots + un

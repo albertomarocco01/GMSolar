@@ -136,9 +136,12 @@ export default function ImmersiveRicarica() {
     // due righe (input più alto), così l'intero messaggio resta LEGGIBILE quando
     // finisce di scriversi. Prima era single-line con overflow + scroll-x: a fine
     // scrittura la testa del messaggio finiva clippata fuori dal campo del telefono.
+    // `duration` > `stagger`: le parole si sovrappongono in dissolvenza invece di
+    // "poppare" una alla volta (prima 0.14 su stagger 0.12 → ognuna finiva prima
+    // che partisse la successiva: cadenza a scatti).
     tl.to(
       ".imm-rc-word",
-      { autoAlpha: 1, y: 0, duration: 0.14, ease: "power2.out", stagger: 0.12 },
+      { autoAlpha: 1, y: 0, duration: 0.24, ease: "power2.out", stagger: 0.19 },
       "<",
     );
     // (b) PUSH-IN sulla digitazione: 1.3 (era 1.15) — la scritta nel mockup
@@ -148,7 +151,7 @@ export default function ImmersiveRicarica() {
     // sommano sullo stesso beat (regola 4).
     cameraTo(tl, ".imm-zoom-local", {
       scale: 1.3,
-      duration: 0.95,
+      duration: 1.5, // ≈ durata del reveal parola-per-parola: il push-in lo accompagna
       ease: "power1.inOut",
       position: "<",
     });

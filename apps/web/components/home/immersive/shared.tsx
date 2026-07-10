@@ -256,7 +256,7 @@ export function typeInField(
     target,
     {
       clipPath: "inset(0 0% 0 0)",
-      duration: opts?.duration ?? 0.9,
+      duration: opts?.duration ?? 1.4,
       ease: `steps(${opts?.steps ?? 24})`,
     },
     opts?.position ?? ">",
@@ -803,7 +803,9 @@ export function useImmersiveScene(build: (tl: gsap.core.Timeline, section: HTMLE
         trigger: section,
         start: "top top",
         end: "bottom bottom",
-        scrub: 0.8,
+        // Lag di catch-up (s): più alto = la timeline insegue lo scroll con più
+        // inerzia → i beat brevi non "scattano" da un frame all'altro.
+        scrub: 1.1,
         invalidateOnRefresh: true, // su resize ri-misura i target del cursore
         animation: tl,
       });
@@ -824,7 +826,7 @@ export function useImmersiveScene(build: (tl: gsap.core.Timeline, section: HTMLE
             autoAlpha: 1,
             yPercent: 0,
             ease: "none",
-            scrollTrigger: { trigger: section, start: "top bottom", end: "top top", scrub: 0.8 },
+            scrollTrigger: { trigger: section, start: "top bottom", end: "top top", scrub: 1.1 },
           },
         );
         gsap.fromTo(
@@ -840,7 +842,7 @@ export function useImmersiveScene(build: (tl: gsap.core.Timeline, section: HTMLE
               trigger: section,
               start: "bottom bottom",
               end: "bottom top",
-              scrub: 0.8,
+              scrub: 1.1,
             },
           },
         );

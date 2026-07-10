@@ -41,10 +41,12 @@ type LenisLike = {
  *  tratto anchor→anchor. Il profilo è una campana: lento in partenza, veloce a
  *  metà, lento in arrivo → "lento-veloce-lento" ad ogni scena (richiesta utente).
  *  Era 900: i beat centrali (typing, switch pannelli) sembravano "a 2x" e non si
- *  leggevano → dimezzato, ritmo da presentazione. */
-const PEAK_SPEED = 450;
+ *  leggevano → dimezzato, ritmo da presentazione. Poi 450 → 330: le scene sono
+ *  SCRUBBATE, quindi questa è l'UNICA leva sulla velocità reale delle animazioni
+ *  immersive (le `duration` GSAP ne fissano solo le proporzioni interne). */
+const PEAK_SPEED = 330;
 /** Pavimento di velocità: ai bordi del tratto la campana → 0, questo evita lo stallo. */
-const MIN_SPEED = 120;
+const MIN_SPEED = 95;
 /** Soglia (px) di "arrivo" all'anchor → clamp + sosta. */
 const ARRIVE_EPS = 2;
 /** Sosta breve (ms) su ogni anchor allineato prima di ripartire (era 550: troppo). */

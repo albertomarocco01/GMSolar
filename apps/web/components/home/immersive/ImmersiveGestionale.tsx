@@ -218,8 +218,8 @@ export default function ImmersiveGestionale() {
     // CAMERA · track del caret: la camera trasla a dx seguendo il punto di
     // scrittura della query — il caret resta al centro-schermo.
     // ">0.3" = parte a binario FERMO → misura pulita. Typing LENTO (leggibile).
-    cameraTrackType(tl, ".imm-query", { scale: 1.2, duration: 1.6, position: ">0.3" });
-    typeInField(tl, ".imm-query", { steps: 17, duration: 1.6, position: "<" });
+    cameraTrackType(tl, ".imm-query", { scale: 1.2, duration: 2.5, position: ">0.3" });
+    typeInField(tl, ".imm-query", { steps: 17, duration: 2.5, position: "<" });
     // Le righe che fanno match: l'evidenziazione accent entra a WIPE (maskReveal)
     // mentre la camera si RIAPRE — pull-back all'"invio" che svela il filtro.
     tl.to(".imm-row-n", { opacity: 0.35, duration: 0.5 }, ">0.15");
@@ -245,7 +245,7 @@ export default function ImmersiveGestionale() {
     rackFocus(tl, ".imm-track", { position: "<0.1" });
     // 1. la richiesta in linguaggio naturale si "scrive" (kit: typeInField)
     cursorTo(tl, ".imm-ag-req", { mode: "text" });
-    typeInField(tl, ".imm-ag-req", { steps: 26, duration: 1.3, position: "<0.2" });
+    typeInField(tl, ".imm-ag-req", { steps: 26, duration: 2.1, position: "<0.2" });
     // 2. l'assistente esegue: gli step compaiono e ogni check "poppa". Stagger
     //    LENTO (0.5): ogni passo si legge prima che arrivi il successivo.
     tl.to(
