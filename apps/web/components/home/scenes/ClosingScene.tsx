@@ -39,14 +39,9 @@ export default function ClosingScene() {
 
       {/* Chiusura: titolo, replay e contatti del team. */}
       <div className="relative z-10 flex flex-col items-center gap-10 px-6 py-16 text-center">
-        <div>
-          <p className="text-accent-ink font-mono text-xs tracking-[0.4em] uppercase">
-            Fine della presentazione
-          </p>
-          <h2 className="font-display text-foreground mt-4 text-5xl font-bold tracking-tight md:text-6xl">
-            GM Solar Demo
-          </h2>
-        </div>
+        <h2 className="font-display text-foreground text-5xl font-bold tracking-tight md:text-6xl">
+          GM Solar Demo
+        </h2>
 
         <ReplayButton />
 
