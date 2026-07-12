@@ -1,34 +1,38 @@
 "use client";
 
 /**
- * @descrizione  Scena immersiva ASSISTENTE AI (capitolo 03, P12: si apre con la
- *   ChapterCard «03 · Assistente AI»; sotto reduced-motion un heading statico
- *   in cima supplisce alla card, nascosta a progress(1)). Full-screen, alta
- *   fedeltà: lo scroll scrubba un walkthrough che riprende il legacy
- *   `CableFinder` — una PAGINA PRODOTTI (cavi di ricarica) con in basso una
- *   BARRA ASSISTENTE. Il cursore tocca la barra, il visitatore digita una
- *   richiesta in linguaggio naturale, l'AI "ragiona" un istante e poi
- *   GENERA L'INTERA INTERFACCIA: la griglia prodotti VOLA VIA (stagger) e al suo
- *   posto entra una VISTA DETTAGLIO/CONFIGURATORE su misura del prodotto giusto —
- *   non un semplice riassunto. Frasi-intermezzo DESCRITTIVE (tono esplicativo).
+ * @descrizione  Scena immersiva ASSISTENTE AI (capitolo 03). RISCRITTURA (P: mostrare
+ *   il VANTAGGIO della richiesta in linguaggio naturale sulla navigazione classica).
+ *   Lo scroll scrubba questi beat dentro un device frame 16:10:
+ *     ① ChapterCard «Assistente AI» (chapterIntro; sotto reduced-motion un heading
+ *        statico in cima supplisce alla card, nascosta a progress(1)).
+ *     ② HOME di un sito vetrina fotovoltaico/EV generico (hero + nav). Il cursore
+ *        apre il menu «Catalogo» → un megamenu VOLUTAMENTE SOVRACCARICO; ESITA
+ *        sopra due voci SENZA cliccare (highlight hover) → si sente la fatica
+ *        dell'interfaccia classica. Il megamenu si chiude.
+ *     ③ Il cursore apre la barra assistente (.imm-bar) e DIGITA una richiesta con
+ *        TRE sfumature (FV già presente, ricarica notturna, paura del distacco).
+ *     ④ La chat si apre sopra la barra: la richiesta diventa la 1ª bolla; typing
+ *        indicator → l'assistente fa UNA domanda di chiarimento.
+ *     ⑤ Il visitatore digita nella barra la risposta breve → 2ª bolla utente.
+ *     ⑥ Typing indicator → l'assistente RAGIONA (spiega cosa ha pensato) e COSTRUISCE
+ *        nella chat, un pezzo alla volta, l'INTERFACCIA della risposta: card setup
+ *        (wallbox + cavo), mini-grafico «finestra di ricarica notturna» (barre che
+ *        si alzano), riga stima costi con cifre a rullo, CTA «Prenota un sopralluogo»
+ *        che il cursore preme → conferma ✓.
+ *     ⑦ Hold finale leggibile.
  *
- *   Una sola sorgente di verità: la fase (griglia → uscita → generata) è derivata
- *   dalla timeline scrubbata (niente stato React che litiga con lo scroll). La
- *   griglia esce via `autoAlpha` → `visibility:hidden`: sparisce dall'albero di
- *   accessibilità MA conserva il suo box → l'altezza della scena non cambia e lo
- *   sticky-scrub non si desincronizza. L'interfaccia generata è un overlay assoluto.
+ *   CAMERA (P11): push-in sul megamenu (②) e sulla barra durante il typing (③);
+ *   pull-back reveal quando la chat si apre (③→④); push-in sul pannello generato
+ *   mentre si costruisce (⑥); punch (a) sulla CTA; cameraReset prima del beat
+ *   finale → a progress(1) camera NEUTRA (reduced-motion pulito).
  *
- *   CAMERA (P11 — shot-list della scena): push-in (b) sulla barra durante il
- *   typing; punch (a) sull'invio; pull-back reveal (f) quando la griglia vola via
- *   ed entra la genui + rack focus (e) leggero sulla pagina dietro (`.imm-behind`);
- *   punch (a) sulla scelta del configuratore; cameraReset prima del beat finale
- *   → a progress(1) la camera è NEUTRA (reduced-motion pulito).
- *
- *   Usa il kit condiviso `./shared`; selettori a classe scoped a gsap.context.
- *   Reduced-motion: stato finale (interfaccia generata visibile, griglia nascosta)
- *   leggibile — il kit porta la timeline a progress(1).
+ *   Una sola sorgente di verità: la fase è derivata dalla timeline scrubbata (niente
+ *   stato React che litiga con lo scroll). Reduced-motion (progress(1)): chat completa
+ *   e leggibile, TUTTI i componenti generati visibili; home a fuoco ridotto; camera
+ *   neutra; heading statico del capitolo. Usa il kit condiviso `./shared`.
  */
-import { ShoppingCart } from "lucide-react";
+import { Check, ChevronDown, Send, Sparkles, Sun, Zap } from "lucide-react";
 import { cn } from "@gmgroup/lib/utils";
 import { gsap } from "@gmgroup/lib/gsap";
 import { useReducedMotion } from "@gmgroup/lib/motion";
@@ -40,511 +44,506 @@ import {
   ChapterCard,
   chapterIntro,
   cursorTo,
-  useImmersiveScene,
-  pressButton,
+  hideCursor,
   typeInField,
-  drawPath,
+  pressButton,
   maskReveal,
   cameraTo,
   cameraReset,
-  cameraTrackType,
   rackFocus,
-  hideCursor,
+  useImmersiveScene,
+  enter,
+  countUp,
   EASE_IN_SCENE,
   EASE_OUT_SCENE,
   EASE_SNAP,
-  EASE_CAMERA,
   DUR,
   hold,
 } from "./shared";
-import { PRODUCTS, GENERATED, QUERY } from "./_assistente-data";
+import {
+  MEGA_COLUMNS,
+  MEGA_HOVER,
+  DIALOG,
+  SETUP,
+  NIGHT_WINDOW,
+  COST,
+  CTA,
+  SITE,
+} from "./_assistente-data";
 
-const SHOP_NAV = ["Cavi", "Wallbox", "Adattatori", "Supporto"];
+// Quale voce del megamenu riceve il highlight hover N (−1 = nessuno).
+function hoverIndex(col: number, row: number): number {
+  return MEGA_HOVER.findIndex((h) => h.col === col && h.row === row);
+}
 
-// Rating mock per card: varia leggermente così il catalogo non sembra copia-incolla.
-const RATINGS = [
-  { score: "4,8", count: "120+ recensioni" },
-  { score: "4,7", count: "86 recensioni" },
-  { score: "4,9", count: "210+ recensioni" },
-  { score: "4,6", count: "54 recensioni" },
-  { score: "4,8", count: "132 recensioni" },
-  { score: "5,0", count: "41 recensioni" },
-];
+// Fascia «ore attive» del mini-grafico: derivata dai dati (run contiguo di attive).
+const FIRST_ACTIVE = NIGHT_WINDOW.findIndex((x) => x.active);
+const ACTIVE_COUNT = NIGHT_WINDOW.filter((x) => x.active).length;
+const BAND_LEFT = (FIRST_ACTIVE / NIGHT_WINDOW.length) * 100;
+const BAND_WIDTH = (ACTIVE_COUNT / NIGHT_WINDOW.length) * 100;
 
 export default function ImmersiveAssistente() {
-  // Reduced-motion: la timeline va a progress(1) → la ChapterCard finisce
-  // nascosta. Serve un heading testuale statico del capitolo (vedi markup).
+  // Reduced-motion: la timeline va a progress(1) → la ChapterCard finisce nascosta.
+  // Serve un heading testuale statico del capitolo (vedi markup).
   const reduced = useReducedMotion();
-  const ref = useImmersiveScene((tl, section) => {
-    /** Centro di un elemento nello spazio dell'offsetParent del dot volante
-     *  (.imm-fly). Misurato a tween start, a CAMERA NEUTRA (il volo parte dopo
-     *  il cameraReset) → coordinate corrette. */
-    const flyPt = (sel: string) => {
-      const el = section.querySelector<HTMLElement>(sel);
-      const fly = section.querySelector<HTMLElement>(".imm-fly");
-      const parent = (fly?.offsetParent as HTMLElement | null) ?? section;
-      if (!el) return { left: 0, top: 0 };
-      const r = el.getBoundingClientRect();
-      const pr = parent.getBoundingClientRect();
-      return { left: r.left + r.width / 2 - pr.left, top: r.top + r.height / 2 - pr.top };
-    };
+  const ref = useImmersiveScene((tl) => {
     // ── Stato iniziale (selettori scoped alla section da gsap.context) ─────────
-    gsap.set(".imm-placeholder", { autoAlpha: 1 });
+    gsap.set(".imm-mega", { autoAlpha: 0, y: -8 });
+    gsap.set([".imm-mega-hi-0", ".imm-mega-hi-1"], { autoAlpha: 0 });
     gsap.set(".imm-bar-ring", { autoAlpha: 0 });
-    gsap.set(".imm-typing", { autoAlpha: 0, y: 8 });
-    // L'interfaccia generata parte nascosta e leggermente sotto/rimpicciolita.
-    // (Le sue sezioni `.imm-genui-item` sono rivelate con maskReveal → restano a
-    //  autoAlpha 1 ma clippate; il wipe le scopre.)
-    gsap.set(".imm-genui", { autoAlpha: 0, y: 30, scale: 0.96, transformOrigin: "50% 60%" });
+    gsap.set([".imm-bar-typed", ".imm-bar-typed2"], { autoAlpha: 0 });
+    gsap.set(".imm-chat", { autoAlpha: 0, y: 24 });
+    gsap.set(".imm-gen", { autoAlpha: 0, y: 16 });
+    gsap.set(".imm-chart-bar", { scaleY: 0, transformOrigin: "50% 100%" });
+    gsap.set(".imm-chart-band", { autoAlpha: 0 });
+    gsap.set([".imm-clarify-text", ".imm-reason-text"], { autoAlpha: 0 });
+    gsap.set(".imm-cta-done", { autoAlpha: 0 });
 
-    // ① Title card di capitolo (P12): «02 · Assistente AI». PRIMO beat della
-    //    timeline — prima dei beat camera (il primo è il push-in del beat ③).
-    //    Sostituisce la vecchia <Say i={0}> col velo.
+    // ── ① Title card di capitolo (P12) — SEMPRE primo beat della timeline ──────
     chapterIntro(tl);
 
-    // ② Il cursore (caret) tocca la barra → focus (anello accent)
-    cursorTo(tl, ".imm-bar", { mode: "text" });
-    tl.to(".imm-bar-ring", { autoAlpha: 1, duration: DUR.micro, ease: EASE_IN_SCENE }, "<0.45");
+    // ── ② HOME → megamenu «Catalogo» sovraccarico (fatica dell'UI classica) ────
+    // CAMERA · push-in sulla nav; il cursore atterra per ULTIMO (regola 2).
+    cameraTo(tl, ".imm-nav", { scale: 1.16, duration: DUR.beat });
+    cursorTo(tl, ".imm-catalogo", { mode: "hand" });
+    tl.to(".imm-mega", { autoAlpha: 1, y: 0, duration: DUR.beat, ease: EASE_IN_SCENE }, ">-0.05");
+    // Esita sopra la 1ª voce (highlight, nessun click).
+    cursorTo(tl, ".imm-mega-hi-0", { mode: "hand" });
+    tl.to(".imm-mega-hi-0", { autoAlpha: 1, duration: DUR.micro, ease: EASE_IN_SCENE }, "<0.25");
+    hold(tl, 0.6); // esitazione: "quale sarà quella giusta?"
+    // Esita sopra la 2ª voce (ancora nessun click).
+    cursorTo(tl, ".imm-mega-hi-1", { mode: "hand" });
+    tl.to(".imm-mega-hi-0", { autoAlpha: 0, duration: DUR.micro, ease: EASE_OUT_SCENE }, "<0.2");
+    tl.to(".imm-mega-hi-1", { autoAlpha: 1, duration: DUR.micro, ease: EASE_IN_SCENE }, "<");
+    hold(tl, 0.6);
+    // Il megamenu si chiude, la fatica resta (nessuna scelta fatta).
+    tl.to(".imm-mega-hi-1", { autoAlpha: 0, duration: DUR.micro, ease: EASE_OUT_SCENE });
+    tl.to(".imm-mega", { autoAlpha: 0, y: -8, duration: DUR.beat, ease: EASE_OUT_SCENE }, "<");
+    hideCursor(tl, { position: "<" });
+    cameraReset(tl, { duration: DUR.scene });
 
-    // ③ Digitazione della richiesta carattere-per-carattere (kit: typeInField).
-    //    CAMERA · TRACK DEL CARET (item 4): invece del push-in FERMO sulla barra, la
-    //    camera TRASLA a dx seguendo il punto di scrittura (cameraTrackType sostituisce
-    //    cameraTo, regola 4). Il caret — già sulla barra dal beat ② — si porta al
-    //    centro-schermo = punto di scrittura e ci resta: il testo gli scorre sotto.
-    tl.to(".imm-placeholder", { autoAlpha: 0, duration: DUR.micro / 2, ease: EASE_OUT_SCENE });
-    cameraTrackType(tl, ".imm-typed", { scale: 1.2, duration: DUR.scene * 2 });
-    typeInField(tl, ".imm-typed", { steps: 30, duration: DUR.scene * 2, position: "<" });
+    // ── ③ La richiesta con TRE sfumature nella barra assistente ────────────────
     say(tl, 1);
+    // CAMERA · push-in leggero sulla barra; cursore per ultimo (regola 2).
+    cameraTo(tl, ".imm-bar", { scale: 1.12, duration: DUR.beat });
+    cursorTo(tl, ".imm-bar-typed", { mode: "text" });
+    tl.to(".imm-bar-ring", { autoAlpha: 1, duration: DUR.micro, ease: EASE_IN_SCENE }, "<0.3");
+    // Placeholder → testo digitato (crossfade), poi typewriter (kit: typeInField).
+    tl.to(".imm-bar-ph", { autoAlpha: 0, duration: DUR.micro / 2, ease: EASE_OUT_SCENE });
+    tl.to(".imm-bar-typed", { autoAlpha: 1, duration: DUR.micro / 2, ease: EASE_IN_SCENE }, "<");
+    typeInField(tl, ".imm-bar-typed", { steps: 44, duration: DUR.scene * 2 });
 
-    // ④ Invio → l'AI "ragiona": press del tasto (kit: pressButton), dots + un
-    //    mini-grafico/spec che si DISEGNA durante la pausa di ragionamento.
-    //    CAMERA · PUNCH (a) sul tasto invio: punch rapido + settle che assesta
-    //    l'inquadratura a 1.4 (ease default del kit: EASE_CAMERA). Camera
-    //    PRIMA, cursorTo per ULTIMO (regola 2: il cursore misura il layout ormai
-    //    fermo → atterraggio preciso sul target inquadrato). L'inquadratura TIENE
-    //    durante il ragionamento: il pull-back arriva col reveal della genui (⑤).
-    cameraTo(tl, ".imm-send", { scale: 1.5, duration: DUR.beat });
-    cameraTo(tl, ".imm-send", { scale: 1.4, duration: DUR.micro });
+    // Invio → la chat si apre (pull-back reveal).
+    cameraTo(tl, ".imm-send", { scale: 1.3, duration: DUR.beat });
+    cameraTo(tl, ".imm-send", { scale: 1.22, duration: DUR.micro });
     cursorTo(tl, ".imm-send", { mode: "hand", duration: DUR.beat });
     pressButton(tl, ".imm-send", {
-      down: 0.86,
+      down: 0.88,
       downDur: DUR.micro / 2,
       upDur: DUR.micro,
       position: ">-0.05",
     });
-    tl.to(".imm-typing", { autoAlpha: 1, y: 0, duration: DUR.micro, ease: EASE_IN_SCENE }, ">0.1");
-    drawPath(tl, ".imm-think-path", { duration: DUR.beat, ease: EASE_CAMERA, position: ">0.05" });
-    hold(tl, 0.5); // pausa: "sta ragionando"
-
-    // ⑤ GENERA l'interfaccia: la griglia prodotti vola via e lascia il posto
-    say(tl, 2);
-    tl.to(".imm-typing", { autoAlpha: 0, y: 8, duration: DUR.micro, ease: EASE_OUT_SCENE });
-    // La barra perde il focus: l'anello accent si spegne (altrimenti a progress(1),
-    // sotto reduced-motion, resterebbe acceso senza interazione in corso).
-    tl.to(".imm-bar-ring", { autoAlpha: 0, duration: DUR.micro, ease: EASE_OUT_SCENE }, "<");
-    // CAMERA · PULL-BACK REVEAL (f): dall'inquadratura del punch (1.4) alla
-    // neutra MENTRE la griglia vola via e la genui entra — è lo zoom-out che
-    // "svela" l'interfaccia generata (chiude anche l'inquadratura del punch ④).
+    // CAMERA · PULL-BACK REVEAL: dal punch dell'invio alla neutra mentre la chat
+    // sale sopra la barra e la home passa in secondo piano (rack focus).
     cameraReset(tl, { duration: DUR.scene });
-    // Il cursore finto vive FUORI dal layer .imm-camera: durante questo pull-back
-    // di sola camera "galleggerebbe" staccato dai bottoni → lo sfumo via. Il
-    // cursorTo del beat ⑥ (config-pick) lo rimostra da solo (autoAlpha 1).
-    hideCursor(tl, { duration: DUR.micro });
-    // Griglia OUT: stagger che si dissolve verso l'alto, in overlap col pull-back.
-    // autoAlpha:0 → visibility:hidden = fuori dall'albero a11y, ma il box resta
-    // (height lock).
-    tl.to(
-      ".imm-prod",
-      {
-        autoAlpha: 0,
-        y: -26,
-        scale: 0.9,
-        duration: DUR.beat,
-        stagger: { each: 0.05, from: "end" },
-        ease: EASE_OUT_SCENE,
-      },
-      "<0.1",
-    );
-    // Interfaccia generata IN (overlay assoluto); le sezioni entrano con un WIPE
-    // direzionale (kit: maskReveal) invece del semplice fade+slide.
-    tl.to(
-      ".imm-genui",
-      { autoAlpha: 1, y: 0, scale: 1, duration: DUR.scene, ease: EASE_IN_SCENE },
-      ">-0.15",
-    );
-    // CAMERA · RACK FOCUS (e) leggero: la pagina dietro la genui (header, titolo,
-    // griglia ormai svuotata — classe `.imm-behind`) perde fuoco → profondità.
-    // Resta così a fine scena: il primo piano non si richiude, quindi è uno stato
-    // finale legittimo a progress(1) (la CAMERA invece torna comunque neutra).
-    rackFocus(tl, ".imm-behind", { opacity: 0.7, scale: 0.99, position: "<" });
-    maskReveal(tl, ".imm-genui-item", {
+    hideCursor(tl, { position: "<" });
+    tl.to(".imm-bar-ring", { autoAlpha: 0, duration: DUR.micro }, "<");
+    // La barra torna vuota (il messaggio è "partito"): il testo digitato sfuma,
+    // il placeholder torna → a progress(1) il composer è pulito.
+    tl.to(".imm-bar-typed", { autoAlpha: 0, duration: DUR.micro, ease: EASE_OUT_SCENE }, "<");
+    tl.to(".imm-bar-ph", { autoAlpha: 1, duration: DUR.micro, ease: EASE_IN_SCENE }, "<");
+    rackFocus(tl, ".imm-home", { position: "<" });
+    tl.to(".imm-chat", { autoAlpha: 1, y: 0, duration: DUR.scene, ease: EASE_IN_SCENE }, "<0.1");
+    // La richiesta inviata appare come 1ª bolla utente (testo completo, leggibile).
+    enter(tl, ".imm-msg-q", { y: 14, duration: DUR.beat, position: ">-0.2" });
+    hold(tl, 0.4);
+
+    // ── ④ L'assistente chiede SOLO quello che serve ────────────────────────────
+    say(tl, 2);
+    enter(tl, ".imm-msg-clarify", { y: 14, duration: DUR.beat }); // bolla con i puntini
+    hold(tl, 0.5); // "sta scrivendo…"
+    tl.to(".imm-clarify-dots", { autoAlpha: 0, duration: DUR.micro / 2, ease: EASE_OUT_SCENE });
+    tl.to(".imm-clarify-text", { autoAlpha: 1, duration: DUR.micro, ease: EASE_IN_SCENE }, "<");
+    hold(tl, 0.4);
+
+    // ── ⑤ La risposta breve del visitatore ─────────────────────────────────────
+    cursorTo(tl, ".imm-bar-typed2", { mode: "text" });
+    tl.to(".imm-bar-ring", { autoAlpha: 1, duration: DUR.micro, ease: EASE_IN_SCENE }, "<0.3");
+    tl.to(".imm-bar-ph", { autoAlpha: 0, duration: DUR.micro / 2, ease: EASE_OUT_SCENE });
+    tl.to(".imm-bar-typed2", { autoAlpha: 1, duration: DUR.micro / 2, ease: EASE_IN_SCENE }, "<");
+    typeInField(tl, ".imm-bar-typed2", { steps: 20, duration: DUR.scene * 1.1 });
+    cursorTo(tl, ".imm-send", { mode: "hand" });
+    pressButton(tl, ".imm-send", {
+      down: 0.88,
+      downDur: DUR.micro / 2,
+      upDur: DUR.micro,
+      position: ">-0.05",
+    });
+    tl.to(".imm-bar-ring", { autoAlpha: 0, duration: DUR.micro }, ">-0.1");
+    tl.to(".imm-bar-typed2", { autoAlpha: 0, duration: DUR.micro, ease: EASE_OUT_SCENE }, "<");
+    tl.to(".imm-bar-ph", { autoAlpha: 1, duration: DUR.micro, ease: EASE_IN_SCENE }, "<");
+    hideCursor(tl, { position: "<" });
+    enter(tl, ".imm-msg-a", { y: 14, duration: DUR.beat, position: ">-0.1" });
+    hold(tl, 0.4);
+
+    // ── ⑥ Ragionamento + COSTRUZIONE dell'interfaccia della risposta ───────────
+    enter(tl, ".imm-msg-reason", { y: 14, duration: DUR.beat }); // bolla con i puntini
+    hold(tl, 0.5);
+    tl.to(".imm-reason-dots", { autoAlpha: 0, duration: DUR.micro / 2, ease: EASE_OUT_SCENE });
+    tl.to(".imm-reason-text", { autoAlpha: 1, duration: DUR.micro, ease: EASE_IN_SCENE }, "<");
+    say(tl, 3);
+    // CAMERA · push-in sul pannello generato mentre si popola.
+    cameraTo(tl, ".imm-gen", { scale: 1.14, duration: DUR.scene });
+    // Il frame del pannello entra (poi si popola un componente alla volta).
+    tl.to(".imm-gen", { autoAlpha: 1, y: 0, duration: DUR.beat, ease: EASE_IN_SCENE }, "<0.15");
+    // a. card setup (wallbox + cavo): entra con un WIPE (kit: maskReveal, anticipate).
+    maskReveal(tl, ".imm-gen-setup", {
       dir: "l",
       duration: DUR.beat,
-      stagger: 0.07,
-      anticipate: true, // ingresso IMPORTANTE della scena: la UI generata arriva con overshoot & settle
-      position: "<0.18",
+      anticipate: true,
+      position: ">-0.05",
     });
-
-    // ⑥ Il configuratore "funziona": il cursore SCEGLIE la lunghezza «7 m»
-    //    (parte selezionata «5 m»: al click la selezione passa via crossfade
-    //    degli overlay .imm-len-sel-*, scrub-safe e leggibile a progress(1)).
-    //    CAMERA · PUNCH (a) sulla scelta: punch rapido + micro-overshoot;
-    //    camera PRIMA, cursore per ULTIMO (regola 2).
-    cameraTo(tl, ".imm-config-pick", { scale: 1.42, duration: DUR.beat });
-    cameraTo(tl, ".imm-config-pick", { scale: 1.35, duration: DUR.micro });
-    cursorTo(tl, ".imm-config-pick", { mode: "hand" });
-    pressButton(tl, ".imm-config-pick", {
+    hold(tl, 0.3);
+    // b. mini-grafico «finestra di ricarica notturna»: le barre si alzano (scaleY,
+    //    stagger) e la fascia delle ore attive si accende.
+    enter(tl, ".imm-gen-chart", { y: 12, duration: DUR.beat });
+    tl.to(
+      ".imm-chart-bar",
+      { scaleY: 1, duration: DUR.beat, stagger: 0.05, ease: EASE_SNAP },
+      ">-0.15",
+    );
+    tl.to(".imm-chart-band", { autoAlpha: 1, duration: DUR.beat, ease: EASE_IN_SCENE }, "<0.25");
+    hold(tl, 0.3);
+    // c. riga stima costi: cifre a rullo (kit: countUp).
+    enter(tl, ".imm-gen-cost", { y: 12, duration: DUR.beat });
+    countUp(
+      tl,
+      [
+        { el: ".imm-cost-h", to: COST.hours },
+        { el: ".imm-cost-m", to: COST.perMonth },
+      ],
+      { duration: DUR.scene, position: ">-0.2" },
+    );
+    hold(tl, 0.3);
+    // d. CTA «Prenota un sopralluogo».
+    enter(tl, ".imm-gen-cta", { y: 12, duration: DUR.beat });
+    // Chiudo il push-in del pannello prima del punch sulla CTA (inquadratura pulita).
+    cameraReset(tl, { duration: DUR.beat, position: ">-0.1" });
+    hold(tl, 0.3);
+    // Il cursore preme la CTA → conferma ✓. CAMERA · punch (a); cursore per ultimo.
+    cameraTo(tl, ".imm-gen-cta", { scale: 1.3, duration: DUR.beat });
+    cameraTo(tl, ".imm-gen-cta", { scale: 1.22, duration: DUR.micro });
+    cursorTo(tl, ".imm-gen-cta", { mode: "hand", duration: DUR.beat });
+    pressButton(tl, ".imm-gen-cta", {
       down: 0.9,
       downDur: DUR.micro / 2,
       upDur: DUR.micro,
       position: ">-0.05",
     });
-    // La selezione passa 5 m → 7 m (crossfade overlay, in coda al press).
-    tl.to(".imm-len-sel-0", { autoAlpha: 0, duration: DUR.micro, ease: EASE_OUT_SCENE }, ">-0.1");
-    tl.to(".imm-len-sel-1", { autoAlpha: 1, duration: DUR.micro, ease: EASE_IN_SCENE }, "<");
-    hold(tl, 0.5); // hold breve sull'inquadratura del click
-
-    // ⑥b AGGIUNTA AL CARRELLO: punch di camera sulla CTA, press, label che passa
-    //    a «Aggiunto ✓» (con icona carrello), poi (a camera tornata neutra →
-    //    misure corrette) la MINIATURA del prodotto VOLA dalla CTA al badge
-    //    carrello dell'header, che pulsa e passa da 0 a 1. Tutto to/set
-    //    deterministico → scrub-safe; stato finale a progress(1): CTA
-    //    "Aggiunto ✓", carrello a 1.
-    cameraTo(tl, ".imm-cta", { scale: 1.4, duration: DUR.beat });
-    cameraTo(tl, ".imm-cta", { scale: 1.32, duration: DUR.micro });
-    cursorTo(tl, ".imm-cta", { mode: "hand" });
-    pressButton(tl, ".imm-cta", { down: 0.92, downDur: DUR.micro / 2, upDur: DUR.micro });
     tl.to(
       ".imm-cta-label",
       { autoAlpha: 0, duration: DUR.micro / 2, ease: EASE_OUT_SCENE },
       ">-0.05",
     );
     tl.to(".imm-cta-done", { autoAlpha: 1, duration: DUR.micro, ease: EASE_IN_SCENE }, "<");
+
+    // ── ⑦ Chiusura: camera neutra (regola 3), cursore via, hold leggibile ──────
     cameraReset(tl, { duration: DUR.scene });
     hideCursor(tl, { duration: DUR.micro });
-    // Volo della miniatura (dopo il reset: coordinate misurate a camera neutra).
-    tl.set(".imm-fly", {
-      left: () => flyPt(".imm-cta").left,
-      top: () => flyPt(".imm-cta").top,
-      autoAlpha: 1,
-      scale: 1,
-    });
-    tl.to(".imm-fly", {
-      left: () => flyPt(".imm-cart").left,
-      top: () => flyPt(".imm-cart").top,
-      scale: 0.4,
-      duration: DUR.scene,
-      ease: EASE_CAMERA,
-    });
-    tl.to(".imm-fly", { autoAlpha: 0, scale: 0.25, duration: DUR.micro / 2, ease: EASE_OUT_SCENE });
-    // Il badge carrello "riceve": pulse + contatore 0 → 1.
-    tl.to(".imm-cart", { scale: 1.2, duration: DUR.micro / 2, ease: EASE_IN_SCENE }, "<");
-    tl.to(".imm-cart-0", { autoAlpha: 0, duration: DUR.micro / 2 }, "<");
-    tl.to(".imm-cart-1", { autoAlpha: 1, duration: DUR.micro / 2 }, "<");
-    tl.to(".imm-cart", { scale: 1, duration: DUR.micro, ease: EASE_SNAP });
-    hold(tl, 0.5); // hold: si legge "Carrello · 1"
-
-    // ⑦ CAMERA · reset PRIMA del beat finale (regola 3): a progress(1) la camera
-    //    è neutra → reduced-motion pulito e hand-off `.imm-stage` senza conflitti.
-    cameraReset(tl);
-    // Il cursore sfuma mentre la camera torna neutra e resta nascosto durante
-    // l'hold finale e l'hand-off (a progress(1) neutro, reduced-motion pulito).
-    hideCursor(tl, { duration: DUR.micro });
-    hold(tl, 0.75); // pausa finale
+    hold(tl, 0.8);
   });
 
   return (
     <ImmersiveStage ref={ref} heightVh={640} label={CHAPTERS[2].title} chapterIndex={2}>
-      {/* ── Fallback reduced-motion: a progress(1) la ChapterCard è nascosta →
-          heading statico del capitolo sullo stage, FUORI dal device frame
-          (stesso pattern del Gestionale; solo `reduced`). ─────────────────── */}
+      {/* Fallback reduced-motion: a progress(1) la ChapterCard è nascosta → heading
+          statico del capitolo sullo stage, FUORI dal device frame. */}
       {reduced && (
         <p className="text-accent-ink absolute top-4 left-6 z-20 font-mono text-xs font-semibold tracking-[0.3em] uppercase">
           {CHAPTERS[2].title}
         </p>
       )}
-      {/* Device frame (R3, regola 1): il sito mock vive in una cornice da laptop
-          ~16:10 centrata sullo stage (max-w-6xl), NON full-bleed da bordo a
-          bordo. Tutti i target GSAP (.imm-*) restano invariati dentro la cornice
-          (misure a runtime → flyPt/camera/cursore corretti). */}
+      {/* Device frame (R3, regola 1): il sito mock vive in una cornice ~16:10
+          centrata sullo stage (max-w-6xl). Tutti i target GSAP (.imm-*) restano
+          dentro la cornice → misure runtime (camera/cursore) corrette. */}
       <div className="flex h-full items-center justify-center px-8 pt-12">
         <div className="border-border bg-background relative flex aspect-[16/10] w-full max-w-6xl flex-col overflow-hidden rounded-2xl border shadow-2xl">
-          {/* ── Header della pagina prodotti (sito vetrina / e-commerce) ──────
-            `.imm-behind` = pagina DIETRO la genui (header, titolo, griglia):
-            perde fuoco col rack focus quando l'interfaccia generata entra. */}
-          <header className="imm-behind border-border bg-surface/90 relative z-10 flex h-14 shrink-0 items-center justify-between border-b px-6 backdrop-blur">
-            <div className="flex items-center gap-2">
-              <span className="bg-accent h-4 w-4 rounded-[5px]" aria-hidden />
-              <span className="font-display text-foreground text-base font-bold tracking-tight">
-                GM Solar Shop
-              </span>
-            </div>
-            <nav className="hidden items-center gap-5 sm:flex" aria-hidden>
-              {SHOP_NAV.map((l) => (
-                <span key={l} className="text-muted cursor-default text-sm">
-                  {l}
+          {/* ══ HOME del sito vetrina (dietro la chat; sfuma col rack focus) ══════ */}
+          <div className="imm-home relative flex min-h-0 flex-1 flex-col">
+            {/* Header + nav (il megamenu si apre da «Catalogo») */}
+            <header className="imm-nav border-border bg-surface/90 relative z-30 flex h-14 shrink-0 items-center justify-between border-b px-6 backdrop-blur">
+              <div className="flex items-center gap-2">
+                <span className="bg-accent flex h-6 w-6 items-center justify-center rounded-[7px]">
+                  <Sun className="text-accent-contrast h-4 w-4" aria-hidden />
                 </span>
-              ))}
-            </nav>
-            {/* Badge carrello: icona + contatore a due stati (0 → 1) pilotato dal
-              beat "aggiungi al carrello" — .imm-cart pulsa all'arrivo del volo. */}
-            <span className="imm-cart bg-surface-2 text-muted flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold">
-              <ShoppingCart className="h-3.5 w-3.5 shrink-0" aria-hidden />
-              Carrello ·{" "}
-              <span className="relative inline-block w-[1ch]">
-                <span className="imm-cart-0">0</span>
-                <span
-                  className="imm-cart-1 text-accent-ink absolute top-0 left-0"
-                  style={{ opacity: 0 }}
-                >
-                  1
+                <span className="font-display text-foreground text-base font-bold tracking-tight">
+                  {SITE.name}
                 </span>
+              </div>
+              <nav className="hidden items-center gap-6 sm:flex" aria-hidden>
+                {SITE.nav.map((l) => {
+                  const isCatalogo = l === "Catalogo";
+                  return (
+                    <span
+                      key={l}
+                      className={cn(
+                        "flex cursor-default items-center gap-1 text-sm",
+                        isCatalogo ? "imm-catalogo text-foreground font-semibold" : "text-muted",
+                      )}
+                    >
+                      {l}
+                      {isCatalogo && <ChevronDown className="h-3.5 w-3.5" aria-hidden />}
+                    </span>
+                  );
+                })}
+              </nav>
+              <span className="bg-accent-soft text-accent-ink hidden rounded-full px-3 py-1 text-xs font-semibold sm:inline">
+                Preventivo
               </span>
-            </span>
-          </header>
+            </header>
 
-          {/* ── Corpo: titolo + griglia prodotti ───────────────────────────── */}
-          <div className="imm-behind px-6 pt-4">
-            <h2 className="font-display text-foreground text-lg font-bold tracking-tight">
-              Cavi di ricarica
-            </h2>
-            <p className="text-muted mt-0.5 text-xs">Trova il cavo giusto per la tua auto.</p>
-          </div>
-
-          {/* R3: gap dalla scala (16); nel frame le card ~360px (contenuto), la
-            seconda riga si tronca al "fold" dietro la barra — da vero e-commerce. */}
-          <div className="imm-grid imm-behind grid grid-cols-2 content-start gap-4 overflow-hidden px-6 pt-3 pb-44 sm:grid-cols-3">
-            {PRODUCTS.map((p, i) => (
-              <article
-                key={p.id}
-                className="imm-prod border-border bg-surface relative flex flex-col overflow-hidden rounded-xl border"
-              >
-                {/* Area visiva: foto prodotto placeholder (royalty-free) —
-                  assegnata ESPLICITAMENTE nel dato (`p.img`): ogni foto mostra
-                  il prodotto indicato, niente indici "a caso". */}
-                {/* R3 regola 3: aspect-ratio esplicito 4/3 (prodotto) al posto
-                  dell'altezza fissa h-24 che schiacciava la foto. */}
-                <div className="relative aspect-[4/3] overflow-hidden">
-                  <img
-                    src={p.img}
-                    alt=""
-                    aria-hidden
-                    loading="lazy"
-                    decoding="async"
-                    className="h-full w-full object-cover"
-                  />
-                  {p.bestSeller && (
-                    <span className="bg-accent text-accent-contrast absolute top-2 left-2 rounded-full px-2 py-0.5 text-[0.7rem] font-bold">
-                      Best seller
-                    </span>
-                  )}
-                </div>
-                <div className="flex flex-1 flex-col p-3">
-                  <p className="text-foreground line-clamp-2 text-xs leading-snug font-semibold">
-                    {p.name}
-                  </p>
-                  <p className="text-muted mt-1 text-[0.7rem]">{p.use}</p>
-                  {/* Rating (mock statico) — credibilità e-commerce. */}
-                  <div className="mt-1.5 flex items-center gap-1 text-[0.7rem]">
-                    <StarIcon className="text-accent-ink h-3 w-3" />
-                    <span className="text-foreground font-semibold">
-                      {RATINGS[i % RATINGS.length].score}
-                    </span>
-                    <span className="text-muted">· {RATINGS[i % RATINGS.length].count}</span>
+            {/* Megamenu VOLUTAMENTE SOVRACCARICO: troppe diramazioni, il cursore
+                esita senza decidere. Overlay assoluto sotto l'header. */}
+            <div
+              className="imm-mega border-border bg-background absolute inset-x-0 top-14 z-20 border-b px-6 py-5 shadow-xl"
+              style={{ opacity: 0 }}
+              aria-hidden
+            >
+              <div className="mx-auto grid max-w-4xl grid-cols-3 gap-6">
+                {MEGA_COLUMNS.map((colonna, col) => (
+                  <div key={colonna.title}>
+                    <p className="text-accent-ink mb-2 text-xs font-bold tracking-wider uppercase">
+                      {colonna.title}
+                    </p>
+                    <ul className="space-y-0.5">
+                      {colonna.items.map((item, row) => {
+                        const hi = hoverIndex(col, row);
+                        return (
+                          <li
+                            key={item}
+                            className="text-muted relative rounded-md px-2 py-1 text-[0.78rem]"
+                          >
+                            {hi >= 0 && (
+                              <span
+                                className={cn(
+                                  "bg-accent-soft ring-accent-ring absolute inset-0 rounded-md ring-1",
+                                  `imm-mega-hi-${hi}`,
+                                )}
+                                style={{ opacity: 0 }}
+                              />
+                            )}
+                            <span className="relative">{item}</span>
+                          </li>
+                        );
+                      })}
+                    </ul>
                   </div>
-                  <div className="mt-2 flex flex-wrap gap-1">
-                    <Chip>{p.phase}</Chip>
-                    <Chip>{p.shape}</Chip>
-                  </div>
-                  <p className="text-foreground mt-auto pt-2 text-sm font-bold">{p.price}</p>
-                </div>
-              </article>
-            ))}
-          </div>
-
-          {/* ── Indicatore "sta ragionando…" (sopra la barra): dots + un mini-spec
-            che si DISEGNA durante la pausa di ragionamento (imm-think-path) ── */}
-          <div className="imm-typing absolute bottom-28 left-1/2 z-10 -translate-x-1/2" aria-hidden>
-            <div className="bg-surface-2 border-border flex items-center gap-2.5 rounded-full border px-4 py-3 shadow-lg">
-              <span className="flex items-center gap-1">
-                {[0, 1, 2].map((d) => (
-                  <span
-                    key={d}
-                    className="bg-muted h-1.5 w-1.5 animate-bounce rounded-full"
-                    style={{ animationDelay: `${d * 0.16}s` }}
-                  />
                 ))}
-              </span>
-              <span className="bg-border h-4 w-px" />
-              <span className="text-muted text-[0.7rem] font-semibold tracking-wide">
-                Genero l&apos;interfaccia
-              </span>
-              <svg viewBox="0 0 72 24" className="text-accent-ink h-5 w-16" fill="none" aria-hidden>
-                <path
-                  className="imm-think-path"
-                  d="M2 20 L14 12 L26 15 L38 6 L50 10 L70 4"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
+              </div>
+            </div>
+
+            {/* Hero del sito (accennato, NON un catalogo) */}
+            <div className="grid flex-1 grid-cols-1 items-center gap-6 px-8 py-6 sm:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)]">
+              <div className="min-w-0">
+                <span className="bg-accent-soft text-accent-ink inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold">
+                  <Zap className="h-3.5 w-3.5" aria-hidden />
+                  {SITE.heroKicker}
+                </span>
+                <h1 className="font-display text-foreground mt-3 text-2xl leading-tight font-bold tracking-tight text-balance sm:text-3xl">
+                  {SITE.heroTitle}
+                </h1>
+                <p className="text-muted mt-3 max-w-md text-sm leading-relaxed">{SITE.heroText}</p>
+                <div className="mt-5 flex items-center gap-3">
+                  <span className="bg-accent text-accent-contrast rounded-full px-4 py-2 text-sm font-semibold">
+                    Scopri le soluzioni
+                  </span>
+                  <span className="text-foreground text-sm font-medium">Come funziona →</span>
+                </div>
+              </div>
+              {/* Foto hero (impianto fotovoltaico) — aspect ampio, decorativa */}
+              <div className="border-border relative hidden aspect-[4/3] overflow-hidden rounded-2xl border sm:block">
+                <img
+                  src={SITE.heroImg}
+                  alt=""
+                  aria-hidden
+                  loading="lazy"
+                  decoding="async"
+                  className="h-full w-full object-cover"
                 />
-              </svg>
+              </div>
             </div>
           </div>
 
-          {/* ── INTERFACCIA GENERATA dall'AI: vista dettaglio + configuratore ──
-            Overlay assoluto (la griglia sotto conserva il box → altezza scena
-            stabile). Parte nascosta; entra quando l'assistente "genera". */}
+          {/* ══ CHAT ASSISTENTE: pannello messaggi che si apre sopra la barra ══════
+              Overlay che copre la home (dimmata). La barra resta sotto come composer.
+              flex-col justify-end: i messaggi si "appoggiano" al composer, i più
+              recenti (ragionamento + interfaccia generata) sempre in basso e visibili. */}
           <div
-            className="imm-genui absolute inset-x-0 top-30 bottom-23 z-10 px-5 sm:top-21"
+            className="imm-chat border-border bg-background absolute inset-x-4 top-4 bottom-[4.75rem] z-30 flex flex-col overflow-hidden rounded-2xl border shadow-2xl"
             style={{ opacity: 0 }}
           >
-            <div className="mx-auto flex h-full max-w-3xl flex-col">
-              {/* Etichetta "generato dall'AI" */}
-              <div className="imm-genui-item mb-2.5 flex items-center gap-2">
-                <SparkIcon className="text-accent-ink h-4 w-4" />
-                <p className="text-accent-ink text-xs font-semibold tracking-widest uppercase">
-                  {GENERATED.eyebrow}
-                </p>
+            {/* Header chat */}
+            <div className="border-border bg-surface/80 flex h-11 shrink-0 items-center gap-2 border-b px-4 backdrop-blur">
+              <span className="bg-accent text-accent-contrast flex h-6 w-6 shrink-0 items-center justify-center rounded-full">
+                <Sparkles className="h-3.5 w-3.5" aria-hidden />
+              </span>
+              <span className="text-foreground text-sm font-semibold">
+                Assistente · {SITE.name}
+              </span>
+              <span className="text-muted ml-auto flex items-center gap-1.5 text-[0.7rem] font-medium">
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" aria-hidden />
+                online
+              </span>
+            </div>
+
+            {/* Thread messaggi */}
+            <div className="flex min-h-0 flex-1 flex-col justify-end gap-2.5 overflow-hidden px-4 py-3">
+              {/* Bolla utente: la richiesta con tre sfumature (testo completo) */}
+              <div className="imm-msg-q bg-accent text-accent-contrast max-w-[80%] self-end rounded-2xl rounded-br-sm px-3.5 py-2 text-[0.8rem] leading-snug">
+                {DIALOG.request}
               </div>
 
-              {/* Corpo della vista generata. overflow-y-auto: su viewport bassi
-                (landscape/zoom) prezzo e CTA in fondo restano raggiungibili invece
-                di essere clippati (era overflow-hidden). */}
-              <div className="border-border bg-background grid min-h-0 flex-1 grid-cols-1 gap-4 overflow-y-auto rounded-2xl border p-4 shadow-2xl sm:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)] sm:p-5">
-                {/* Colonna visiva: foto prodotto placeholder (wallbox a muro) +
-                  gallery di 4 thumbnail (foto già usate nelle card, crop quadrato);
-                  la thumbnail attiva (indice 0) conserva l'anello accent.
-                  Decorativa: il contenitore è già aria-hidden. */}
-                <div className="imm-genui-item flex min-h-0 flex-col gap-2.5" aria-hidden>
-                  {/* R3 regola 3: base aspect 4/3 esplicito (niente h-24 che
-                    schiaccia); a ≥sm riempie la colonna (flex-1, object-cover). */}
-                  <div className="aspect-[4/3] overflow-hidden rounded-xl sm:aspect-auto sm:min-h-0 sm:flex-1">
-                    <img
-                      src={PRODUCTS[0].img}
-                      alt=""
-                      loading="lazy"
-                      decoding="async"
-                      className="h-full w-full object-cover"
-                    />
-                  </div>
-                  <div className="hidden grid-cols-4 gap-2 sm:grid">
-                    {[0, 1, 2, 3].map((i) => (
-                      <div
-                        key={i}
-                        className={cn(
-                          // R3 regola 3: thumb quadrata (1/1), non striscia h-11.
-                          "aspect-square overflow-hidden rounded-lg border",
-                          i === 0 ? "border-accent ring-accent-ring ring-2" : "border-border",
-                        )}
-                      >
-                        <img
-                          src={PRODUCTS[i].img}
-                          alt=""
-                          loading="lazy"
-                          decoding="async"
-                          className="h-full w-full object-cover"
-                        />
-                      </div>
-                    ))}
-                  </div>
+              {/* Bolla assistente: domanda di chiarimento (puntini → testo) */}
+              <div className="imm-msg-clarify bg-surface-2 text-foreground relative max-w-[80%] self-start rounded-2xl rounded-bl-sm px-3.5 py-2 text-[0.8rem] leading-snug">
+                <span className="imm-clarify-text block">{DIALOG.clarify}</span>
+                <TypingDots className="imm-clarify-dots" />
+              </div>
+
+              {/* Bolla utente: risposta breve */}
+              <div className="imm-msg-a bg-accent text-accent-contrast max-w-[80%] self-end rounded-2xl rounded-br-sm px-3.5 py-2 text-[0.8rem] leading-snug">
+                {DIALOG.answer}
+              </div>
+
+              {/* Bolla assistente: ragionamento (puntini → testo) */}
+              <div className="imm-msg-reason bg-surface-2 text-foreground relative max-w-[86%] self-start rounded-2xl rounded-bl-sm px-3.5 py-2 text-[0.8rem] leading-snug">
+                <span className="imm-reason-text block">{DIALOG.reasoning}</span>
+                <TypingDots className="imm-reason-dots" />
+              </div>
+
+              {/* INTERFACCIA GENERATA: si costruisce un componente alla volta. */}
+              <div
+                className="imm-gen border-border bg-background self-stretch rounded-xl border p-3 shadow-sm"
+                style={{ opacity: 0 }}
+              >
+                <div className="mb-2 flex items-center gap-1.5">
+                  <Sparkles className="text-accent-ink h-3.5 w-3.5" aria-hidden />
+                  <span className="text-accent-ink text-[0.68rem] font-bold tracking-widest uppercase">
+                    {SETUP.eyebrow}
+                  </span>
                 </div>
 
-                {/* Colonna dettaglio: titolo, badge, configuratore, motivi, prezzo */}
-                <div className="flex min-w-0 flex-col">
-                  <h3 className="imm-genui-item font-display text-foreground text-base leading-snug font-bold tracking-tight text-balance sm:text-lg">
-                    {GENERATED.title}
-                  </h3>
-                  <div className="imm-genui-item mt-2 flex flex-wrap gap-1.5">
-                    {GENERATED.badges.map((b, i) => (
-                      <span
-                        key={b}
-                        className={
-                          i === 0
-                            ? "bg-accent text-accent-contrast rounded-full px-2 py-0.5 text-[0.7rem] font-semibold"
-                            : "bg-surface-2 text-muted rounded-full px-2 py-0.5 text-[0.7rem] font-medium"
-                        }
-                      >
-                        {b}
-                      </span>
-                    ))}
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+                  {/* a. Card SETUP: due prodotti, rettangoli verticali, foto ≥ quadrate */}
+                  <div className="imm-gen-setup">
+                    <p className="text-foreground mb-1.5 text-xs font-semibold">{SETUP.title}</p>
+                    <div className="grid grid-cols-2 gap-2">
+                      {SETUP.items.map((p) => (
+                        <article
+                          key={p.name}
+                          className="border-border bg-surface flex flex-col overflow-hidden rounded-lg border"
+                        >
+                          {/* Foto del prodotto INDICATO — quadrata (mai striscia bassa) */}
+                          <div className="aspect-square overflow-hidden">
+                            <img
+                              src={p.img}
+                              alt=""
+                              aria-hidden
+                              loading="lazy"
+                              decoding="async"
+                              className="h-full w-full object-cover"
+                            />
+                          </div>
+                          <div className="flex flex-1 flex-col p-2">
+                            <p className="text-accent-ink text-[0.6rem] font-bold tracking-wider uppercase">
+                              {p.kind}
+                            </p>
+                            <p className="text-foreground mt-0.5 line-clamp-2 text-[0.72rem] leading-snug font-semibold">
+                              {p.name}
+                            </p>
+                            <div className="mt-1.5 flex flex-wrap gap-1">
+                              {p.badges.map((b, bi) => (
+                                <span
+                                  key={b}
+                                  className={cn(
+                                    "rounded-full px-1.5 py-0.5 text-[0.58rem] font-semibold",
+                                    bi === 0
+                                      ? "bg-accent text-accent-contrast"
+                                      : "bg-surface-2 text-muted",
+                                  )}
+                                >
+                                  {b}
+                                </span>
+                              ))}
+                            </div>
+                            <p className="text-foreground mt-auto pt-1.5 text-sm font-bold">
+                              {p.price}
+                            </p>
+                          </div>
+                        </article>
+                      ))}
+                    </div>
                   </div>
 
-                  {/* Configuratore (mock): l'AI pre-seleziona «5 m»; il cursore poi
-                    SCEGLIE «7 m» (`.imm-config-pick`). La riga Lunghezza ha due
-                    stati: overlay "selezionato" .imm-len-sel-0 (5 m, visibile) e
-                    .imm-len-sel-1 (7 m, nascosto) — la timeline li crossfada al
-                    click. Il punch è DI CAMERA (P11), non locale. */}
-                  <div className="mt-3 space-y-2">
-                    {GENERATED.options.map((opt, oi) => (
-                      <div key={opt.label} className="imm-genui-item">
-                        <p className="text-muted text-[0.7rem] font-medium">{opt.label}</p>
-                        <div className="mt-1 flex flex-wrap gap-1.5" aria-hidden>
-                          {opt.values.map((v, i) => {
-                            // Riga Lunghezza: 5 m / 7 m con overlay a due stati.
-                            const dual = oi === 0 && (i === 0 || i === 1);
-                            return (
-                              <span
-                                key={v}
-                                className={cn(
-                                  "rounded-lg border px-2.5 py-1 text-xs",
-                                  !dual && i === opt.selected
-                                    ? "border-accent bg-accent-soft text-accent-ink font-semibold"
-                                    : "border-border text-muted",
-                                  dual && "relative",
-                                  oi === 0 && i === 1 && "imm-config-pick",
-                                )}
-                              >
-                                {dual && (
-                                  <span
-                                    className={cn(
-                                      "border-accent text-accent-ink absolute inset-0 flex items-center justify-center rounded-lg border font-semibold",
-                                      `imm-len-sel-${i}`,
-                                    )}
-                                    style={{
-                                      opacity: i === 0 ? 1 : 0,
-                                      background:
-                                        "color-mix(in oklab, var(--accent) 14%, var(--background))",
-                                    }}
-                                  >
-                                    {v}
-                                  </span>
-                                )}
-                                {v}
-                              </span>
-                            );
-                          })}
-                        </div>
+                  {/* Colonna destra: grafico + stima + CTA */}
+                  <div className="flex min-w-0 flex-col gap-2.5">
+                    {/* b. Mini-grafico «finestra di ricarica notturna» */}
+                    <div className="imm-gen-chart border-border bg-surface rounded-lg border p-2.5">
+                      <p className="text-muted mb-1.5 text-[0.62rem] font-bold tracking-wider uppercase">
+                        Finestra di ricarica notturna
+                      </p>
+                      <div className="relative flex h-16 items-end gap-1">
+                        {/* Fascia delle ore attive (carica in corso) */}
+                        <span
+                          className="imm-chart-band bg-accent-soft border-accent absolute inset-y-0 rounded border-x"
+                          style={{ left: `${BAND_LEFT}%`, width: `${BAND_WIDTH}%`, opacity: 0 }}
+                          aria-hidden
+                        />
+                        {NIGHT_WINDOW.map((o) => (
+                          <span
+                            key={o.h}
+                            className={cn(
+                              "imm-chart-bar relative flex-1 rounded-t-sm",
+                              o.active ? "bg-accent" : "bg-brand-200",
+                            )}
+                            style={{ height: `${o.level}%` }}
+                            aria-hidden
+                          />
+                        ))}
                       </div>
-                    ))}
-                  </div>
+                      <div className="mt-1 flex justify-between">
+                        <span className="text-muted text-[0.55rem]">22</span>
+                        <span className="text-accent-ink text-[0.55rem] font-semibold">
+                          00–03 · carica
+                        </span>
+                        <span className="text-muted text-[0.55rem]">07</span>
+                      </div>
+                    </div>
 
-                  {/* Motivi «perché questo» */}
-                  <ul className="mt-3 hidden space-y-1.5 sm:block">
-                    {GENERATED.reasons.map((r) => (
-                      <li
-                        key={r}
-                        className="imm-genui-item text-foreground/90 flex items-start gap-2 text-xs"
-                      >
-                        <CheckIcon className="text-accent-ink mt-0.5 h-3.5 w-3.5 shrink-0" />
-                        <span className="leading-snug">{r}</span>
-                      </li>
-                    ))}
-                  </ul>
+                    {/* c. Riga stima costi (cifre a rullo) */}
+                    <div className="imm-gen-cost border-border bg-surface rounded-lg border px-2.5 py-2">
+                      <div className="flex items-baseline justify-between">
+                        <span className="text-muted text-[0.62rem] font-semibold">
+                          {COST.label}
+                        </span>
+                        <span className="text-foreground text-xs font-bold tabular-nums">
+                          ≈ <span className="imm-cost-h">0</span> h · ≈{" "}
+                          <span className="imm-cost-m text-accent-ink">0</span> €/mese
+                        </span>
+                      </div>
+                      <p className="text-muted mt-1 flex items-center gap-1 text-[0.6rem]">
+                        <Sun className="text-accent-ink h-3 w-3 shrink-0" aria-hidden />
+                        {COST.note}
+                      </p>
+                    </div>
 
-                  {/* Prezzo + CTA */}
-                  <div className="imm-genui-item mt-auto flex items-center justify-between pt-3">
-                    <span className="text-foreground text-xl font-bold tracking-tight">
-                      {GENERATED.price}
-                    </span>
-                    <span className="imm-cta bg-accent text-accent-contrast relative rounded-full px-4 py-2 text-sm font-semibold">
-                      <span className="imm-cta-label inline-block">{GENERATED.cta}</span>
+                    {/* d. CTA «Prenota un sopralluogo» → conferma ✓ */}
+                    <span className="imm-gen-cta bg-accent text-accent-contrast relative mt-auto rounded-full px-3 py-2 text-center text-xs font-semibold">
+                      <span className="imm-cta-label inline-block">{CTA.label} →</span>
                       <span
                         className="imm-cta-done absolute inset-0 flex items-center justify-center gap-1.5"
                         style={{ opacity: 0 }}
                       >
-                        <ShoppingCart className="h-4 w-4 shrink-0" aria-hidden />
-                        Aggiunto ✓
+                        <Check className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                        {CTA.done}
                       </span>
                     </span>
                   </div>
@@ -553,115 +552,63 @@ export default function ImmersiveAssistente() {
             </div>
           </div>
 
-          {/* MINIATURA volante "aggiunto al carrello": la foto del prodotto
-            configurato vola dalla CTA al badge carrello (timeline) — molto più
-            leggibile del vecchio dot accent. */}
-          <span
-            className="imm-fly border-border bg-surface pointer-events-none absolute z-30 block h-14 w-14 -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-xl border shadow-xl"
-            style={{ opacity: 0 }}
-            aria-hidden
-          >
-            <img
-              src={PRODUCTS[0].img}
-              alt=""
-              loading="lazy"
-              decoding="async"
-              className="h-full w-full object-cover"
-            />
-          </span>
-
-          {/* ── Barra assistente AI (in basso) ─────────────────────────────── */}
-          <div className="absolute inset-x-0 bottom-0 z-20 px-5 pb-5" aria-hidden>
-            <div className="imm-bar border-border bg-background/95 relative mx-auto flex max-w-2xl items-center gap-3 rounded-full border px-4 py-2.5 shadow-lg backdrop-blur">
+          {/* ══ Barra assistente / composer (in basso, sempre visibile) ══════════ */}
+          <div className="absolute inset-x-0 bottom-0 z-40 px-5 pb-4" aria-hidden>
+            <div className="imm-bar border-border bg-background/95 relative mx-auto flex max-w-3xl items-center gap-3 rounded-full border px-4 py-2.5 shadow-lg backdrop-blur">
               <span className="imm-bar-ring border-accent pointer-events-none absolute -inset-px rounded-full border-2" />
-              <span className="bg-accent text-accent-contrast flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-bold">
-                AI
+              <span className="bg-accent text-accent-contrast flex h-8 w-8 shrink-0 items-center justify-center rounded-full">
+                <Sparkles className="h-4 w-4" aria-hidden />
               </span>
               <div className="relative flex h-7 min-w-0 flex-1 items-center overflow-hidden text-sm">
-                <span className="imm-placeholder text-muted absolute left-0 whitespace-nowrap">
-                  Chiedi all&apos;assistente…
+                <span className="imm-bar-ph text-muted absolute left-0 whitespace-nowrap">
+                  Chiedi all&apos;assistente, in parole tue…
                 </span>
-                <span className="imm-typed text-foreground absolute left-0 whitespace-nowrap">
-                  {QUERY}
+                <span className="imm-bar-typed text-foreground absolute left-0 whitespace-nowrap">
+                  {DIALOG.request}
+                </span>
+                <span className="imm-bar-typed2 text-foreground absolute left-0 whitespace-nowrap">
+                  {DIALOG.answer}
                 </span>
               </div>
               <span className="imm-send bg-accent text-accent-contrast flex h-9 w-9 shrink-0 items-center justify-center rounded-full">
-                <SendIcon className="h-4 w-4" />
+                <Send className="h-4 w-4" aria-hidden />
               </span>
             </div>
           </div>
         </div>
       </div>
 
-      {/* ── Title card di capitolo (apre la scena) + caption descrittive ──── */}
+      {/* ── Title card di capitolo (apre la scena) + caption descrittive ──────── */}
       <ChapterCard chapter={CHAPTERS[2]} subtitle="Un assistente AI dentro il sito vetrina." />
       <Say i={1} variant="caption">
-        Capisce la richiesta in linguaggio naturale.
+        Una richiesta con tre sfumature: nessun filtro le coglie.
       </Say>
-      {/* Spostata a destra: centrata coprirebbe l'indicatore "Genero l'interfaccia". */}
-      <Say i={2} variant="caption" pillClassName="bottom-24 right-[6vw]">
-        E genera al volo l&apos;interfaccia su misura.
+      <Say i={2} variant="caption">
+        L&apos;assistente chiede solo quello che serve…
+      </Say>
+      <Say i={3} variant="caption">
+        …e costruisce l&apos;interfaccia della risposta, su misura.
       </Say>
     </ImmersiveStage>
   );
 }
 
-/* ── Sotto-componenti / icone ─────────────────────────────────────────────── */
+/* ── Sotto-componenti ─────────────────────────────────────────────────────── */
 
-function Chip({ children }: { children: React.ReactNode }) {
+/** Indicatore "sta scrivendo…": tre puntini che rimbalzano (overlay nella bolla,
+ *  a sinistra; l'animazione CSS si mette in pausa con la pausa globale della demo). */
+function TypingDots({ className }: { className?: string }) {
   return (
-    <span className="bg-surface-2 text-muted rounded-full px-2 py-0.5 text-[0.7rem] font-medium">
-      {children}
+    <span className={cn("absolute inset-0 flex items-center px-3.5", className)} aria-hidden>
+      <span className="flex items-center gap-1">
+        {[0, 1, 2].map((d) => (
+          <span
+            key={d}
+            className="bg-muted h-1.5 w-1.5 animate-bounce rounded-full"
+            style={{ animationDelay: `${d * 0.16}s` }}
+          />
+        ))}
+      </span>
     </span>
-  );
-}
-
-function StarIcon({ className }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 24 24" fill="currentColor" className={className} aria-hidden>
-      <path d="M12 2.5l2.9 6.1 6.6.8-4.9 4.6 1.3 6.6L12 18.9 6.1 20.6l1.3-6.6L2.5 9.4l6.6-.8L12 2.5z" />
-    </svg>
-  );
-}
-
-function SendIcon({ className }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden>
-      <path
-        d="M4 12l16-8-6 16-2.5-6.5L4 12Z"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
-function CheckIcon({ className }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden>
-      <path
-        d="m5 13 4 4L19 7"
-        stroke="currentColor"
-        strokeWidth="2.5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
-function SparkIcon({ className }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden>
-      <path
-        d="M12 3l1.8 4.9L18.7 9.7l-4.9 1.8L12 16.4l-1.8-4.9L5.3 9.7l4.9-1.8L12 3Z"
-        stroke="currentColor"
-        strokeWidth="1.8"
-        strokeLinejoin="round"
-        fill="currentColor"
-        fillOpacity="0.15"
-      />
-    </svg>
   );
 }

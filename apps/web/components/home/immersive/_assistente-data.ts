@@ -1,155 +1,165 @@
 /**
- * @descrizione  Dati per la scena immersiva ASSISTENTE AI (capitolo 02).
- *   Prodotti realistici ripresi da `legacy/data/products.json` (cavi di ricarica
- *   GM Solar Shop), ridotti ai soli campi mostrati a schermo. Uno è marcato
- *   `recommended`: è il match che l'assistente "genera" per la richiesta della
- *   scena — «ricaricare a casa» → wallbox residenziale, monofase, best seller.
- *   La logica originale sta nel legacy (`cable-matcher.ts`); qui ne mostriamo
- *   solo l'esito, perché la scena è una vetrina dimostrativa, non il finder live.
+ * @descrizione  Dati mock per la scena immersiva ASSISTENTE AI (capitolo 03).
+ *   RISCRITTURA: la scena non è più «griglia prodotti + configuratore». Ora è la
+ *   HOME di un sito vetrina fotovoltaico/EV generico dove:
+ *     ② il cursore apre un megamenu «Catalogo» VOLUTAMENTE SOVRACCARICO ed esita
+ *        sopra le voci senza cliccare — la fatica dell'interfaccia classica;
+ *     ③ il visitatore scrive all'assistente una richiesta con TRE sfumature;
+ *     ④ l'assistente fa UNA domanda di chiarimento;
+ *     ⑤ il visitatore risponde;
+ *     ⑥ l'assistente RAGIONA e COSTRUISCE nella chat l'interfaccia della risposta
+ *        (card setup wallbox+cavo, mini-grafico finestra notturna, stima costi, CTA).
+ *   Tutto deterministico e in italiano. AI SIMULATA: nessuna chiamata reale.
+ *
+ *   ELIMINATO rispetto alla versione precedente: `PRODUCTS` (griglia catalogo),
+ *   `RECOMMENDATION`/`GENERATED` (vista dettaglio + configuratore) e la singola
+ *   `QUERY`. Non servono più: la scena non mostra un catalogo né un configuratore.
  */
 
-export type ImmProduct = {
-  id: string;
-  /** Nome breve, pensato per la card della griglia. */
-  name: string;
-  /** Uso/categoria leggibile (es. "Wallbox residenziale"). */
-  use: string;
-  phase: "Monofase" | "Trifase";
-  shape: "Liscio" | "Spiralato";
-  /** Prezzo già formattato (la scena non fa calcoli). */
-  price: string;
-  /** Foto in /assets/products/: DEVE mostrare il prodotto indicato (richiesta
-   *  2026-07-12) — l'assegnazione è esplicita, mai per indice "a caso". */
-  img: string;
-  bestSeller?: boolean;
-  /** true sul prodotto che l'assistente raccomanda per la richiesta della scena. */
-  recommended?: boolean;
-};
+// ── ② Megamenu «Catalogo»: colonne volutamente SOVRACCARICHE ─────────────────
+// L'eccesso di voci È il messaggio (la fatica dell'UI classica): tante diramazioni,
+// il cursore non sa dove andare. Non serve che siano esaustive, solo TROPPE.
+export type MegaColumn = { title: string; items: string[] };
 
-/** Vetrina mostrata in griglia (cavi di ricarica, da products.json). */
-export const PRODUCTS: ImmProduct[] = [
+export const MEGA_COLUMNS: MegaColumn[] = [
   {
-    id: "modo3-t2-monofase-liscio",
-    name: "Cavo Modo 3 · Tipo 2 · Monofase Liscio · 5 m",
-    use: "Wallbox residenziale",
-    phase: "Monofase",
-    shape: "Liscio",
-    price: "189 €",
-    // Il cavo Mennekes in primo piano: LA foto-prodotto del consigliato.
-    img: "/assets/products/cavo-03.jpg",
-    bestSeller: true,
-    recommended: true,
+    title: "Cavi di ricarica",
+    items: [
+      "per Wallbox",
+      "per Colonnina",
+      "Modo 2 · Schuko",
+      "Modo 3 · Tipo 2",
+      "Monofase",
+      "Trifase",
+      "Spiralato",
+      "Dritto · 5 m",
+      "Dritto · 7 m",
+    ],
   },
   {
-    id: "modo3-t2-monofase-spiralato",
-    name: "Cavo Modo 3 · Tipo 2 · Monofase Spiralato · 5 m",
-    use: "Wallbox residenziale",
-    phase: "Monofase",
-    shape: "Spiralato",
-    price: "199 €",
-    img: "/assets/products/cavo-01.jpg",
+    title: "Wallbox",
+    items: [
+      "Monofase 3,7 kW",
+      "Monofase 7,4 kW",
+      "Trifase 11 kW",
+      "Trifase 22 kW",
+      "Con display",
+      "Con lettore RFID",
+      "Con contatore MID",
+      "Da esterno · IP55",
+    ],
   },
   {
-    id: "modo3-t2-trifase-spiralato",
-    name: "Cavo Modo 3 · Tipo 2 · Trifase Spiralato · 5 m",
-    use: "Stazione / colonnina",
-    phase: "Trifase",
-    shape: "Spiralato",
-    price: "219 €",
-    img: "/assets/products/cavo-02.jpg",
-    bestSeller: true,
-  },
-  {
-    id: "modo3-t2-trifase-liscio",
-    name: "Cavo Modo 3 · Tipo 2 · Trifase Liscio · 5 m",
-    use: "Stazione / colonnina",
-    phase: "Trifase",
-    shape: "Liscio",
-    price: "219 €",
-    img: "/assets/products/cavo-04.jpg",
-  },
-  {
-    id: "modo3-t2-trifase-liscio-wallbox",
-    name: "Cavo Modo 3 · Tipo 2 · Trifase Liscio · Wallbox 11 kW",
-    use: "Wallbox residenziale",
-    phase: "Trifase",
-    shape: "Liscio",
-    price: "239 €",
-    // Cavo per wallbox: la foto mostra la wallbox con il suo cavo innestato.
-    img: "/assets/products/wallbox-detail.jpg",
-  },
-  {
-    id: "modo2-t2-schuko-liscio",
-    name: "Cavo Modo 2 · Schuko · Liscio · 5 m",
-    use: "Presa domestica",
-    phase: "Monofase",
-    shape: "Liscio",
-    price: "389 €",
-    // ponytail: riuso di cavo-01 (nessuna foto Schuko negli asset; card al
-    // "fold", quasi fuori vista) — upgrade: aggiungere una foto dedicata.
-    img: "/assets/products/cavo-01.jpg",
+    title: "Accessori",
+    items: [
+      "Supporti a muro",
+      "Adattatori",
+      "Contattori",
+      "Protezioni DC",
+      "Gestione carichi",
+      "Kit fotovoltaico",
+      "Colonnine da terra",
+      "Cavi di prolunga",
+    ],
   },
 ];
 
-/**
- * Contenuto della card-raccomandazione "generata" dall'assistente (look di
- * `CableRecommendation`). Nome e prezzo sono duplicati dal prodotto consigliato
- * per evitare lookup a runtime; badge e motivazioni derivano dalle sue specs.
- */
-type ImmReco = {
-  productId: string;
-  /** Frase introduttiva dell'assistente sopra la card. */
-  lead: string;
+// Le due voci su cui il cursore ESITA (highlight hover, nessun click): sono
+// PLAUSIBILI per la richiesta ma nessuna coglie tutte le sfumature → frustrazione.
+export const MEGA_HOVER: { col: number; row: number }[] = [
+  { col: 1, row: 1 }, // «Monofase 7,4 kW»
+  { col: 0, row: 3 }, // «Modo 3 · Tipo 2»
+];
+
+// ── ③–⑤ Dialogo (una sola sorgente di verità per barra + bolle chat) ─────────
+export const DIALOG = {
+  /** ③ La richiesta con TRE sfumature: impianto FV già presente, ricarica
+   *  notturna, paura del distacco del contatore. Nessun filtro le coglie tutte. */
+  request:
+    "Ho appena preso un'auto elettrica e a casa ho il fotovoltaico da 6 kW: che setup mi consigliate per ricaricare di notte senza far scattare il contatore?",
+  /** ④ La domanda di chiarimento: chiede SOLO ciò che serve a decidere. */
+  clarify: "Il contatore è da 3 kW o l'avete già potenziato? E quanti km fate in media al giorno?",
+  /** ⑤ La risposta breve del visitatore. */
+  answer: "3 kW, circa 40 km al giorno.",
+  /** ⑥ Il ragionamento dell'assistente: spiega COSA ha pensato prima di proporre. */
+  reasoning:
+    "Con un contatore da 3 kW la chiave è la gestione dinamica del carico: la wallbox modula la potenza di notte e non fa scattare nulla. Per 40 km al giorno bastano circa 3 ore. Ecco il setup che ti propongo:",
+} as const;
+
+// ── ⑥a Setup consigliato: DUE prodotti, ognuno con la SUA foto reale ─────────
+// Card = rettangoli verticali, immagini almeno quadrate (mai strisce orizzontali).
+export type SetupItem = {
+  /** Categoria breve (eyebrow della card). */
+  kind: string;
   name: string;
+  /** Foto in /assets/products/: DEVE mostrare il prodotto indicato. */
+  img: string;
+  /** Due badge tecnici (il primo evidenziato). */
+  badges: [string, string];
   price: string;
-  /** Badge tecnici: il primo è evidenziato (accent). */
-  badges: string[];
-  /** Motivazioni «perché questo» (max 3), derivate dai dati reali. */
-  reasons: string[];
 };
 
-const RECOMMENDATION: ImmReco = {
-  productId: "modo3-t2-monofase-liscio",
-  lead: "Per ricaricare a casa la tua auto ti consiglio questo:",
-  name: "Cavo Modo 3 · Tipo 2 · Monofase Liscio · 5 m",
-  price: "189 €",
-  badges: ["Best seller", "Modo 3", "Tipo 2", "Monofase", "Liscio"],
-  reasons: [
-    "Pensato per la ricarica a casa, su wallbox residenziale",
-    "Monofase, lo standard della maggior parte degli impianti domestici",
-    "Modo 3 · Tipo 2 · 5 m, pronto all'uso",
+export const SETUP: { eyebrow: string; title: string; items: SetupItem[] } = {
+  eyebrow: "Costruito sulla tua richiesta",
+  title: "Il setup che ti propongo",
+  items: [
+    {
+      kind: "Wallbox",
+      name: "Wallbox monofase 7,4 kW",
+      img: "/assets/products/wallbox-detail.jpg",
+      badges: ["Carico dinamico", "Monofase"],
+      price: "790 €",
+    },
+    {
+      kind: "Cavo di ricarica",
+      name: "Cavo Modo 3 · Tipo 2 · 5 m",
+      img: "/assets/products/cavo-03.jpg",
+      badges: ["Fino a 7,4 kW", "Monofase"],
+      price: "189 €",
+    },
   ],
 };
 
-/** La richiesta che il visitatore digita nella barra dell'assistente. */
-export const QUERY = "Cerco un cavo per ricaricare a casa la mia auto";
+// ── ⑥b Mini-grafico «finestra di ricarica notturna» (barre orarie 22 → 07) ───
+// Le ore ATTIVE (carica in corso) sono più alte: la wallbox concentra la ricarica
+// nelle ore notturne piene, ~3 ore, poi si spegne. Fascia evidenziata = ore attive.
+export type ChargeHour = { h: string; level: number; active: boolean };
 
-/**
- * Contenuto dell'INTERFACCIA GENERATA dall'AI: non più una semplice card-riassunto,
- * ma una VISTA DETTAGLIO/CONFIGURATORE completa che prende il posto della griglia
- * prodotti quando l'assistente risponde. Mock deterministico: i valori "scelti"
- * nel configuratore sono quelli del prodotto consigliato (derivati da RECOMMENDATION).
- */
-export type ImmGenOption = { label: string; values: string[]; selected: number };
+export const NIGHT_WINDOW: ChargeHour[] = [
+  { h: "22", level: 20, active: false },
+  { h: "23", level: 34, active: false },
+  { h: "00", level: 86, active: true },
+  { h: "01", level: 94, active: true },
+  { h: "02", level: 88, active: true },
+  { h: "03", level: 42, active: false },
+  { h: "04", level: 18, active: false },
+  { h: "05", level: 15, active: false },
+  { h: "06", level: 13, active: false },
+  { h: "07", level: 11, active: false },
+];
 
-export const GENERATED = {
-  eyebrow: "Interfaccia generata dall'AI",
-  title: RECOMMENDATION.name,
-  price: RECOMMENDATION.price,
-  badges: RECOMMENDATION.badges,
-  reasons: RECOMMENDATION.reasons,
-  /** Configuratore (mock): l'AI pre-seleziona la combinazione giusta per la richiesta. */
-  options: [
-    { label: "Lunghezza", values: ["5 m", "7 m", "10 m"], selected: 0 },
-    { label: "Fase", values: ["Monofase", "Trifase"], selected: 0 },
-    { label: "Cavo", values: ["Liscio", "Spiralato"], selected: 0 },
-  ] as ImmGenOption[],
-  /** Riga di specifiche tecniche (mock). */
-  specs: [
-    { k: "Modo", v: "Modo 3" },
-    { k: "Connettore", v: "Tipo 2" },
-    { k: "Potenza", v: "7,4 kW" },
-    { k: "Garanzia", v: "24 mesi" },
-  ],
-  cta: "Aggiungi al carrello",
-};
+// ── ⑥c Stima costi (cifre a rullo) ───────────────────────────────────────────
+export const COST = {
+  label: "Stima ricarica notturna",
+  /** Ore di ricarica a notte (rulla 0 → 3). */
+  hours: 3,
+  /** Euro al mese (rulla 0 → 34). */
+  perMonth: 34,
+  /** La sfumatura FV còlta: di giorno il fotovoltaico ricarica gratis. */
+  note: "Di giorno il tuo fotovoltaico ricarica gratis",
+} as const;
+
+// ── ⑥d CTA ───────────────────────────────────────────────────────────────────
+export const CTA = { label: "Prenota un sopralluogo", done: "Sopralluogo richiesto" } as const;
+
+// ── Home vetrina (chrome minima: nav + hero) ─────────────────────────────────
+export const SITE = {
+  name: "Sole & Ricarica",
+  /** Voci di nav; «Catalogo» è quella che apre il megamenu. */
+  nav: ["Fotovoltaico", "Ricarica EV", "Catalogo", "Contatti"],
+  heroKicker: "Fotovoltaico + ricarica, chiavi in mano",
+  heroTitle: "L'energia del sole, fino alla tua auto.",
+  heroText:
+    "Progettiamo l'impianto, la wallbox e la gestione dei carichi come un sistema unico. Su misura per casa tua.",
+  heroImg: "/assets/products/pannello-01.jpg",
+} as const;
