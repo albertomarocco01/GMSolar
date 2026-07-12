@@ -66,6 +66,13 @@ import {
   cameraTrackType,
   rackFocus,
   rackFocusOff,
+  EASE_IN_SCENE,
+  EASE_OUT_SCENE,
+  EASE_SNAP,
+  EASE_CAMERA,
+  DUR,
+  hold,
+  enter,
 } from "./shared";
 
 // ── Dati mock (deterministici) ───────────────────────────────────────────────
@@ -126,17 +133,17 @@ export default function ImmersiveSegnalazioni() {
     chapterIntro(tl);
     // CAMERA · punch (a) sul bottone «Segnala un problema»: sostituisce il vecchio
     // clickZoom sul wrapper (regola 4: punch locale e punch di camera non si
-    // sommano). Attacco rapido + micro-overshoot d'arrivo (back.out).
-    cameraTo(tl, ".imm-report-wrap", { scale: 1.4, duration: 0.5, ease: "back.out(1.2)" });
+    // sommano). Attacco rapido, ease di camera del kit (R2: la camera non fa back).
+    cameraTo(tl, ".imm-report-wrap", { scale: 1.4, duration: DUR.beat });
     // Cursore per ULTIMO (regola 2): misura il layout a camera FERMA → atterra
     // preciso sul bottone inquadrato. pressButton (scale del solo bottone) resta:
     // è l'affordance del click, non un punch che si somma.
     cursorTo(tl, ".imm-report-btn", { mode: "hand" });
-    tl.to({}, { duration: 0.2 });
-    pressButton(tl, ".imm-report-btn", { down: 0.93, downDur: 0.1, upDur: 0.35, back: 2.6 });
+    tl.to({}, { duration: DUR.micro / 2 });
+    pressButton(tl, ".imm-report-btn", { down: 0.93, upDur: DUR.micro });
 
     // ── Beat ② — il modulo: link auto-rilevato, si scrive solo la descrizione ─
-    tl.to(".imm-seg-drawer", { xPercent: 0, duration: 0.9, ease: "expo.out" }, ">-0.05");
+    tl.to(".imm-seg-drawer", { xPercent: 0, duration: DUR.scene, ease: EASE_IN_SCENE }, ">-0.05");
     // CAMERA · l'inquadratura ① si chiude (regola 3): pull-back a neutro in sync
     // con l'ingresso del drawer (tween a valori fissi → nessuna misura in corsa).
     cameraReset(tl, { position: "<" });
@@ -152,85 +159,88 @@ export default function ImmersiveSegnalazioni() {
     // camera TRASLA a dx seguendo il punto di scrittura per tutta la digitazione
     // (cameraTrackType sostituisce cameraFollow, regola 4). Il caret finto resta al
     // centro-schermo = punto di scrittura; niente cursorTo(campo) dedicato.
-    cameraTrackType(tl, ".imm-seg-desc", { scale: 1.22, duration: 2.1 });
-    typeInField(tl, ".imm-seg-desc", { steps: 35, duration: 2.1, position: "<" });
+    cameraTrackType(tl, ".imm-seg-desc", { scale: 1.22, duration: DUR.scene * 2 });
+    typeInField(tl, ".imm-seg-desc", { steps: 35, duration: DUR.scene * 2, position: "<" });
 
     // «Invia segnalazione» → pressione + toast di ricezione con stato
     cursorTo(tl, ".imm-seg-send", { mode: "hand" });
-    pressButton(tl, ".imm-seg-send", { downDur: 0.1, upDur: 0.45, back: 3.5, position: ">0.2" });
+    pressButton(tl, ".imm-seg-send", { position: ">0.2" });
     // ULTIMA interazione della scena: il cursore (fuori da .imm-camera) sfuma qui,
     // così non resta "staccato/galleggiante" durante i movimenti di sola camera che
     // seguono (pull-back del toast, push-in sul fix, cameraReset finale) né congelato
     // a fine scena. Scrub-safe (reversibile) e a progress(1) → autoAlpha 0, coerente
     // con le scene sorelle: nessun cursorTo successivo lo rimostra.
-    hideCursor(tl, { duration: 0.3 });
+    hideCursor(tl, { duration: DUR.micro });
     // CAMERA · si stacca dal modulo: pull-back a neutro mentre sale il toast
     // (nasce in basso al centro → rientra in campo con la camera larga).
-    cameraReset(tl, { duration: 0.7 });
-    tl.to(".imm-seg-toast", { autoAlpha: 1, y: 0, duration: 0.55, ease: "expo.out" }, "<0.1");
+    cameraReset(tl, { duration: DUR.beat });
+    // ANTICIPAZIONE (R2): ingresso importante n.1 — il toast arriva con overshoot & settle.
+    enter(tl, ".imm-seg-toast", { y: 48, duration: DUR.beat, anticipate: true, position: "<0.1" });
     clickZoom(tl, ".imm-seg-toast", { position: "<0.14", scale: 1.05 });
 
     // ── Beat ②½ — presa in carico: un tecnico reale risponde ─────────────────
     // Card messaggio con avatar: entra DOPO il toast di ricezione (regola 2 —
     // nessuna partenza simultanea camera/contenuto sullo stesso target).
-    tl.to(".imm-seg-assist", { autoAlpha: 1, y: 0, duration: 0.5, ease: "back.out(1.6)" }, ">0.2");
+    // ANTICIPAZIONE (R2): ingresso importante n.2 — la presa in carico si assesta con snap.
+    enter(tl, ".imm-seg-assist", { y: 24, duration: DUR.beat, anticipate: true, position: ">0.2" });
     // CAMERA · inquadra la card di Marco: si legge il messaggio a camera ferma.
-    cameraTo(tl, ".imm-seg-assist", { scale: 1.25, duration: 0.55, position: "<0.1" });
+    cameraTo(tl, ".imm-seg-assist", { scale: 1.25, duration: DUR.beat, position: "<0.1" });
     // Sul binario di stato: la tappa 1→2 si accende (linea che si riempie —
     // stesso pattern maskReveal del wipe sulla foto corretta, item 2 del beat).
-    maskReveal(tl, ".imm-step-line-1", { dir: "l", duration: 0.45, position: "<0.15" });
-    tl.to(".imm-step-2", { scale: 1.2, duration: 0.3, ease: "back.out(2.6)" }, "<");
-    tl.to(".imm-step-2", { scale: 1, duration: 0.25, ease: "power2.out" }, ">");
-    // Hold di lettura (~1s) sulla card di Marco, poi la caption spiega il valore.
-    tl.to({}, { duration: 1 });
+    maskReveal(tl, ".imm-step-line-1", { dir: "l", duration: DUR.beat, position: "<0.15" });
+    tl.to(".imm-step-2", { scale: 1.2, duration: DUR.micro, ease: EASE_SNAP }, "<");
+    tl.to(".imm-step-2", { scale: 1, duration: DUR.micro, ease: EASE_IN_SCENE }, ">");
+    // RESPIRO (R2) · hold di lettura sulla card di Marco, poi la caption spiega il valore.
+    hold(tl);
     say(tl, 2); // «Un nostro tecnico la prende in carico e la sistema...»
     // Chiusura beat (regola 3): la card esce, la camera torna neutra.
-    tl.to(".imm-seg-assist", { autoAlpha: 0, y: -12, duration: 0.4, ease: "power2.in" }, ">-0.2");
-    cameraReset(tl, { duration: 0.6, position: "<" });
+    tl.to(
+      ".imm-seg-assist",
+      { autoAlpha: 0, y: -12, duration: DUR.beat, ease: EASE_OUT_SCENE },
+      ">-0.2",
+    );
+    cameraReset(tl, { duration: DUR.beat, position: "<" });
 
     // ── Beat ③ — IL FIX: si torna alla dashboard e il difetto è risolto ───────
-    tl.to(".imm-seg-drawer", { xPercent: 100, duration: 0.8, ease: "expo.inOut" }, ">0.25");
+    tl.to(".imm-seg-drawer", { xPercent: 100, duration: DUR.scene, ease: EASE_CAMERA }, ">0.25");
     // CAMERA · il rack focus si chiude col drawer: la dashboard torna a fuoco
     // (rackFocus/rackFocusOff bilanciati — regola 3).
     rackFocusOff(tl, ".imm-seg-bg", { position: "<" });
     // Sul binario di stato: la tappa 2→3 si accende in sync col flip finale.
-    maskReveal(tl, ".imm-step-line-2", { dir: "l", duration: 0.4 });
+    maskReveal(tl, ".imm-step-line-2", { dir: "l", duration: DUR.beat });
     // Il dot finale flippa in 3D: «in attesa» gira via, «Risolta ✓» entra
     // (pattern rotateY riusato SOLO per l'ultima tappa, come da roadmap).
     tl.to(
       ".imm-seg-old",
-      { rotationY: 90, autoAlpha: 0, duration: 0.3, ease: "power2.in" },
+      { rotationY: 90, autoAlpha: 0, duration: DUR.micro, ease: EASE_OUT_SCENE },
       ">0.1",
     );
     tl.to(
       ".imm-seg-new",
-      { rotationY: 0, autoAlpha: 1, duration: 0.45, ease: "back.out(1.4)" },
+      { rotationY: 0, autoAlpha: 1, duration: DUR.beat, ease: EASE_SNAP },
       "<0.05",
     );
+    // RESPIRO (R2): la «Risolta ✓» si registra prima che la camera riparta sul fix.
+    hold(tl, 0.5);
     // CAMERA · push-in (b) LENTO sulla card mentre l'immagine si sistema (parte a
     // layout fermo: drawer chiuso e fuoco ripristinato → misura esatta).
     // Sostituisce il vecchio clickZoom sulla card (regola 4).
     cameraTo(tl, ".imm-seg-card", {
       scale: 1.3,
-      duration: 1,
-      ease: "power1.inOut",
+      duration: DUR.scene,
       position: ">0.1",
     });
     // La foto corretta copre l'immagine rotta con un wipe da sinistra, DENTRO il
     // push-in (clip-path: nessuna dipendenza dalle misure di camera).
-    maskReveal(tl, ".imm-img-fix", { dir: "l", duration: 0.8, position: "<0.25" });
+    maskReveal(tl, ".imm-img-fix", { dir: "l", duration: DUR.scene, position: "<0.25" });
     // CAMERA · pull-back reveal (f) + reset FINALE (regola 3): da 1.3 a neutra per
     // svelare la dashboard riparata → a progress(1) la camera è neutra.
-    cameraReset(tl, { duration: 0.9, position: ">0.2" });
+    cameraReset(tl, { duration: DUR.scene, position: ">0.2" });
     // Mini-toast di conferma mentre il campo si allarga (rientra in alto al centro)
     // — attribuita a Marco: chiude il cerchio persona→soluzione aperto nel ②½.
-    tl.to(
-      ".imm-fix-toast",
-      { autoAlpha: 1, y: 0, duration: 0.45, ease: "back.out(1.7)" },
-      ">-0.35",
-    );
+    tl.to(".imm-fix-toast", { autoAlpha: 1, y: 0, duration: DUR.beat, ease: EASE_SNAP }, ">-0.35");
 
-    tl.to({}, { duration: 0.6 }); // hold finale
+    hold(tl); // hold finale
   });
 
   return (

@@ -32,7 +32,7 @@
  * │                                                                               │
  * │ CAMERA (.imm-camera · P11) — inquadrature cinematografiche di scena:          │
  * │   cameraTo(tl, target, opts?) — centra il target nel viewport alla scala      │
- * │     richiesta (default 1.4, clamp ≤1.7; duration 0.9, ease power3.inOut).     │
+ * │     richiesta (default 1.4, clamp ≤1.7; duration DUR.scene, ease EASE_CAMERA).│
  * │   cameraReset(tl, opts?) — torna neutra (x0 y0 scale1 rot0): OBBLIGATORIA     │
  * │     prima della fine timeline → a progress(1) la camera DEVE essere neutra.   │
  * │   cameraFollow(tl, target, opts?) — pan che segue il cursore (zoom invariato  │
@@ -62,6 +62,73 @@ import { forwardRef, useRef } from "react";
 import { MousePointer2, Pointer, TextCursor } from "lucide-react";
 import { gsap, ScrollTrigger } from "@gmgroup/lib/gsap";
 import { prefersReducedMotion, useIsoLayoutEffect } from "@gmgroup/lib/motion";
+
+/* ══ R2 · LINGUAGGIO DI MOTION DEL BRAND ══════════════════════════════════════
+ *
+ * Un brand ha POCHE curve e POCHI tempi. Qui vivono la palette di ease nominate
+ * (4 — non di più) e la scala di durate (beat, non secondi sparsi): OGNI tween
+ * delle scene usa queste costanti o multipli della scala. Eccezione ammessa solo
+ * con commento `// motion: <motivo>` sulla stessa riga.
+ *
+ * Le durate sono unità RELATIVE della timeline scrubbata (proporzioni tra beat,
+ * lo scroll le stira): quantizzarle alla scala è ciò che dà il "montato". */
+
+/** Ingressi/reveal: decelerazione lunga stile AE 80/20. */
+export const EASE_IN_SCENE = "expo.out";
+/** Uscite: accelerazione secca — l'elemento "lascia" la scena. */
+export const EASE_OUT_SCENE = "power2.in";
+/** Micro-interazioni: overshoot & settle, taratura UNICA del rimbalzo. */
+export const EASE_SNAP = "back.out(1.6)";
+/** Camera e traversate continue (track/pan): morbida, simmetrica, MAI back. */
+export const EASE_CAMERA = "power1.inOut";
+
+/** Scala di durate. micro = press/blip · beat = ingresso/uscita di un elemento ·
+ *  scene = movimento di scena (camera, wipe, typing base) · hold = respiro. */
+export const DUR = {
+  micro: 0.3,
+  beat: 0.6,
+  scene: 1.0,
+  hold: 0.8,
+} as const;
+
+/** Respiro tra due beat forti: il montaggio AE alterna accento e pausa. */
+export function hold(tl: gsap.core.Timeline, mult = 1): gsap.core.Timeline {
+  return tl.to({}, { duration: DUR.hold * mult });
+}
+
+/**
+ * Ingresso standard del brand: fade + rise con EASE_IN_SCENE. Con `anticipate`
+ * l'elemento parte da un offset maggiorato e ARRIVA con overshoot & settle
+ * (EASE_SNAP): è la coppia anticipazione/assestamento dei 1–2 ingressi
+ * IMPORTANTI di ogni scena (non a tappeto). fromTo deterministico → scrub-safe;
+ * a progress(1) finisce visibile e a riposo (reduced-motion pulito).
+ */
+export function enter(
+  tl: gsap.core.Timeline,
+  target: string | Element | Element[],
+  opts: {
+    y?: number;
+    duration?: number;
+    stagger?: number | gsap.StaggerVars;
+    anticipate?: boolean;
+    position?: number | string;
+  } = {},
+): gsap.core.Timeline {
+  const { y = 24, duration = DUR.beat, stagger, anticipate, position = ">" } = opts;
+  tl.fromTo(
+    target,
+    { autoAlpha: 0, y: anticipate ? y * 1.25 : y },
+    {
+      autoAlpha: 1,
+      y: 0,
+      duration,
+      ease: anticipate ? EASE_SNAP : EASE_IN_SCENE,
+      stagger,
+    },
+    position,
+  );
+  return tl;
+}
 
 /**
  * Refresh di ScrollTrigger COALESCATO. Ogni scena, al mount, ha bisogno che le
@@ -141,16 +208,16 @@ export function cursorTo(
       left: target as string,
       top: optsOrTop,
       autoAlpha: 1, // entra in campo al 1° movimento (vedi Cursor: parte nascosto)
-      duration: 0.9,
-      ease: "power2.inOut",
+      duration: DUR.scene,
+      ease: EASE_CAMERA,
     });
   }
   const section = tl.data as HTMLElement | undefined;
   const mode = optsOrTop?.mode ?? "arrow";
-  const duration = optsOrTop?.duration ?? 0.9;
+  const duration = optsOrTop?.duration ?? DUR.scene;
   return tl.to(".imm-cursor", {
     duration,
-    ease: "power2.inOut",
+    ease: EASE_CAMERA,
     autoAlpha: 1, // entra in campo al 1° movimento (vedi Cursor: parte nascosto)
     left: () => (section ? (cursorDest(section, target)?.left ?? cursorCurrent(section).left) : 0),
     top: () => (section ? (cursorDest(section, target)?.top ?? cursorCurrent(section).top) : 0),
@@ -183,7 +250,7 @@ export function hideCursor(
 ): gsap.core.Timeline {
   return tl.to(
     ".imm-cursor",
-    { autoAlpha: 0, duration: opts?.duration ?? 0.2, ease: "power2.out" },
+    { autoAlpha: 0, duration: opts?.duration ?? DUR.micro, ease: EASE_OUT_SCENE },
     opts?.position ?? "<",
   );
 }
@@ -205,8 +272,8 @@ export function clickZoom(
   // (default ">", in coda).
   const z = gsap.timeline();
   z.set(target, { transformOrigin: opts?.origin ?? "50% 50%", willChange: "transform" })
-    .to(target, { scale: peak, duration: 0.28, ease: "power2.out" })
-    .to(target, { scale: 1, duration: 0.34, ease: "power2.inOut" });
+    .to(target, { scale: peak, duration: DUR.micro, ease: EASE_IN_SCENE })
+    .to(target, { scale: 1, duration: DUR.micro, ease: EASE_CAMERA });
   tl.add(z, opts?.position ?? ">");
   return tl;
 }
@@ -228,9 +295,18 @@ function pressButtonTweens(opts?: PressButtonOpts): {
   up: gsap.TweenVars;
 } {
   return {
-    down: { scale: opts?.down ?? 0.94, duration: opts?.downDur ?? 0.1, ease: "power2.in" },
+    // motion: down = metà micro — lo scatto della pressione deve restare secco
+    down: {
+      scale: opts?.down ?? 0.94,
+      duration: opts?.downDur ?? DUR.micro / 2,
+      ease: EASE_OUT_SCENE,
+    },
     downPos: opts?.position ?? ">",
-    up: { scale: 1, duration: opts?.upDur ?? 0.4, ease: `back.out(${opts?.back ?? 3})` },
+    up: {
+      scale: 1,
+      duration: opts?.upDur ?? DUR.micro * 1.5, // motion: settle 1.5× micro
+      ease: opts?.back != null ? `back.out(${opts.back})` : EASE_SNAP,
+    },
   };
 }
 
@@ -266,7 +342,7 @@ export function typeInField(
     target,
     {
       clipPath: "inset(0 0% 0 0)",
-      duration: opts?.duration ?? 1.4,
+      duration: opts?.duration ?? DUR.scene * 1.5,
       ease: `steps(${opts?.steps ?? 24})`,
     },
     opts?.position ?? ">",
@@ -293,7 +369,7 @@ export function drawPath(
   gsap.set(target, { strokeDasharray: len, strokeDashoffset: len });
   tl.to(
     target,
-    { strokeDashoffset: 0, duration: opts?.duration ?? 1.2, ease: opts?.ease ?? "power2.inOut" },
+    { strokeDashoffset: 0, duration: opts?.duration ?? DUR.scene, ease: opts?.ease ?? EASE_CAMERA },
     opts?.position ?? ">",
   );
   return tl;
@@ -318,8 +394,8 @@ export function countUp(
   }));
   const proxy: Record<string, number> = {};
   const vars: gsap.TweenVars = {
-    duration: opts?.duration ?? 1.4,
-    ease: opts?.ease ?? "power2.out",
+    duration: opts?.duration ?? DUR.scene * 1.5,
+    ease: opts?.ease ?? EASE_IN_SCENE,
     onUpdate() {
       for (const r of resolved) if (r.node) r.node.textContent = r.format(proxy[r.key]);
     },
@@ -338,7 +414,10 @@ export function countUp(
  * RIVELATO (`inset(0 0% 0 0)`). `immediateRender` (default true) applica lo stato
  * "coperto" prima del paint → niente flash. Con `stagger` scopre in cascata più
  * elementi (selettore/array). dir: "l"(default) da sinistra, "r" da destra,
- * "t" dall'alto, "b" dal basso.
+ * "t" dall'alto, "b" dal basso. Con `anticipate` il blocco entra da un micro
+ * offset CONTRO la direzione del wipe e si assesta con EASE_SNAP (overshoot &
+ * settle) mentre la maschera lo scopre: l'anticipazione dei reveal importanti.
+ * Finisce a x/y 0 → stato finale neutro (reduced-motion pulito).
  */
 export function maskReveal(
   tl: gsap.core.Timeline,
@@ -348,6 +427,7 @@ export function maskReveal(
     duration?: number;
     ease?: string;
     stagger?: number | gsap.StaggerVars;
+    anticipate?: boolean;
     position?: number | string;
   },
 ): gsap.core.Timeline {
@@ -357,16 +437,41 @@ export function maskReveal(
     t: "inset(0 0 100% 0)",
     b: "inset(100% 0 0 0)",
   };
+  const dir = opts?.dir ?? "l";
+  const duration = opts?.duration ?? DUR.beat;
+  const pos = opts?.position ?? ">";
+  if (opts?.anticipate) {
+    // Offset di anticipazione CONTRO il verso d'ingresso del wipe.
+    const OFF: Record<"l" | "r" | "t" | "b", { x?: number; y?: number }> = {
+      l: { x: -8 },
+      r: { x: 8 },
+      t: { y: -8 },
+      b: { y: 8 },
+    };
+    tl.fromTo(target, { ...OFF[dir] }, { x: 0, y: 0, duration, ease: EASE_SNAP }, pos);
+    tl.fromTo(
+      target,
+      { clipPath: FROM[dir] },
+      {
+        clipPath: "inset(0 0% 0 0)",
+        duration,
+        ease: opts?.ease ?? EASE_IN_SCENE,
+        stagger: opts?.stagger,
+      },
+      "<",
+    );
+    return tl;
+  }
   tl.fromTo(
     target,
-    { clipPath: FROM[opts?.dir ?? "l"] },
+    { clipPath: FROM[dir] },
     {
       clipPath: "inset(0 0% 0 0)",
-      duration: opts?.duration ?? 0.7,
-      ease: opts?.ease ?? "power2.out",
+      duration,
+      ease: opts?.ease ?? EASE_IN_SCENE,
       stagger: opts?.stagger,
     },
-    opts?.position ?? ">",
+    pos,
   );
   return tl;
 }
@@ -484,8 +589,9 @@ function cameraShot(
 /**
  * INQUADRA un elemento: anima `.imm-camera` (x, y, scale) così che il centro del
  * target finisca al centro del viewport alla scala richiesta. Punch-in sui click
- * (scale 1.35–1.5, ease "expo.out" breve), push-in lento sul typing (scale ~1.2,
- * ease "power1.inOut", duration del typeInField). Valori FUNCTION-BASED:
+ * (scale 1.35–1.5, duration breve), push-in lento sul typing (scale ~1.2,
+ * duration del typeInField). Ease SEMPRE EASE_CAMERA (default — non passarne
+ * altre: la camera non fa mai overshoot). Valori FUNCTION-BASED:
  * ri-misurati a tween start e su invalidateOnRefresh → seguono il layout vero.
  * Scale clampata a [1, 1.7]; x/y clampati per non scoprire i bordi. Target
  * mancante → la camera resta dov'è (no-op). Chiudere SEMPRE con cameraReset
@@ -502,8 +608,8 @@ export function cameraTo(
   return tl.to(
     ".imm-camera",
     {
-      duration: opts?.duration ?? 0.9,
-      ease: opts?.ease ?? "power3.inOut",
+      duration: opts?.duration ?? DUR.scene,
+      ease: opts?.ease ?? EASE_CAMERA,
       x: () => shot()?.x ?? cameraCurrent(section).x,
       y: () => shot()?.y ?? cameraCurrent(section).y,
       scale: () => shot()?.scale ?? cameraCurrent(section).scale,
@@ -532,8 +638,8 @@ export function cameraReset(
       scale: 1,
       rotation: 0,
       skewX: 0,
-      duration: opts?.duration ?? 0.8,
-      ease: opts?.ease ?? "power2.inOut",
+      duration: opts?.duration ?? DUR.hold,
+      ease: opts?.ease ?? EASE_CAMERA,
     },
     opts?.position ?? ">",
   );
@@ -559,8 +665,8 @@ export function cameraFollow(
   return tl.to(
     ".imm-camera",
     {
-      duration: opts?.duration ?? 0.9,
-      ease: opts?.ease ?? "power2.inOut",
+      duration: opts?.duration ?? DUR.scene,
+      ease: opts?.ease ?? EASE_CAMERA,
       x: () => shot()?.x ?? cameraCurrent(section).x,
       y: () => shot()?.y ?? cameraCurrent(section).y,
       scale: () => shot()?.scale ?? cameraCurrent(section).scale,
@@ -651,7 +757,7 @@ export function cameraTrackType(
       y: () => geom()?.y ?? cameraCurrent(section).y,
       scale: S,
       duration: approach,
-      ease: "power2.inOut",
+      ease: EASE_CAMERA,
     },
     opts?.position ?? ">",
   );
@@ -664,7 +770,7 @@ export function cameraTrackType(
       top: caretTop,
       autoAlpha: 1,
       duration: approach,
-      ease: "power2.inOut",
+      ease: EASE_CAMERA,
       onStart() {
         setCursorMode(section, "text");
       },
@@ -705,6 +811,7 @@ export function cameraWhip(
   const skew = (opts?.skew ?? 1.2) * sign;
   const dur = opts?.duration ?? 0.35;
   const w = gsap.timeline();
+  // motion: coppia expo dedicata al burst del whip — accento di montaggio fuori palette
   w.to(".imm-camera", { xPercent: amount, skewX: skew, duration: dur / 2, ease: "expo.in" }).to(
     ".imm-camera",
     { xPercent: 0, skewX: 0, duration: dur / 2, ease: "expo.out" },
@@ -737,8 +844,8 @@ export function rackFocus(
   const vars: gsap.TweenVars = {
     opacity: opts?.opacity ?? 0.55,
     scale: opts?.scale ?? 0.985,
-    duration: opts?.duration ?? 0.5,
-    ease: opts?.ease ?? "power2.out",
+    duration: opts?.duration ?? 0.5, // motion: ≤0.5s — vincolo blur (regola 6)
+    ease: opts?.ease ?? EASE_IN_SCENE,
   };
   const blur = Math.min(2, Math.max(0, opts?.blur ?? 0));
   if (blur > 0) vars.filter = `blur(${blur}px)`;
@@ -760,8 +867,8 @@ export function rackFocusOff(
   const vars: gsap.TweenVars = {
     opacity: 1,
     scale: 1,
-    duration: opts?.duration ?? 0.5,
-    ease: opts?.ease ?? "power2.inOut",
+    duration: opts?.duration ?? 0.5, // motion: ≤0.5s — vincolo blur (regola 6)
+    ease: opts?.ease ?? EASE_CAMERA,
   };
   if (opts?.blur) vars.filter = "blur(0px)";
   tl.to(bgTarget, vars, opts?.position ?? ">");
@@ -791,7 +898,7 @@ export function useImmersiveScene(build: (tl: gsap.core.Timeline, section: HTMLE
       // Cursore nascosto finché non parte il 1° movimento; scrubbando indietro
       // oltre il 1° cursorTo torna qui (autoAlpha 0) → mai visibile sul velo.
       gsap.set(".imm-cursor", { autoAlpha: 0 });
-      const tl = gsap.timeline({ defaults: { ease: "power3.out" } });
+      const tl = gsap.timeline({ defaults: { ease: EASE_IN_SCENE } });
       tl.data = section; // gli helper (cursorTo) misurano i target in QUESTA scena
       build(tl, section);
       if (reduced) {
@@ -873,15 +980,19 @@ export function say(tl: gsap.core.Timeline, i: number) {
   const section = tl.data as HTMLElement | undefined;
   const caption = !!section?.querySelector(`.imm-say-${i}.imm-say--caption`);
   if (caption) {
-    tl.to(`.imm-say-${i}`, { autoAlpha: 1, y: 0, duration: 0.5, ease: "power3.out" });
-    tl.to(`.imm-say-${i}`, { autoAlpha: 0, y: -10, duration: 0.4, ease: "power2.in" }, "+=0.7");
+    tl.to(`.imm-say-${i}`, { autoAlpha: 1, y: 0, duration: DUR.beat, ease: EASE_IN_SCENE });
+    tl.to(
+      `.imm-say-${i}`,
+      { autoAlpha: 0, y: -10, duration: DUR.micro, ease: EASE_OUT_SCENE },
+      `+=${DUR.hold}`,
+    );
     return;
   }
-  tl.to(`.imm-say-${i}`, { autoAlpha: 1, scale: 1, y: 0, duration: 0.7, ease: "expo.out" });
+  tl.to(`.imm-say-${i}`, { autoAlpha: 1, scale: 1, y: 0, duration: DUR.beat, ease: EASE_IN_SCENE });
   tl.to(
     `.imm-say-${i}`,
-    { autoAlpha: 0, scale: 0.96, y: -24, duration: 0.5, ease: "back.in(1.4)" },
-    "+=0.7",
+    { autoAlpha: 0, scale: 0.96, y: -24, duration: DUR.beat, ease: EASE_OUT_SCENE },
+    `+=${DUR.hold}`,
   );
 }
 
@@ -1054,18 +1165,25 @@ export function chapterIntro(tl: gsap.core.Timeline) {
   // NUDO durante la traversata, la scritta arriva col primo beat scrubbato.
   gsap.set(".imm-chapter", { autoAlpha: 1, y: 0 });
   // Titolo: si genera progressivamente da sinistra a destra (wipe unico continuo).
-  maskReveal(tl, ".imm-chapter-title", { dir: "l", duration: 0.9, ease: "power2.inOut" });
+  maskReveal(tl, ".imm-chapter-title", { dir: "l", duration: DUR.scene, ease: EASE_CAMERA });
   // Sottotitolo opzionale (subito sotto il titolo, senza linea in mezzo)
   if (section.querySelector(".imm-chapter-sub")) {
     tl.fromTo(
       ".imm-chapter-sub",
       { autoAlpha: 0, y: 14 },
-      { autoAlpha: 1, y: 0, duration: 0.45, ease: "power3.out" },
-      "-=0.25",
+      { autoAlpha: 1, y: 0, duration: DUR.beat, ease: EASE_IN_SCENE },
+      `-=${DUR.micro}`,
     );
   }
-  // Hold breve, poi USCITA COMPATTA: velo+contenuto salgono e sfumano insieme.
-  tl.to(".imm-chapter", { autoAlpha: 0, y: -48, duration: 0.55, ease: "power2.in" }, "+=0.55");
+  // Respiro, poi USCITA COMPATTA (velo+contenuto salgono e sfumano insieme):
+  // è LO STACCO DI MONTAGGIO tra capitoli — stessa durata e stessa curva
+  // ovunque (DUR.beat + EASE_OUT_SCENE), il raccordo che rende la demo un
+  // unico film di brand. Non personalizzarlo per scena.
+  tl.to(
+    ".imm-chapter",
+    { autoAlpha: 0, y: -48, duration: DUR.beat, ease: EASE_OUT_SCENE },
+    `+=${DUR.hold}`,
+  );
 }
 
 /**

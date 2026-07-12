@@ -39,6 +39,13 @@ import {
   drawPath,
   countUp,
   maskReveal,
+  EASE_IN_SCENE,
+  EASE_OUT_SCENE,
+  EASE_SNAP,
+  EASE_CAMERA,
+  DUR,
+  hold,
+  enter,
 } from "./shared";
 
 // ── Dati statici ───────────────────────────────────────────────────────────────
@@ -206,9 +213,9 @@ export default function ImmersiveDashboard() {
 
     // Il cursore seleziona la pagina «Hero homepage» nella lista → highlight
     cursorTo(tl, ".imm-page-hero", { mode: "hand" });
-    tl.to({}, { duration: 0.25 });
+    tl.to({}, { duration: DUR.micro });
     pressButton(tl, ".imm-page-hero", { down: 0.96, downDur: 0.12, upDur: 0.22, back: 2.2 });
-    tl.to(".imm-page-active", { autoAlpha: 1, duration: 0.3, ease: "power2.out" }, "<");
+    tl.to(".imm-page-active", { autoAlpha: 1, duration: DUR.micro, ease: EASE_IN_SCENE }, "<");
     // FOLLOW (c) — sostituisce il clickZoom sull'editor: dal click sulla lista
     // la camera fa il pan verso l'editor, POI il cursore lo raggiunge (regola 2:
     // camera prima, cursorTo per ultimo → misura il layout ormai assestato).
@@ -219,42 +226,49 @@ export default function ImmersiveDashboard() {
 
     // «Sostituisci immagine»: la foto attuale viene COPERTA dalla nuova (wipe)
     cursorTo(tl, ".imm-replace-btn", { mode: "hand" });
-    tl.to({}, { duration: 0.2 });
+    tl.to({}, { duration: DUR.micro / 2 });
     pressButton(tl, ".imm-replace-btn", { down: 0.93, downDur: 0.1, upDur: 0.18, back: 2.5 });
-    maskReveal(tl, ".imm-img-new", { dir: "l", duration: 0.8, position: "<0.1" });
+    // Anticipazione R2: la foto nuova è l'ARRIVO del beat ① → contromovimento + settle col wipe.
+    maskReveal(tl, ".imm-img-new", {
+      dir: "l",
+      duration: DUR.scene,
+      anticipate: true,
+      position: "<0.1",
+    });
 
     // Il titolo si RISCRIVE: il vecchio sfuma e il nuovo si digita mentre la CAMERA
     // SEGUE IL CARET (item 4) — trasla a dx col punto di scrittura invece del push-in
     // FERMO (cameraTrackType sostituisce il vecchio cameraTo, regola 4). Il track
     // porta lui il caret al centro-schermo: niente cursorTo(campo) dedicato.
-    tl.to({}, { duration: 0.2 });
-    tl.to(".imm-title-old", { autoAlpha: 0, duration: 0.15, ease: "power1.out" });
-    cameraTrackType(tl, ".imm-title-new", { scale: 1.2, duration: 1.6 });
-    typeInField(tl, ".imm-title-new", { steps: 32, duration: 1.6, position: "<" });
+    tl.to({}, { duration: DUR.micro / 2 });
+    tl.to(".imm-title-old", { autoAlpha: 0, duration: DUR.micro / 2, ease: EASE_OUT_SCENE });
+    cameraTrackType(tl, ".imm-title-new", { scale: 1.2, duration: DUR.scene * 1.5 });
+    typeInField(tl, ".imm-title-new", { steps: 32, duration: DUR.scene * 1.5, position: "<" });
 
-    // «Pubblica» → PUNCH (a) DI CAMERA + toast. Camera PRIMA — snap expo.out e
-    // micro-overshoot back.out(1.2) sull'arrivo — poi il cursore (regola 2);
+    // «Pubblica» → PUNCH (a) DI CAMERA + toast. Camera PRIMA — punch in due tempi
+    // (stretta + assestamento), ease di kit in palette — poi il cursore (regola 2);
     // il vecchio clickZoom locale è rimosso (regola 4: mai i due sommati).
-    tl.to({}, { duration: 0.25 });
-    cameraTo(tl, ".imm-publish-btn", { scale: 1.45, duration: 0.45, ease: "expo.out" });
+    tl.to({}, { duration: DUR.micro });
+    cameraTo(tl, ".imm-publish-btn", { scale: 1.45, duration: DUR.beat });
     hideCursor(tl); // sfuma col punch (era fermo sul campo titolo) → niente galleggiamento
-    cameraTo(tl, ".imm-publish-btn", { scale: 1.38, duration: 0.3, ease: "back.out(1.2)" });
-    cursorTo(tl, ".imm-publish-btn", { mode: "hand", duration: 0.5 });
-    tl.to({}, { duration: 0.15 });
+    cameraTo(tl, ".imm-publish-btn", { scale: 1.38, duration: DUR.micro });
+    cursorTo(tl, ".imm-publish-btn", { mode: "hand", duration: DUR.beat });
+    tl.to({}, { duration: DUR.micro / 2 });
     pressButton(tl, ".imm-publish-btn", { down: 0.93, downDur: 0.1, upDur: 0.2, back: 2.5 });
-    tl.to(".imm-toast", { autoAlpha: 1, y: 0, duration: 0.4, ease: "back.out(2)" }, ">-0.1");
+    tl.to(".imm-toast", { autoAlpha: 1, y: 0, duration: DUR.beat, ease: EASE_SNAP }, ">-0.1");
+    hold(tl, 0.5); // respiro: il toast atterra e si legge prima del pull-back
     // PULL-BACK REVEAL (f): dalla stretta sul bottone si svela l'editor
     // pubblicato con il toast → camera neutra prima del cambio pannello.
-    cameraReset(tl, { duration: 0.9 });
+    cameraReset(tl, { duration: DUR.scene });
     hideCursor(tl); // sfuma col pull-back (era sul bottone); il beat ② lo riporta
     say(tl, 1); // «Modifichi i contenuti del sito: online subito.»
 
     // ── ② Prodotti ────────────────────────────────────────────────────────────
     cursorTo(tl, navItems[1], { mode: "hand" }); // click "Prodotti" nella sidebar
-    tl.to(".imm-nav-ind", { top: () => navTop(1), duration: 0.45, ease: "power3.inOut" }, "<0.3");
-    tl.to(".imm-track", { xPercent: -25, duration: 1.1, ease: "expo.inOut" }, "<0.1");
-    // WHIP (d) in sync col pan: il burst (0.35s) cade sul picco di velocità
-    // dell'expo.inOut (~metà pan). Finisce neutro da solo.
+    tl.to(".imm-nav-ind", { top: () => navTop(1), duration: DUR.beat, ease: EASE_CAMERA }, "<0.3");
+    tl.to(".imm-track", { xPercent: -25, duration: DUR.scene, ease: EASE_CAMERA }, "<0.1");
+    // WHIP (d) in sync col pan: il burst cade sul picco di velocità del pan
+    // (~metà corsa). Finisce neutro da solo.
     cameraWhip(tl, "r", { position: "<0.35" });
     say(tl, 2); // «Il catalogo prodotti: aggiungi e aggiorni in un click.»
 
@@ -262,56 +276,56 @@ export default function ImmersiveDashboard() {
     // i campi si COMPILANO (typing), la foto si carica (wipe), «Salva» → il
     // form si chiude e la nuova card entra nel catalogo. Flusso leggibile al
     // posto della vecchia comparsa istantanea della card.
-    tl.to({}, { duration: 0.35 });
+    tl.to({}, { duration: DUR.micro });
     cursorTo(tl, ".imm-add-btn", { mode: "hand" });
     pressButton(tl, ".imm-add-btn", { down: 0.93, downDur: 0.1, upDur: 0.18, back: 2.5 });
     tl.to(
       ".imm-add-form",
-      { autoAlpha: 1, y: 0, scale: 1, duration: 0.5, ease: "back.out(1.6)" },
+      { autoAlpha: 1, y: 0, scale: 1, duration: DUR.beat, ease: EASE_SNAP },
       ">-0.05",
     );
     // Push-in discreto sul form; il typing avviene a camera FERMA (regola 2),
     // il cursore parte DOPO il cameraTo → misura il layout assestato.
-    cameraTo(tl, ".imm-add-form", { scale: 1.18, duration: 0.6, ease: "power2.inOut" });
-    tl.to({}, { duration: 0.4 }); // si legge il form vuoto «Nuovo prodotto» prima del typing
+    cameraTo(tl, ".imm-add-form", { scale: 1.18, duration: DUR.beat });
+    tl.to({}, { duration: DUR.beat }); // si legge il form vuoto «Nuovo prodotto» prima del typing
     // Typing LENTO e leggibile (l'utente deve poter leggere nome e prezzo).
-    cursorTo(tl, ".imm-form-nome", { mode: "text", duration: 0.5 });
-    typeInField(tl, ".imm-form-nome", { steps: 22, duration: 1.9 });
-    cursorTo(tl, ".imm-form-prezzo", { mode: "text", duration: 0.4 });
-    typeInField(tl, ".imm-form-prezzo", { steps: 12, duration: 1.2 });
+    cursorTo(tl, ".imm-form-nome", { mode: "text", duration: DUR.beat });
+    typeInField(tl, ".imm-form-nome", { steps: 22, duration: DUR.scene * 2 });
+    cursorTo(tl, ".imm-form-prezzo", { mode: "text", duration: DUR.beat });
+    typeInField(tl, ".imm-form-prezzo", { steps: 12, duration: DUR.scene });
     // La foto del prodotto "si carica" con un wipe
-    maskReveal(tl, ".imm-form-foto", { dir: "l", duration: 0.6 });
-    tl.to({}, { duration: 0.7 }); // pausa: il form compilato resta leggibile prima del «Salva»
-    cursorTo(tl, ".imm-form-save", { mode: "hand", duration: 0.5 });
+    maskReveal(tl, ".imm-form-foto", { dir: "l", duration: DUR.beat });
+    tl.to({}, { duration: DUR.beat }); // pausa: il form compilato resta leggibile prima del «Salva»
+    cursorTo(tl, ".imm-form-save", { mode: "hand", duration: DUR.beat });
     pressButton(tl, ".imm-form-save", { down: 0.93, downDur: 0.1, upDur: 0.18, back: 2.5 });
     // Il form si chiude, la camera si riapre e la nuova card ENTRA nel catalogo
     tl.to(".imm-add-form", {
       autoAlpha: 0,
       y: -10,
       scale: 0.97,
-      duration: 0.35,
-      ease: "power2.in",
+      duration: DUR.micro,
+      ease: EASE_OUT_SCENE,
     });
-    cameraReset(tl, { duration: 0.7, position: "<" });
+    cameraReset(tl, { duration: DUR.beat, position: "<" });
     hideCursor(tl, { position: "<" });
     tl.to(
       ".imm-new-card",
-      { autoAlpha: 1, scale: 1, duration: 0.55, ease: "back.out(1.8)" },
+      { autoAlpha: 1, scale: 1, duration: DUR.beat, ease: EASE_SNAP },
       ">-0.1",
     );
-    tl.to({}, { duration: 1.0 }); // pausa: si legge la nuova card al suo posto nel catalogo
+    tl.to({}, { duration: DUR.scene }); // pausa: si legge la nuova card al suo posto nel catalogo
 
     // ── ③ Visite ──────────────────────────────────────────────────────────────
     cursorTo(tl, navItems[2], { mode: "hand" }); // click "Visite"
-    tl.to(".imm-nav-ind", { top: () => navTop(2), duration: 0.45, ease: "power3.inOut" }, "<0.3");
-    tl.to(".imm-track", { xPercent: -50, duration: 1.1, ease: "expo.inOut" }, "<0.1");
+    tl.to(".imm-nav-ind", { top: () => navTop(2), duration: DUR.beat, ease: EASE_CAMERA }, "<0.3");
+    tl.to(".imm-track", { xPercent: -50, duration: DUR.scene, ease: EASE_CAMERA }, "<0.1");
     cameraWhip(tl, "r", { position: "<0.35" }); // WHIP (d) in sync col pan
     say(tl, 3); // «Visite, utenti e conversioni, sempre aggiornati.»
 
     // Card KPI entrano con back.out staggered
     tl.to(
       ".imm-kpi-card",
-      { autoAlpha: 1, y: 0, duration: 0.5, stagger: 0.1, ease: "back.out(1.6)" },
+      { autoAlpha: 1, y: 0, duration: DUR.beat, stagger: 0.1, ease: EASE_SNAP },
       "<0.25",
     );
     // Proxy counter: i 4 valori salgono in parallelo (interi it-IT + tempo m:ss)
@@ -322,48 +336,48 @@ export default function ImmersiveDashboard() {
         to: k.target,
         format: k.fmt === "time" ? fmtTempo : (n: number) => FMT.format(Math.round(n)),
       })),
-      { duration: 2.2, ease: "power2.out", position: "<0.3" }, // countUp LENTO: i numeri salgono leggibili
+      { duration: DUR.scene * 2, ease: EASE_IN_SCENE, position: "<0.3" }, // countUp LENTO: i numeri salgono leggibili
     );
     // PUSH-IN (b) lento sulla fila KPI per TUTTA la durata del countUp (parte
     // insieme al counter; il cursore è fermo in sidebar → nessun conflitto).
     cameraTo(tl, ".imm-kpi-grid", {
       scale: 1.15,
-      duration: 2.2, // = durata del countUp
-      ease: "power1.inOut",
+      duration: DUR.scene * 2, // = durata del countUp
       position: "<",
     });
     // Sparkline si disegna da sinistra (dashoffset → 0)
-    drawPath(tl, ".imm-spark-path", { duration: 1.2, ease: "power2.inOut", position: "<0.4" });
+    drawPath(tl, ".imm-spark-path", { duration: DUR.scene, ease: EASE_CAMERA, position: "<0.4" });
     // Barre crescono dal basso con stagger
-    tl.to(".imm-bar", { scaleY: 1, duration: 0.6, stagger: 0.07, ease: "back.out(1.7)" }, "<0.3");
+    tl.to(".imm-bar", { scaleY: 1, duration: DUR.beat, stagger: 0.07, ease: EASE_SNAP }, "<0.3");
     // Click LEGGIBILE sulla card KPI «Visite» → si apre il GRAFICO DI DETTAGLIO
     // dedicato (prima era un punch rapido senza payoff). La camera è ferma a
     // 1.15 durante il click (misura corretta, regola 4: niente cameraTo qui).
-    tl.to({}, { duration: 0.7 }); // pausa: i KPI restano leggibili prima del click
+    tl.to({}, { duration: DUR.beat }); // pausa: i KPI restano leggibili prima del click
     cursorTo(tl, ".imm-kpi-zoom", { mode: "hand" });
-    tl.to({}, { duration: 0.2 });
+    tl.to({}, { duration: DUR.micro / 2 });
     pressButton(tl, ".imm-kpi-zoom", { down: 0.95, downDur: 0.12, upDur: 0.25, back: 2.2 });
     // Chiusura del push-in KPI PRIMA del reveal (regola 3): il dettaglio sta
     // più in basso e va letto a inquadratura piena; da qui in poi solo whip
     // auto-neutri → a progress(1) e sul beat finale la camera è neutra.
-    cameraReset(tl, { duration: 0.7 });
+    cameraReset(tl, { duration: DUR.beat });
     hideCursor(tl, { position: "<" });
+    hold(tl, 0.5); // respiro: l'inquadratura si assesta prima del reveal del dettaglio
     // Il grafico dedicato entra, la linea si disegna, l'area si riempie…
-    tl.to(".imm-visits-detail", { autoAlpha: 1, y: 0, duration: 0.5, ease: "power2.out" });
-    drawPath(tl, ".imm-detail-path", { duration: 1.1, ease: "power2.inOut", position: ">-0.2" });
-    tl.to(".imm-detail-area", { opacity: 1, duration: 0.5, ease: "power2.out" }, ">-0.3");
-    tl.to({}, { duration: 1.4 }); // …e c'è TEMPO PIENO per leggerlo
+    tl.to(".imm-visits-detail", { autoAlpha: 1, y: 0, duration: DUR.beat, ease: EASE_IN_SCENE });
+    drawPath(tl, ".imm-detail-path", { duration: DUR.scene, ease: EASE_CAMERA, position: ">-0.2" });
+    tl.to(".imm-detail-area", { opacity: 1, duration: DUR.beat, ease: EASE_IN_SCENE }, ">-0.3");
+    tl.to({}, { duration: DUR.scene * 1.5 }); // …e c'è TEMPO PIENO per leggerlo
 
     // ── ④ Ordini ──────────────────────────────────────────────────────────────
     cursorTo(tl, navItems[3], { mode: "hand" }); // click "Ordini"
-    tl.to(".imm-nav-ind", { top: () => navTop(3), duration: 0.45, ease: "power3.inOut" }, "<0.3");
-    tl.to(".imm-track", { xPercent: -75, duration: 1.1, ease: "expo.inOut" }, "<0.1");
+    tl.to(".imm-nav-ind", { top: () => navTop(3), duration: DUR.beat, ease: EASE_CAMERA }, "<0.3");
+    tl.to(".imm-track", { xPercent: -75, duration: DUR.scene, ease: EASE_CAMERA }, "<0.1");
     cameraWhip(tl, "r", { position: "<0.35" }); // WHIP (d) in sync col pan
     say(tl, 4); // «Gli ordini, con data e canale, in un'unica vista.»
     // Mini-KPI ordini: entrano e CONTANO prima della tabella (vista ampliata)
     tl.to(
       ".imm-ord-stat",
-      { autoAlpha: 1, y: 0, duration: 0.45, stagger: 0.08, ease: "back.out(1.6)" },
+      { autoAlpha: 1, y: 0, duration: DUR.beat, stagger: 0.08, ease: EASE_SNAP },
       "<0.25",
     );
     countUp(
@@ -376,24 +390,26 @@ export default function ImmersiveDashboard() {
             ? (n: number) => `${FMT.format(Math.round(n))} €`
             : (n: number) => FMT.format(Math.round(n)),
       })),
-      { duration: 1.7, ease: "power2.out", position: "<0.2" }, // countUp LENTO: i numeri restano leggibili
+      { duration: DUR.scene * 1.5, ease: EASE_IN_SCENE, position: "<0.2" }, // countUp LENTO: i numeri restano leggibili
     );
     // Righe tabella entrano con slide+fade staggered
     tl.to(
       ".imm-ord-row",
-      { autoAlpha: 1, x: 0, duration: 0.5, stagger: 0.14, ease: "power3.out" },
+      { autoAlpha: 1, x: 0, duration: DUR.beat, stagger: 0.14, ease: EASE_IN_SCENE },
       "<0.3",
     );
-    tl.to({}, { duration: 0.7 }); // pausa: la tabella ordini resta leggibile prima del click
+    tl.to({}, { duration: DUR.beat }); // pausa: la tabella ordini resta leggibile prima del click
     // Click sulla PRIMA riga → si apre il DETTAGLIO dell'ordine (righe articolo,
     // spedizione, consegna): la vista ordini non è più solo la lista.
-    cursorTo(tl, ".imm-ord-first", { mode: "hand", duration: 0.7 });
+    cursorTo(tl, ".imm-ord-first", { mode: "hand", duration: DUR.beat });
     pressButton(tl, ".imm-ord-first", { down: 0.98, downDur: 0.1, upDur: 0.2, back: 2 });
-    tl.to(".imm-ord-active", { autoAlpha: 1, duration: 0.25, ease: "power2.out" }, "<");
-    tl.to(".imm-ord-detail", { autoAlpha: 1, y: 0, duration: 0.5, ease: "power2.out" });
+    tl.to(".imm-ord-active", { autoAlpha: 1, duration: DUR.micro, ease: EASE_IN_SCENE }, "<");
+    hold(tl, 0.5); // respiro: il click si assesta prima dell'apertura del dettaglio
+    // Anticipazione R2: il dettaglio ordine è il payoff del beat ④ → arrivo con settle.
+    enter(tl, ".imm-ord-detail", { y: 14, duration: DUR.beat, anticipate: true });
     // Chiusura scena: pausa PIENA sul dettaglio ordine (la scena finisce qui; il
     // gancio «Segnala un problema» è rimosso — quel capitolo arriva scrollando).
-    tl.to({}, { duration: 1.4 });
+    tl.to({}, { duration: DUR.scene * 1.5 });
   });
 
   return (

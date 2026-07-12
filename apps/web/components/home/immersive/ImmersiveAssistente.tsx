@@ -50,6 +50,12 @@ import {
   cameraTrackType,
   rackFocus,
   hideCursor,
+  EASE_IN_SCENE,
+  EASE_OUT_SCENE,
+  EASE_SNAP,
+  EASE_CAMERA,
+  DUR,
+  hold,
 } from "./shared";
 import { PRODUCTS, GENERATED, QUERY } from "./_assistente-data";
 
@@ -98,53 +104,52 @@ export default function ImmersiveAssistente() {
 
     // ② Il cursore (caret) tocca la barra → focus (anello accent)
     cursorTo(tl, ".imm-bar", { mode: "text" });
-    tl.to(".imm-bar-ring", { autoAlpha: 1, duration: 0.35, ease: "power2.out" }, "<0.45");
+    tl.to(".imm-bar-ring", { autoAlpha: 1, duration: DUR.micro, ease: EASE_IN_SCENE }, "<0.45");
 
     // ③ Digitazione della richiesta carattere-per-carattere (kit: typeInField).
     //    CAMERA · TRACK DEL CARET (item 4): invece del push-in FERMO sulla barra, la
     //    camera TRASLA a dx seguendo il punto di scrittura (cameraTrackType sostituisce
     //    cameraTo, regola 4). Il caret — già sulla barra dal beat ② — si porta al
     //    centro-schermo = punto di scrittura e ci resta: il testo gli scorre sotto.
-    tl.to(".imm-placeholder", { autoAlpha: 0, duration: 0.2, ease: "power2.in" });
-    cameraTrackType(tl, ".imm-typed", { scale: 1.2, duration: 1.9 });
-    typeInField(tl, ".imm-typed", { steps: 30, duration: 1.9, position: "<" });
+    tl.to(".imm-placeholder", { autoAlpha: 0, duration: DUR.micro / 2, ease: EASE_OUT_SCENE });
+    cameraTrackType(tl, ".imm-typed", { scale: 1.2, duration: DUR.scene * 2 });
+    typeInField(tl, ".imm-typed", { steps: 30, duration: DUR.scene * 2, position: "<" });
     say(tl, 1);
 
     // ④ Invio → l'AI "ragiona": press del tasto (kit: pressButton), dots + un
     //    mini-grafico/spec che si DISEGNA durante la pausa di ragionamento.
-    //    CAMERA · PUNCH (a) sul tasto invio: punch rapido (expo.out) + micro-
-    //    overshoot d'arrivo (back.out) che assesta l'inquadratura a 1.4. Camera
+    //    CAMERA · PUNCH (a) sul tasto invio: punch rapido + settle che assesta
+    //    l'inquadratura a 1.4 (ease default del kit: EASE_CAMERA). Camera
     //    PRIMA, cursorTo per ULTIMO (regola 2: il cursore misura il layout ormai
     //    fermo → atterraggio preciso sul target inquadrato). L'inquadratura TIENE
     //    durante il ragionamento: il pull-back arriva col reveal della genui (⑤).
-    cameraTo(tl, ".imm-send", { scale: 1.5, duration: 0.45, ease: "expo.out" });
-    cameraTo(tl, ".imm-send", { scale: 1.4, duration: 0.25, ease: "back.out(1.2)" });
-    cursorTo(tl, ".imm-send", { mode: "hand", duration: 0.6 });
+    cameraTo(tl, ".imm-send", { scale: 1.5, duration: DUR.beat });
+    cameraTo(tl, ".imm-send", { scale: 1.4, duration: DUR.micro });
+    cursorTo(tl, ".imm-send", { mode: "hand", duration: DUR.beat });
     pressButton(tl, ".imm-send", {
       down: 0.86,
-      downDur: 0.12,
-      upDur: 0.22,
-      back: 2.4,
+      downDur: DUR.micro / 2,
+      upDur: DUR.micro,
       position: ">-0.05",
     });
-    tl.to(".imm-typing", { autoAlpha: 1, y: 0, duration: 0.35, ease: "power2.out" }, ">0.1");
-    drawPath(tl, ".imm-think-path", { duration: 0.7, ease: "power2.inOut", position: ">0.05" });
-    tl.to({}, { duration: 0.4 }); // pausa: "sta ragionando"
+    tl.to(".imm-typing", { autoAlpha: 1, y: 0, duration: DUR.micro, ease: EASE_IN_SCENE }, ">0.1");
+    drawPath(tl, ".imm-think-path", { duration: DUR.beat, ease: EASE_CAMERA, position: ">0.05" });
+    hold(tl, 0.5); // pausa: "sta ragionando"
 
     // ⑤ GENERA l'interfaccia: la griglia prodotti vola via e lascia il posto
     say(tl, 2);
-    tl.to(".imm-typing", { autoAlpha: 0, y: 8, duration: 0.25, ease: "power2.in" });
+    tl.to(".imm-typing", { autoAlpha: 0, y: 8, duration: DUR.micro, ease: EASE_OUT_SCENE });
     // La barra perde il focus: l'anello accent si spegne (altrimenti a progress(1),
     // sotto reduced-motion, resterebbe acceso senza interazione in corso).
-    tl.to(".imm-bar-ring", { autoAlpha: 0, duration: 0.25, ease: "power2.in" }, "<");
+    tl.to(".imm-bar-ring", { autoAlpha: 0, duration: DUR.micro, ease: EASE_OUT_SCENE }, "<");
     // CAMERA · PULL-BACK REVEAL (f): dall'inquadratura del punch (1.4) alla
     // neutra MENTRE la griglia vola via e la genui entra — è lo zoom-out che
     // "svela" l'interfaccia generata (chiude anche l'inquadratura del punch ④).
-    cameraReset(tl, { duration: 1.1, ease: "power2.inOut" });
+    cameraReset(tl, { duration: DUR.scene });
     // Il cursore finto vive FUORI dal layer .imm-camera: durante questo pull-back
     // di sola camera "galleggerebbe" staccato dai bottoni → lo sfumo via. Il
     // cursorTo del beat ⑥ (config-pick) lo rimostra da solo (autoAlpha 1).
-    hideCursor(tl, { duration: 0.3 });
+    hideCursor(tl, { duration: DUR.micro });
     // Griglia OUT: stagger che si dissolve verso l'alto, in overlap col pull-back.
     // autoAlpha:0 → visibility:hidden = fuori dall'albero a11y, ma il box resta
     // (height lock).
@@ -154,9 +159,9 @@ export default function ImmersiveAssistente() {
         autoAlpha: 0,
         y: -26,
         scale: 0.9,
-        duration: 0.5,
+        duration: DUR.beat,
         stagger: { each: 0.05, from: "end" },
-        ease: "power2.in",
+        ease: EASE_OUT_SCENE,
       },
       "<0.1",
     );
@@ -164,7 +169,7 @@ export default function ImmersiveAssistente() {
     // direzionale (kit: maskReveal) invece del semplice fade+slide.
     tl.to(
       ".imm-genui",
-      { autoAlpha: 1, y: 0, scale: 1, duration: 0.75, ease: "expo.out" },
+      { autoAlpha: 1, y: 0, scale: 1, duration: DUR.scene, ease: EASE_IN_SCENE },
       ">-0.15",
     );
     // CAMERA · RACK FOCUS (e) leggero: la pagina dietro la genui (header, titolo,
@@ -174,8 +179,9 @@ export default function ImmersiveAssistente() {
     rackFocus(tl, ".imm-behind", { opacity: 0.7, scale: 0.99, position: "<" });
     maskReveal(tl, ".imm-genui-item", {
       dir: "l",
-      duration: 0.5,
+      duration: DUR.beat,
       stagger: 0.07,
+      anticipate: true, // ingresso IMPORTANTE della scena: la UI generata arriva con overshoot & settle
       position: "<0.18",
     });
 
@@ -184,20 +190,19 @@ export default function ImmersiveAssistente() {
     //    degli overlay .imm-len-sel-*, scrub-safe e leggibile a progress(1)).
     //    CAMERA · PUNCH (a) sulla scelta: punch rapido + micro-overshoot;
     //    camera PRIMA, cursore per ULTIMO (regola 2).
-    cameraTo(tl, ".imm-config-pick", { scale: 1.42, duration: 0.45, ease: "expo.out" });
-    cameraTo(tl, ".imm-config-pick", { scale: 1.35, duration: 0.25, ease: "back.out(1.2)" });
+    cameraTo(tl, ".imm-config-pick", { scale: 1.42, duration: DUR.beat });
+    cameraTo(tl, ".imm-config-pick", { scale: 1.35, duration: DUR.micro });
     cursorTo(tl, ".imm-config-pick", { mode: "hand" });
     pressButton(tl, ".imm-config-pick", {
       down: 0.9,
-      downDur: 0.1,
-      upDur: 0.3,
-      back: 2.6,
+      downDur: DUR.micro / 2,
+      upDur: DUR.micro,
       position: ">-0.05",
     });
     // La selezione passa 5 m → 7 m (crossfade overlay, in coda al press).
-    tl.to(".imm-len-sel-0", { autoAlpha: 0, duration: 0.25, ease: "power2.in" }, ">-0.1");
-    tl.to(".imm-len-sel-1", { autoAlpha: 1, duration: 0.3, ease: "power2.out" }, "<");
-    tl.to({}, { duration: 0.35 }); // hold breve sull'inquadratura del click
+    tl.to(".imm-len-sel-0", { autoAlpha: 0, duration: DUR.micro, ease: EASE_OUT_SCENE }, ">-0.1");
+    tl.to(".imm-len-sel-1", { autoAlpha: 1, duration: DUR.micro, ease: EASE_IN_SCENE }, "<");
+    hold(tl, 0.5); // hold breve sull'inquadratura del click
 
     // ⑥b AGGIUNTA AL CARRELLO: punch di camera sulla CTA, press, label che passa
     //    a «Aggiunto ✓» (con icona carrello), poi (a camera tornata neutra →
@@ -205,14 +210,18 @@ export default function ImmersiveAssistente() {
     //    carrello dell'header, che pulsa e passa da 0 a 1. Tutto to/set
     //    deterministico → scrub-safe; stato finale a progress(1): CTA
     //    "Aggiunto ✓", carrello a 1.
-    cameraTo(tl, ".imm-cta", { scale: 1.4, duration: 0.45, ease: "expo.out" });
-    cameraTo(tl, ".imm-cta", { scale: 1.32, duration: 0.25, ease: "back.out(1.2)" });
+    cameraTo(tl, ".imm-cta", { scale: 1.4, duration: DUR.beat });
+    cameraTo(tl, ".imm-cta", { scale: 1.32, duration: DUR.micro });
     cursorTo(tl, ".imm-cta", { mode: "hand" });
-    pressButton(tl, ".imm-cta", { down: 0.92, downDur: 0.1, upDur: 0.25, back: 2.4 });
-    tl.to(".imm-cta-label", { autoAlpha: 0, duration: 0.2, ease: "power2.in" }, ">-0.05");
-    tl.to(".imm-cta-done", { autoAlpha: 1, duration: 0.25, ease: "power2.out" }, "<");
-    cameraReset(tl, { duration: 0.9 });
-    hideCursor(tl, { duration: 0.3 });
+    pressButton(tl, ".imm-cta", { down: 0.92, downDur: DUR.micro / 2, upDur: DUR.micro });
+    tl.to(
+      ".imm-cta-label",
+      { autoAlpha: 0, duration: DUR.micro / 2, ease: EASE_OUT_SCENE },
+      ">-0.05",
+    );
+    tl.to(".imm-cta-done", { autoAlpha: 1, duration: DUR.micro, ease: EASE_IN_SCENE }, "<");
+    cameraReset(tl, { duration: DUR.scene });
+    hideCursor(tl, { duration: DUR.micro });
     // Volo della miniatura (dopo il reset: coordinate misurate a camera neutra).
     tl.set(".imm-fly", {
       left: () => flyPt(".imm-cta").left,
@@ -224,24 +233,24 @@ export default function ImmersiveAssistente() {
       left: () => flyPt(".imm-cart").left,
       top: () => flyPt(".imm-cart").top,
       scale: 0.4,
-      duration: 0.85,
-      ease: "power2.inOut",
+      duration: DUR.scene,
+      ease: EASE_CAMERA,
     });
-    tl.to(".imm-fly", { autoAlpha: 0, scale: 0.25, duration: 0.18, ease: "power2.in" });
+    tl.to(".imm-fly", { autoAlpha: 0, scale: 0.25, duration: DUR.micro / 2, ease: EASE_OUT_SCENE });
     // Il badge carrello "riceve": pulse + contatore 0 → 1.
-    tl.to(".imm-cart", { scale: 1.2, duration: 0.15, ease: "power2.out" }, "<");
-    tl.to(".imm-cart-0", { autoAlpha: 0, duration: 0.12 }, "<");
-    tl.to(".imm-cart-1", { autoAlpha: 1, duration: 0.15 }, "<");
-    tl.to(".imm-cart", { scale: 1, duration: 0.35, ease: "back.out(2.5)" });
-    tl.to({}, { duration: 0.4 }); // hold: si legge "Carrello · 1"
+    tl.to(".imm-cart", { scale: 1.2, duration: DUR.micro / 2, ease: EASE_IN_SCENE }, "<");
+    tl.to(".imm-cart-0", { autoAlpha: 0, duration: DUR.micro / 2 }, "<");
+    tl.to(".imm-cart-1", { autoAlpha: 1, duration: DUR.micro / 2 }, "<");
+    tl.to(".imm-cart", { scale: 1, duration: DUR.micro, ease: EASE_SNAP });
+    hold(tl, 0.5); // hold: si legge "Carrello · 1"
 
     // ⑦ CAMERA · reset PRIMA del beat finale (regola 3): a progress(1) la camera
     //    è neutra → reduced-motion pulito e hand-off `.imm-stage` senza conflitti.
     cameraReset(tl);
     // Il cursore sfuma mentre la camera torna neutra e resta nascosto durante
     // l'hold finale e l'hand-off (a progress(1) neutro, reduced-motion pulito).
-    hideCursor(tl, { duration: 0.3 });
-    tl.to({}, { duration: 0.6 }); // pausa finale
+    hideCursor(tl, { duration: DUR.micro });
+    hold(tl, 0.75); // pausa finale
   });
 
   return (

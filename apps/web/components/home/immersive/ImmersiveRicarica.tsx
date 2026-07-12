@@ -27,6 +27,13 @@
 import { gsap } from "@gmgroup/lib/gsap";
 import { useReducedMotion } from "@gmgroup/lib/motion";
 import {
+  EASE_IN_SCENE,
+  EASE_OUT_SCENE,
+  EASE_SNAP,
+  EASE_CAMERA,
+  DUR,
+  hold,
+  enter,
   ImmersiveStage,
   Say,
   say,
@@ -98,12 +105,7 @@ export default function ImmersiveRicarica() {
     gsap.set(".imm-rc-user-1", { autoAlpha: 0, y: 14 });
     gsap.set(".imm-rc-typing", { autoAlpha: 0 });
     gsap.set(".imm-rc-agent-1", { autoAlpha: 0, x: -18 });
-    gsap.set(".imm-rc-card-station", {
-      autoAlpha: 0,
-      y: 18,
-      scale: 0.94,
-      transformOrigin: "left center",
-    });
+    gsap.set(".imm-rc-card-station", { autoAlpha: 0, y: 18 });
     // pathLength="1" normalizza la rotta → dashoffset 1 = nascosta, 0 = visibile
     gsap.set(".imm-rc-route", { strokeDashoffset: 1 });
     gsap.set(".imm-rc-pin", {
@@ -115,12 +117,7 @@ export default function ImmersiveRicarica() {
     });
     gsap.set(".imm-rc-pin-ring", { scale: 1, opacity: 0 });
     gsap.set(".imm-rc-user-2", { autoAlpha: 0, y: 14 });
-    gsap.set(".imm-rc-card-charge", {
-      autoAlpha: 0,
-      y: 18,
-      scale: 0.94,
-      transformOrigin: "left center",
-    });
+    gsap.set(".imm-rc-card-charge", { autoAlpha: 0, y: 18 });
     gsap.set(".imm-rc-battery-fill", { scaleX: 0.2, transformOrigin: "left center" });
     gsap.set(".imm-rc-final", { autoAlpha: 0, y: 12 });
 
@@ -131,7 +128,7 @@ export default function ImmersiveRicarica() {
     chapterIntro(tl);
 
     // ── ② L'utente scrive nel campo (reveal parola-per-parola) e invia ─────────
-    tl.to(".imm-rc-placeholder", { autoAlpha: 0, duration: 0.2, ease: "power2.out" });
+    tl.to(".imm-rc-placeholder", { autoAlpha: 0, duration: DUR.micro / 2, ease: EASE_IN_SCENE });
     // Digitazione PAROLA-PER-PAROLA: la frase compare da sinistra e VA A CAPO su
     // due righe (input più alto), così l'intero messaggio resta LEGGIBILE quando
     // finisce di scriversi. Prima era single-line con overflow + scroll-x: a fine
@@ -141,7 +138,7 @@ export default function ImmersiveRicarica() {
     // che partisse la successiva: cadenza a scatti).
     tl.to(
       ".imm-rc-word",
-      { autoAlpha: 1, y: 0, duration: 0.24, ease: "power2.out", stagger: 0.19 },
+      { autoAlpha: 1, y: 0, duration: DUR.micro, ease: EASE_IN_SCENE, stagger: 0.19 },
       "<",
     );
     // (b) PUSH-IN sulla digitazione: 1.3 (era 1.15) — la scritta nel mockup
@@ -151,14 +148,13 @@ export default function ImmersiveRicarica() {
     // sommano sullo stesso beat (regola 4).
     cameraTo(tl, ".imm-zoom-local", {
       scale: 1.3,
-      duration: 1.5, // ≈ durata del reveal parola-per-parola: il push-in lo accompagna
-      ease: "power1.inOut",
+      duration: DUR.scene * 1.5, // ≈ durata del reveal parola-per-parola: il push-in lo accompagna
       position: "<",
     });
-    // (a) PUNCH leggero sul tasto invia: prima la camera (breve, expo.out), POI
+    // (a) PUNCH leggero sul tasto invia: prima la camera (breve), POI
     // il cursore-mano che atterra a inquadratura assestata (regola 2: mai
     // partenze simultanee camera+cursore sullo stesso target).
-    cameraTo(tl, ".imm-rc-send", { scale: 1.24, duration: 0.4, ease: "expo.out" });
+    cameraTo(tl, ".imm-rc-send", { scale: 1.24, duration: DUR.beat });
     cursorTo(tl, ".imm-rc-send", { mode: "hand" });
     pressButton(tl, ".imm-rc-send", {
       down: 0.86,
@@ -168,68 +164,73 @@ export default function ImmersiveRicarica() {
       position: ">-0.05",
     });
     // Il campo si svuota (le parole si dissolvono) e il messaggio entra nel thread
-    tl.to(".imm-rc-word", { autoAlpha: 0, duration: 0.22, ease: "power2.in" }, "<");
-    tl.to(".imm-rc-placeholder", { autoAlpha: 1, duration: 0.25 }, "<");
-    tl.to(
-      ".imm-rc-user-1",
-      { autoAlpha: 1, y: 0, duration: 0.45, ease: "back.out(1.7)" },
-      ">-0.05",
-    );
+    tl.to(".imm-rc-word", { autoAlpha: 0, duration: DUR.micro, ease: EASE_OUT_SCENE }, "<");
+    tl.to(".imm-rc-placeholder", { autoAlpha: 1, duration: DUR.micro }, "<");
+    tl.to(".imm-rc-user-1", { autoAlpha: 1, y: 0, duration: DUR.beat, ease: EASE_SNAP }, ">-0.05");
     tl.to(
       ".imm-rc-thread",
-      { y: () => scrollTo(".imm-rc-user-1"), duration: 0.5, ease: "power2.inOut" },
+      { y: () => scrollTo(".imm-rc-user-1"), duration: DUR.beat, ease: EASE_CAMERA },
       "<",
     );
     // (f) PULL-BACK REVEAL: dal punch sull'invio la camera si riapre a neutro
     // mentre il messaggio entra nel thread → "svela" la conversazione.
-    cameraReset(tl, { duration: 0.7, position: "<" });
+    cameraReset(tl, { duration: DUR.beat, position: "<" });
 
     // ── ③ L'agente "sta scrivendo" → risponde ─────────────────────────────────
-    tl.to(".imm-rc-typing", { autoAlpha: 1, duration: 0.3, ease: "power2.out" }, ">0.1");
+    tl.to(".imm-rc-typing", { autoAlpha: 1, duration: DUR.micro, ease: EASE_IN_SCENE }, ">0.1");
     say(tl, 1); // «Trova la colonnina giusta sul tuo percorso.»
-    tl.to(".imm-rc-typing", { autoAlpha: 0, duration: 0.2, ease: "power2.in" });
-    tl.to(".imm-rc-agent-1", { autoAlpha: 1, x: 0, duration: 0.5, ease: "back.out(1.6)" });
+    tl.to(".imm-rc-typing", { autoAlpha: 0, duration: DUR.micro / 2, ease: EASE_OUT_SCENE });
+    tl.to(".imm-rc-agent-1", { autoAlpha: 1, x: 0, duration: DUR.beat, ease: EASE_SNAP });
     tl.to(
       ".imm-rc-thread",
-      { y: () => scrollTo(".imm-rc-agent-1"), duration: 0.5, ease: "power2.inOut" },
+      { y: () => scrollTo(".imm-rc-agent-1"), duration: DUR.beat, ease: EASE_CAMERA },
       "<0.1",
     );
 
     // ── ④ Generative-UI: card stazione + mini-mappa con rotta e pin ───────────
-    tl.to(
-      ".imm-rc-card-station",
-      { autoAlpha: 1, y: 0, scale: 1, duration: 0.6, ease: "expo.out" },
-      ">0.1",
-    );
+    // Ingresso IMPORTANTE (R2): enter con ANTICIPAZIONE — overshoot & settle (EASE_SNAP).
+    enter(tl, ".imm-rc-card-station", {
+      y: 18,
+      anticipate: true,
+      duration: DUR.beat,
+      position: ">0.1",
+    });
     // (e) RACK FOCUS leggerissimo: la griglia-mappa di sfondo si attenua mentre
     // si "apre" la generative-UI → profondità dietro il telefono (chiuso con
     // rackFocusOff al beat finale; niente blur — regola 6).
-    rackFocus(tl, ".imm-rc-bg", { opacity: 0.45, scale: 0.99, duration: 0.5, position: "<" });
+    rackFocus(tl, ".imm-rc-bg", { opacity: 0.45, scale: 0.99, duration: DUR.beat, position: "<" });
     tl.to(
       ".imm-rc-thread",
-      { y: () => scrollTo(".imm-rc-card-station"), duration: 0.6, ease: "power2.inOut" },
+      { y: () => scrollTo(".imm-rc-card-station"), duration: DUR.beat, ease: EASE_CAMERA },
       "<",
     );
     // La rotta si disegna lungo il percorso
-    tl.to(".imm-rc-route", { strokeDashoffset: 0, duration: 1.1, ease: "power2.inOut" }, "<0.2");
+    tl.to(".imm-rc-route", { strokeDashoffset: 0, duration: DUR.scene, ease: EASE_CAMERA }, "<0.2");
     // Il pin cade dall'alto con rimbalzo espressivo
-    tl.to(".imm-rc-pin", { autoAlpha: 1, scale: 1, duration: 0.5, ease: "back.out(2.6)" }, ">-0.4");
+    tl.to(".imm-rc-pin", { autoAlpha: 1, scale: 1, duration: DUR.beat, ease: EASE_SNAP }, ">-0.4");
     // Sonar a PIÙ anelli: i due ring si espandono e si dissolvono sfalsati
     // (scrub-safe, no repeat) → effetto radar attorno al pin.
     tl.fromTo(
       ".imm-rc-pin-ring",
       { scale: 1, opacity: 0.7 },
-      { scale: 2.8, opacity: 0, duration: 0.9, ease: "power2.out", stagger: 0.18 },
+      { scale: 2.8, opacity: 0, duration: DUR.scene, ease: EASE_IN_SCENE, stagger: 0.18 },
       "<0.1",
     );
     // Le statistiche della stazione si scoprono a WIPE (kit: maskReveal).
-    maskReveal(tl, ".imm-rc-stat", { dir: "t", duration: 0.4, stagger: 0.07, position: "<0.15" });
+    maskReveal(tl, ".imm-rc-stat", {
+      dir: "t",
+      duration: DUR.beat,
+      stagger: 0.07,
+      position: "<0.15",
+    });
+    // RESPIRO (R2): la generative-UI si è appena aperta — pausa prima della traversata al CTA.
+    hold(tl, 0.5);
 
     // ── ⑤ L'utente prenota lo stallo (cursore-mano "tap" + punch-zoom della card) ──
     // (c) FOLLOW leggero: la camera accompagna la traversata verso il CTA con un
     // lieve avvicinamento (1.08); camera PRIMA, cursorTo per ULTIMO così il
     // cursore misura il layout ormai assestato (regola 2).
-    cameraFollow(tl, ".imm-rc-book-btn", { scale: 1.08, duration: 0.7 });
+    cameraFollow(tl, ".imm-rc-book-btn", { scale: 1.08, duration: DUR.beat });
     cursorTo(tl, ".imm-rc-book-btn", { mode: "hand" });
     // Punch LOCALE (clickZoom 1.03): ammesso perché su questo beat la camera è
     // FERMA in hold a 1.08 — nessun cameraTo concorrente (regola 4).
@@ -241,42 +242,45 @@ export default function ImmersiveRicarica() {
       back: 2.2,
       position: "<",
     });
-    tl.to(
-      ".imm-rc-user-2",
-      { autoAlpha: 1, y: 0, duration: 0.45, ease: "back.out(1.7)" },
-      ">-0.05",
-    );
+    tl.to(".imm-rc-user-2", { autoAlpha: 1, y: 0, duration: DUR.beat, ease: EASE_SNAP }, ">-0.05");
     tl.to(
       ".imm-rc-thread",
-      { y: () => scrollTo(".imm-rc-user-2"), duration: 0.5, ease: "power2.inOut" },
+      { y: () => scrollTo(".imm-rc-user-2"), duration: DUR.beat, ease: EASE_CAMERA },
       "<",
     );
     // Nasconde il cursore-mano DOPO che la bolla user-2 si è assestata e PRIMA del
     // cameraTo sulla vista ricarica: altrimenti resta congelato sopra il telefono
     // fino al reset finale. A progress(1) l'ultimo tween sul cursore è autoAlpha:0
     // → nascosto anche in reduced-motion (il cursorTo successivo lo rimostra).
-    hideCursor(tl, { duration: 0.3, position: ">" });
+    hideCursor(tl, { duration: DUR.micro, position: ">" });
+    // RESPIRO (R2): prenotazione conclusa — pausa piena prima della vista ricarica.
+    hold(tl);
 
     // ── ⑥ Frase + vista RICARICA: batteria che sale, timer e costo live ───────
     say(tl, 2); // «Prenota lo stallo e segue tempi e costi in tempo reale.»
-    tl.to(".imm-rc-card-charge", { autoAlpha: 1, y: 0, scale: 1, duration: 0.6, ease: "expo.out" });
+    // Ingresso IMPORTANTE (R2): enter con ANTICIPAZIONE — overshoot & settle (EASE_SNAP).
+    enter(tl, ".imm-rc-card-charge", { y: 18, anticipate: true, duration: DUR.beat });
     tl.to(
       ".imm-rc-thread",
-      { y: () => scrollTo(".imm-rc-card-charge"), duration: 0.6, ease: "power2.inOut" },
+      { y: () => scrollTo(".imm-rc-card-charge"), duration: DUR.beat, ease: EASE_CAMERA },
       "<",
     );
     // (b) PUSH-IN lento sulla vista ricarica, in respiro con la batteria 20→80%.
     // Appeso DOPO l'auto-scroll del thread: la camera misura i target a tween
     // start e una misura a thread in movimento darebbe coordinate sbagliate.
-    cameraTo(tl, ".imm-rc-card-charge", { scale: 1.14, duration: 1.2, ease: "power1.inOut" });
+    cameraTo(tl, ".imm-rc-card-charge", { scale: 1.14, duration: DUR.scene * 1.5 });
     // Barra batteria 20% → 80% in sincronia con il contatore
-    tl.to(".imm-rc-battery-fill", { scaleX: 0.8, duration: 1.3, ease: "power1.inOut" }, "<0.1");
+    tl.to(
+      ".imm-rc-battery-fill",
+      { scaleX: 0.8, duration: DUR.scene * 1.5, ease: EASE_CAMERA },
+      "<0.1",
+    );
     tl.to(
       pct,
       {
         v: 80,
-        duration: 1.3,
-        ease: "power1.inOut",
+        duration: DUR.scene * 1.5,
+        ease: EASE_CAMERA,
         onUpdate() {
           if (pctEl) pctEl.textContent = fmtInt.format(pct.v) + "%";
         },
@@ -290,8 +294,8 @@ export default function ImmersiveRicarica() {
       { scale: 1 },
       {
         scale: 1.12,
-        duration: 0.65,
-        ease: "power1.inOut",
+        duration: (DUR.scene * 1.5) / 2, // motion: metà barra (yoyo+repeat:1 → totale = barra)
+        ease: EASE_CAMERA,
         yoyo: true,
         repeat: 1,
         transformOrigin: "left center",
@@ -305,14 +309,14 @@ export default function ImmersiveRicarica() {
         { el: ".imm-rc-cost", to: 6.4, format: (n) => fmtEur.format(n) + " €" },
         { el: ".imm-rc-timer", to: 18, format: (n) => Math.round(n) + " min" },
       ],
-      { duration: 1.3, ease: "power1.inOut", position: "<" },
+      { duration: DUR.scene * 1.5, ease: EASE_CAMERA, position: "<" },
     );
 
     // ── ⑦ Bolla finale + pausa di respiro ─────────────────────────────────────
-    tl.to(".imm-rc-final", { autoAlpha: 1, y: 0, duration: 0.5, ease: "expo.out" }, ">0.1");
+    tl.to(".imm-rc-final", { autoAlpha: 1, y: 0, duration: DUR.beat, ease: EASE_IN_SCENE }, ">0.1");
     tl.to(
       ".imm-rc-thread",
-      { y: () => scrollTo(".imm-rc-final"), duration: 0.5, ease: "power2.inOut" },
+      { y: () => scrollTo(".imm-rc-final"), duration: DUR.beat, ease: EASE_CAMERA },
       "<",
     );
     // RESET FINALE (regola 3): pull-back a camera NEUTRA sulla bolla conclusiva
@@ -320,9 +324,9 @@ export default function ImmersiveRicarica() {
     // .imm-stage invariato); la griglia di sfondo torna a fuoco (chiude il
     // rack focus di ④). La pausa di respiro resta DOPO: il reset si completa
     // sempre prima della fine timeline.
-    cameraReset(tl, { duration: 0.8, position: "<" });
-    rackFocusOff(tl, ".imm-rc-bg", { duration: 0.5, position: "<" });
-    tl.to({}, { duration: 0.5 });
+    cameraReset(tl, { duration: DUR.hold, position: "<" });
+    rackFocusOff(tl, ".imm-rc-bg", { duration: DUR.beat, position: "<" });
+    hold(tl, 0.5);
   });
 
   return (

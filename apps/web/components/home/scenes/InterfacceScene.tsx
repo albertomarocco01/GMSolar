@@ -39,7 +39,14 @@ import {
   chapterIntro,
   countUp,
   cursorTo,
+  DUR,
+  EASE_CAMERA,
+  EASE_IN_SCENE,
+  EASE_OUT_SCENE,
+  EASE_SNAP,
+  enter,
   hideCursor,
+  hold,
   maskReveal,
   pressButton,
   typeInField,
@@ -68,65 +75,80 @@ export default function InterfacceScene() {
     // ① Title card di capitolo.
     chapterIntro(tl);
 
-    // ② — Pezzo 1 · Vetro liquido: entra a maschera, il riflesso scivola via.
-    maskReveal(tl, ".shw-card-0", { dir: "l", duration: 0.6 });
-    tl.to(".shw-lg-spec", { xPercent: 220, duration: 1.15, ease: "power2.inOut" }, ">-0.05");
+    // ② — Pezzo 1 · Vetro liquido: entra a maschera (con anticipazione: è il
+    // primo pezzo della carrellata), il riflesso scivola via.
+    maskReveal(tl, ".shw-card-0", { dir: "l", duration: DUR.beat, anticipate: true });
+    tl.to(".shw-lg-spec", { xPercent: 220, duration: DUR.scene, ease: EASE_CAMERA }, ">-0.05");
 
     // — Pezzo 2 · Glassmorphism: il binario scorre, poi il mini-form prende vita.
-    tl.to(".shw-rail", { xPercent: -25, duration: 1.0, ease: "expo.inOut" }, ">0.3");
+    tl.to(".shw-rail", { xPercent: -25, duration: DUR.scene, ease: EASE_CAMERA }, ">0.3");
     hideCursor(tl, { position: "<" }); // cursore via durante il pan
     cursorTo(tl, ".shw-glass-txt", { mode: "text" });
-    tl.to(".shw-glass-label", { y: -14, scale: 0.72, duration: 0.3, ease: "power2.out" }, "<0.15");
-    typeInField(tl, ".shw-glass-txt", { steps: 16, duration: 1.1, position: "<0.1" });
+    tl.to(
+      ".shw-glass-label",
+      { y: -14, scale: 0.72, duration: DUR.micro, ease: EASE_IN_SCENE },
+      "<0.15",
+    );
+    typeInField(tl, ".shw-glass-txt", { steps: 16, duration: DUR.scene, position: "<0.1" });
     cursorTo(tl, ".shw-glass-btn", { mode: "hand" });
     pressButton(tl, ".shw-glass-btn");
-    tl.to(".shw-glass-ok", { autoAlpha: 1, duration: 0.3, ease: "power2.out" }, ">-0.05");
+    tl.to(".shw-glass-ok", { autoAlpha: 1, duration: DUR.micro, ease: EASE_IN_SCENE }, ">-0.05");
 
     // — Pezzo 3 · Neon: il binario scorre, il dato conta e la barra cresce.
-    tl.to(".shw-rail", { xPercent: -50, duration: 1.0, ease: "expo.inOut" }, ">0.3");
+    hold(tl, 0.5); // respiro: il form appena inviato resta leggibile prima del pan
+    tl.to(".shw-rail", { xPercent: -50, duration: DUR.scene, ease: EASE_CAMERA }, ">0.3");
     hideCursor(tl, { position: "<" });
     countUp(tl, [{ el: ".shw-elec-num", to: 1284, format: fmtIt }], {
-      duration: 1.2,
+      duration: DUR.scene,
       position: ">0.05",
     });
-    tl.to(".shw-elec-bar", { scaleX: 0.78, duration: 1.0, ease: "power2.out" }, "<");
+    tl.to(".shw-elec-bar", { scaleX: 0.78, duration: DUR.scene, ease: EASE_IN_SCENE }, "<");
 
     // — Pezzo 4 · Micro-interazioni: il binario scorre, poi i tre bottoni.
-    tl.to(".shw-rail", { xPercent: -75, duration: 1.0, ease: "expo.inOut" }, ">0.3");
+    hold(tl, 0.5); // respiro: il dato "live" si legge prima del pan
+    tl.to(".shw-rail", { xPercent: -75, duration: DUR.scene, ease: EASE_CAMERA }, ">0.3");
     // A · magnetico: il bottone si sposta verso il cursore, poi rimbalza a posto.
     cursorTo(tl, ".shw-btnA", { mode: "hand" });
-    tl.to(".shw-btnA", { x: 8, y: -5, duration: 0.28, ease: "power2.out" }, ">-0.15");
-    tl.to(".shw-btnA", { x: 0, y: 0, duration: 0.5, ease: "elastic.out(1, 0.5)" }, ">0.05");
+    tl.to(".shw-btnA", { x: 8, y: -5, duration: DUR.micro, ease: EASE_IN_SCENE }, ">-0.15");
+    tl.to(".shw-btnA", { x: 0, y: 0, duration: DUR.beat, ease: EASE_SNAP }, ">0.05");
     // B · riempimento che scorre.
     cursorTo(tl, ".shw-btnB", { mode: "hand" });
-    tl.to(".shw-btnB-fill", { scaleX: 1, duration: 0.5, ease: "power2.inOut" }, ">-0.1");
+    tl.to(".shw-btnB-fill", { scaleX: 1, duration: DUR.beat, ease: EASE_CAMERA }, ">-0.1");
     // C · morph: etichetta → spinner (gira e sfuma) → check.
     cursorTo(tl, ".shw-btnC", { mode: "hand" });
     pressButton(tl, ".shw-btnC");
-    tl.to(".shw-btnC-label", { autoAlpha: 0, duration: 0.15 }, ">");
-    tl.to(".shw-btnC-spin", { autoAlpha: 1, duration: 0.12 }, "<");
-    tl.fromTo(".shw-btnC-spin", { rotate: 0 }, { rotate: 360, duration: 0.7, ease: "none" }, "<");
-    tl.to(".shw-btnC-spin", { autoAlpha: 0, duration: 0.14 }, ">-0.02");
+    tl.to(".shw-btnC-label", { autoAlpha: 0, duration: DUR.micro / 2 }, ">");
+    tl.to(".shw-btnC-spin", { autoAlpha: 1, duration: DUR.micro / 2 }, "<");
+    tl.fromTo(
+      ".shw-btnC-spin",
+      { rotate: 0 },
+      { rotate: 360, duration: DUR.beat, ease: "none" },
+      "<",
+    );
+    tl.to(".shw-btnC-spin", { autoAlpha: 0, duration: DUR.micro / 2 }, ">-0.02");
     tl.fromTo(
       ".shw-btnC-check",
       { autoAlpha: 0, scale: 0.6 },
-      { autoAlpha: 1, scale: 1, duration: 0.3, ease: "back.out(2)" },
+      { autoAlpha: 1, scale: 1, duration: DUR.micro, ease: EASE_SNAP },
       ">-0.06",
     );
 
-    // ③ Finale: cursore via, binario sfuma, griglia compatta 2×2 in cascata.
+    // ③ Finale: cursore via, binario sfuma, griglia compatta 2×2 in cascata
+    // (con anticipazione: è il beat conclusivo del capitolo).
+    hold(tl, 0.5); // respiro: il check appena morfato si legge prima del finale
     hideCursor(tl, { position: ">0.1" });
-    tl.to(".shw-rail", { autoAlpha: 0, duration: 0.5, ease: "power2.in" }, ">0.1");
-    tl.to(".shw-grid", { autoAlpha: 1, duration: 0.4, ease: "power2.out" }, "<0.15");
-    tl.fromTo(
-      ".shw-grid-cell",
-      { autoAlpha: 0, y: 22 },
-      { autoAlpha: 1, y: 0, duration: 0.5, stagger: 0.08, ease: "power3.out" },
-      "<0.1",
-    );
+    tl.to(".shw-rail", { autoAlpha: 0, duration: DUR.beat, ease: EASE_OUT_SCENE }, ">0.1");
+    tl.to(".shw-grid", { autoAlpha: 1, duration: DUR.beat, ease: EASE_IN_SCENE }, "<0.15");
+    enter(tl, ".shw-grid-cell", {
+      y: 22,
+      duration: DUR.beat,
+      stagger: 0.08,
+      anticipate: true,
+      position: "<0.1",
+    });
 
     // Hold finale leggibile (stato = quello di progress(1)).
-    tl.to({}, { duration: 0.8 });
+    hold(tl);
   });
 
   return (
@@ -135,7 +157,9 @@ export default function InterfacceScene() {
           `#top *` di AutoScroll), spento sotto reduced-motion. */}
       <style>{`
         @keyframes shwSpin { to { transform: rotate(360deg); } }
-        .shw-conic-spin { animation: shwSpin 7s linear infinite; will-change: transform; }
+        /* Periodo agganciato alla griglia comune dei loop decorativi: 6.4s = 2 × 3.2s
+           (la rotazione piena a 3.2s sarebbe frenetica; il multiplo resta in fase). */
+        .shw-conic-spin { animation: shwSpin 6.4s linear infinite; will-change: transform; }
         @media (prefers-reduced-motion: reduce) { .shw-conic-spin { animation: none; } }
       `}</style>
 

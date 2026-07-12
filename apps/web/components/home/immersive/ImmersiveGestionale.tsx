@@ -53,6 +53,13 @@ import {
   pressButton,
   typeInField,
   maskReveal,
+  EASE_IN_SCENE,
+  EASE_OUT_SCENE,
+  EASE_SNAP,
+  EASE_CAMERA,
+  DUR,
+  hold,
+  enter,
 } from "./shared";
 
 // Voci sidebar (con icona, look console operativa): la demo visita Panoramica,
@@ -186,24 +193,36 @@ export default function ImmersiveGestionale() {
     chapterIntro(tl);
 
     // ── ① Panoramica — KPI, barre sessioni, barre Stato rete. Ritmo disteso. ──
-    tl.to(
-      ".imm-kpi",
-      { autoAlpha: 1, y: 0, duration: 0.7, stagger: 0.18, ease: "back.out(1.6)" },
-      "<0.2",
-    );
+    // ANTICIPAZIONE (R2): la panoramica KPI è il 1° ingresso importante della
+    // scena — arrivo con overshoot & settle (enter + anticipate → EASE_SNAP).
+    enter(tl, ".imm-kpi", {
+      y: 18,
+      duration: DUR.beat,
+      stagger: 0.18,
+      anticipate: true,
+      position: "<0.2",
+    });
     tl.to(
       ".imm-pano-bar",
-      { scaleY: 1, duration: 0.9, stagger: 0.12, ease: "back.out(1.5)" },
+      { scaleY: 1, duration: DUR.scene, stagger: 0.12, ease: EASE_SNAP },
       ">-0.15",
     );
-    tl.to(".imm-net-bar", { scaleX: 1, duration: 0.8, stagger: 0.2, ease: "power3.out" }, ">-0.4");
-    tl.to({}, { duration: 0.5 }); // respiro: la panoramica resta leggibile
+    tl.to(
+      ".imm-net-bar",
+      { scaleX: 1, duration: DUR.scene, stagger: 0.2, ease: EASE_IN_SCENE },
+      ">-0.4",
+    );
+    hold(tl); // respiro: la panoramica resta leggibile
 
     // ── ② Colonnine + query in linguaggio naturale ────────────────────────────
     say(tl, 1);
     cursorTo(tl, navItems[1], { mode: "hand" });
-    tl.to(".imm-nav-ind", { top: () => navTop(1), duration: 0.45, ease: "power3.inOut" }, "<0.3");
-    tl.to(".imm-track", { xPercent: -100 / 3, duration: 1.5, ease: "expo.inOut" }, "<0.1");
+    tl.to(".imm-nav-ind", { top: () => navTop(1), duration: DUR.beat, ease: EASE_CAMERA }, "<0.3");
+    tl.to(
+      ".imm-track",
+      { xPercent: -100 / 3, duration: DUR.scene * 1.5, ease: EASE_CAMERA },
+      "<0.1",
+    );
     // CAMERA · whip-pan (d) in sync col pan del binario: parte nel cuore del
     // movimento — DOPO che il cursore è atterrato sulla voce di nav (regola 2) —
     // e finisce neutro.
@@ -211,115 +230,120 @@ export default function ImmersiveGestionale() {
     // CAMERA · track del caret: la camera trasla a dx seguendo il punto di
     // scrittura della query — il caret resta al centro-schermo.
     // ">0.3" = parte a binario FERMO → misura pulita. Typing LENTO (leggibile).
-    cameraTrackType(tl, ".imm-query", { scale: 1.2, duration: 2.5, position: ">0.3" });
-    typeInField(tl, ".imm-query", { steps: 17, duration: 2.5, position: "<" });
+    cameraTrackType(tl, ".imm-query", { scale: 1.2, duration: DUR.scene * 2.5, position: ">0.3" });
+    typeInField(tl, ".imm-query", { steps: 17, duration: DUR.scene * 2.5, position: "<" });
     // Le righe che fanno match: l'evidenziazione accent entra a WIPE (maskReveal)
     // mentre la camera si RIAPRE — pull-back all'"invio" che svela il filtro.
-    tl.to(".imm-row-n", { opacity: 0.35, duration: 0.5 }, ">0.15");
-    maskReveal(tl, ".imm-match", { dir: "l", duration: 0.6, stagger: 0.18, position: "<" });
-    tl.to(".imm-badge", { autoAlpha: 1, scale: 1, duration: 0.5, ease: "back.out(1.8)" }, "<");
-    cameraReset(tl, { duration: 0.8, position: "<" });
-    tl.to({}, { duration: 0.4 }); // respiro: il filtro resta in campo
+    tl.to(".imm-row-n", { opacity: 0.35, duration: DUR.beat }, ">0.15");
+    // ANTICIPAZIONE (R2): il reveal del filtro è il beat chiave del pannello —
+    // micro-contromovimento + settle (anticipate) mentre il wipe scopre i match.
+    maskReveal(tl, ".imm-match", {
+      dir: "l",
+      duration: DUR.beat,
+      stagger: 0.18,
+      anticipate: true,
+      position: "<",
+    });
+    tl.to(".imm-badge", { autoAlpha: 1, scale: 1, duration: DUR.beat, ease: EASE_SNAP }, "<");
+    cameraReset(tl, { position: "<" });
+    hold(tl, 0.5); // respiro: il filtro resta in campo
 
     // ── ③ Assistente AI — si apre il pannello copilota ed ESEGUE l'operazione ─
     say(tl, 2);
     // Il cursore preme il bottone AI in topbar → il drawer entra da destra.
     cursorTo(tl, ".imm-ai-btn", { mode: "hand" });
-    pressButton(tl, ".imm-ai-btn", {
-      down: 0.9,
-      downDur: 0.1,
-      upDur: 0.3,
-      back: 2.6,
-      position: ">-0.05",
-    });
-    tl.to(".imm-ag-drawer", { xPercent: 0, duration: 0.9, ease: "expo.out" }, ">-0.1");
+    pressButton(tl, ".imm-ai-btn", { down: 0.9, upDur: DUR.micro, position: ">-0.05" });
+    tl.to(".imm-ag-drawer", { xPercent: 0, duration: DUR.scene, ease: EASE_IN_SCENE }, ">-0.1");
     // CAMERA · rack focus (e): mentre il drawer entra, il contenuto DIETRO
     // (binario Colonnine) perde fuoco. Riaperto da rackFocusOff al beat ④.
     rackFocus(tl, ".imm-track", { position: "<0.1" });
     // 1. la richiesta in linguaggio naturale si "scrive" (kit: typeInField)
     cursorTo(tl, ".imm-ag-req", { mode: "text" });
-    typeInField(tl, ".imm-ag-req", { steps: 26, duration: 2.1, position: "<0.2" });
+    typeInField(tl, ".imm-ag-req", { steps: 26, duration: DUR.scene * 2, position: "<0.2" });
     // 2. l'assistente esegue: gli step compaiono e ogni check "poppa". Stagger
     //    LENTO (0.5): ogni passo si legge prima che arrivi il successivo.
     tl.to(
       ".imm-ag-step",
-      { autoAlpha: 1, y: 0, duration: 0.4, stagger: 0.5, ease: "power2.out" },
+      { autoAlpha: 1, y: 0, duration: DUR.beat, stagger: 0.5, ease: EASE_IN_SCENE },
       ">0.15",
     );
-    tl.to(".imm-ag-check", { scale: 1, duration: 0.4, stagger: 0.5, ease: "back.out(3)" }, "<0.15");
+    tl.to(
+      ".imm-ag-check",
+      { scale: 1, duration: DUR.beat, stagger: 0.5, ease: EASE_SNAP },
+      "<0.15",
+    );
     // CAMERA · micro-dutch 0.5° sul «Fatto» (regola 5: ≤0.6°, SEMPRE riportata
     // a 0). Sotto-timeline rotation-only in sync col pop dell'ultimo check.
     const dutch = gsap.timeline();
     dutch
-      .to(".imm-camera", { rotation: 0.5, duration: 0.18, ease: "power2.out" })
-      .to(".imm-camera", { rotation: 0, duration: 0.32, ease: "power2.inOut" });
+      .to(".imm-camera", { rotation: 0.5, duration: DUR.micro / 2, ease: EASE_IN_SCENE })
+      .to(".imm-camera", { rotation: 0, duration: DUR.micro, ease: EASE_CAMERA });
     tl.add(dutch, ">-0.4");
     // 3. CAMERA · punch (a) sulla mini-lista: la camera "colpisce" mentre le 2
     //    colonnine flippano "Offline" → "Online ✓". Il cursore finto va sfumato
     //    QUI, prima del punch, così non "galleggia" staccato durante i movimenti
     //    camera-only (il prossimo cursorTo lo riporta visibile).
-    hideCursor(tl, { duration: 0.3, position: ">-0.2" });
-    cameraTo(tl, ".imm-ag-list", {
-      scale: 1.4,
-      duration: 0.45,
-      ease: "back.out(1.2)",
-      position: ">",
-    });
+    hideCursor(tl, { position: ">-0.2" });
+    cameraTo(tl, ".imm-ag-list", { scale: 1.4, duration: DUR.beat, position: ">" });
     tl.to(
       ".imm-ag-old",
-      { rotationY: 90, autoAlpha: 0, duration: 0.35, stagger: 0.12, ease: "power2.in" },
+      { rotationY: 90, autoAlpha: 0, duration: DUR.micro, stagger: 0.12, ease: EASE_OUT_SCENE },
       "<0.15",
     );
     tl.to(
       ".imm-ag-new",
-      { rotationY: 0, autoAlpha: 1, duration: 0.5, stagger: 0.12, ease: "back.out(1.4)" },
+      { rotationY: 0, autoAlpha: 1, duration: DUR.beat, stagger: 0.12, ease: EASE_SNAP },
       "<0.05",
     );
     // 4. PULL-BACK e chiusura inquadratura: mentre la camera si riapre, la
     //    CONSEGUENZA sui dati — "Colonnine offline" scala 2 → 0 nel footer.
-    cameraReset(tl, { duration: 0.8, position: ">0.35" });
+    cameraReset(tl, { position: ">0.35" });
     tl.to(
       offline,
       {
         v: 0,
-        duration: 0.7,
-        ease: "power2.out",
+        duration: DUR.beat,
+        ease: EASE_IN_SCENE,
         onUpdate() {
           if (offlineEl) offlineEl.textContent = String(Math.round(offline.v));
         },
       },
       "<0.2",
     );
-    tl.to({}, { duration: 0.5 }); // respiro: il risultato dell'assistente resta in campo
+    hold(tl); // respiro: il risultato dell'assistente resta in campo
 
     // ── ④ Manutenzione — il drawer si richiude, pan al terzo pannello ────────
     say(tl, 3);
     // Drawer via + il binario torna a fuoco (chiude il rack focus del beat ③).
-    tl.to(".imm-ag-drawer", { xPercent: 100, duration: 0.7, ease: "expo.in" });
+    tl.to(".imm-ag-drawer", { xPercent: 100, duration: DUR.beat, ease: EASE_OUT_SCENE });
     rackFocusOff(tl, ".imm-track", { position: "<0.1" });
     // Il cursore clicca la voce "Manutenzione" → pan (stesso pattern del beat ②).
     cursorTo(tl, navItems[3], { mode: "hand" });
-    tl.to(".imm-nav-ind", { top: () => navTop(3), duration: 0.45, ease: "power3.inOut" }, "<0.3");
-    tl.to(".imm-track", { xPercent: -200 / 3, duration: 1.5, ease: "expo.inOut" }, "<0.1");
+    tl.to(".imm-nav-ind", { top: () => navTop(3), duration: DUR.beat, ease: EASE_CAMERA }, "<0.3");
+    tl.to(
+      ".imm-track",
+      { xPercent: -200 / 3, duration: DUR.scene * 1.5, ease: EASE_CAMERA },
+      "<0.1",
+    );
     cameraWhip(tl, "r", { position: "<0.7" });
     // Gli interventi entrano in cascata; le chip di stato "poppano" a seguire.
     tl.to(
       ".imm-mant-row",
-      { autoAlpha: 1, y: 0, duration: 0.6, stagger: 0.22, ease: "power3.out" },
+      { autoAlpha: 1, y: 0, duration: DUR.beat, stagger: 0.22, ease: EASE_IN_SCENE },
       ">0.15",
     );
     tl.to(
       ".imm-mant-chip",
-      { scale: 1, duration: 0.45, stagger: 0.22, ease: "back.out(2.2)" },
+      { scale: 1, duration: DUR.beat, stagger: 0.22, ease: EASE_SNAP },
       "<0.2",
     );
     // CAMERA · punch morbido sulla lista interventi, poi chiusura neutra
     // (regola 3: camera neutra a progress(1)). Cursore sfumato prima del
     // movimento camera-only.
-    hideCursor(tl, { duration: 0.3, position: ">-0.2" });
-    cameraTo(tl, ".imm-mant-list", { scale: 1.2, duration: 0.7, position: ">" });
-    cameraReset(tl, { duration: 0.8, position: ">0.5" });
-    tl.to({}, { duration: 0.6 });
+    hideCursor(tl, { position: ">-0.2" });
+    cameraTo(tl, ".imm-mant-list", { scale: 1.2, duration: DUR.beat, position: ">" });
+    cameraReset(tl, { position: ">0.5" });
+    hold(tl);
   });
 
   return (

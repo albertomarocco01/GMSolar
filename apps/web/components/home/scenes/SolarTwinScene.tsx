@@ -28,7 +28,16 @@ import { gsap, ScrollTrigger } from "@gmgroup/lib/gsap";
 import { useReducedMotion, useIsoLayoutEffect } from "@gmgroup/lib/motion";
 import ScrubVideo, { type ScrubVideoHandle } from "../ScrubVideo";
 import ScrollCue from "../ScrollCue";
-import { CHAPTERS, ChapterCard, maskReveal, scheduleRefresh } from "../immersive/shared";
+import {
+  CHAPTERS,
+  ChapterCard,
+  DUR,
+  EASE_CAMERA,
+  EASE_IN_SCENE,
+  EASE_OUT_SCENE,
+  maskReveal,
+  scheduleRefresh,
+} from "../immersive/shared";
 
 // Derivati ALL-KEYFRAME obbligatori: il seek è istantaneo SOLO con questi.
 const SRC = "/assets/solar-twin.mp4";
@@ -82,28 +91,37 @@ export default function SolarTwinScene() {
         delay: 1.15,
         onComplete: () => window.dispatchEvent(new CustomEvent("presentation:introdone")),
       });
-      // Titolo: si genera con un unico wipe continuo sinistra→destra.
+      // Titolo (protagonista del beat): wipe sinistra→destra con ANTICIPAZIONE —
+      // micro-contromovimento e settle (EASE_SNAP) mentre la maschera lo scopre.
       maskReveal(introTl, ".imm-chapter-title", {
         dir: "l",
-        duration: 1.0,
-        ease: "power2.inOut",
+        duration: DUR.scene,
+        anticipate: true,
       });
       introTl
-        .to(".imm-chapter-sub", { autoAlpha: 1, y: 0, duration: 0.45, ease: "power3.out" }, "-=0.2")
+        .to(
+          ".imm-chapter-sub",
+          { autoAlpha: 1, y: 0, duration: DUR.beat, ease: EASE_IN_SCENE },
+          "-=0.2",
+        )
         // HOLD leggibile: il titolo resta FERMO ~2.4s (gap "+=2.4" prima dell'uscita).
-        .to(".imm-chapter", { autoAlpha: 0, y: -48, duration: 0.7, ease: "power2.in" }, "+=2.4");
+        .to(
+          ".imm-chapter",
+          { autoAlpha: 0, y: -48, duration: DUR.beat, ease: EASE_OUT_SCENE },
+          "+=2.4",
+        );
 
       // Timeline SCRUBBATA (normalizzata a durata 1 = progress): guida video, cue,
       // card 3D e velo d'uscita. La title card d'apertura NON è qui dentro.
       const tl = gsap.timeline({ defaults: { ease: "none" } });
-      tl.to({}, { duration: 1 }, 0);
+      tl.to({}, { duration: DUR.scene }, 0);
 
       // Cue "Scorri": sfuma appena parte lo scroll.
-      tl.to(".st-cue", { autoAlpha: 0, duration: 0.04, ease: "power2.in" }, 0.05);
+      tl.to(".st-cue", { autoAlpha: 0, duration: 0.04, ease: EASE_OUT_SCENE }, 0.05); // motion: dissolve lampo al primo scroll (unità scrub, non secondi)
 
       // Velo chiaro d'uscita → la scena successiva è chiara. Sale SOPRA gli
       // ultimi frame del video (VIDEO_END 0.97 > 0.95): fine video ≈ fine scrub.
-      tl.to(".st-exit-veil", { autoAlpha: 1, duration: 0.05, ease: "power2.in" }, 0.95);
+      tl.to(".st-exit-veil", { autoAlpha: 1, duration: 0.05, ease: EASE_OUT_SCENE }, 0.95); // motion: 0.95+0.05=1 — il velo chiude ESATTAMENTE a fine scrub
 
       // Guardia di sviluppo: un tween oltre lo spacer allunga la timeline e
       // ScrollTrigger rimapperebbe TUTTI i beat in anticipo sul frame video.
@@ -114,7 +132,7 @@ export default function SolarTwinScene() {
       }
 
       // ── MICRO-DEMO del cue: tween repeat:-1 FUORI dalla timeline scrubbata ──
-      // Un proxy va 0→DEMO_SPAN→0 (sine.inOut, ~2.5s a ciclo): a ogni update
+      // Un proxy va 0→DEMO_SPAN→0 (EASE_CAMERA, 3.2s a ciclo): a ogni update
       // porta il VIDEO avanti e indietro (seek) e muove il dot del mousino in
       // sync (stessa durata/ease) → si vede che il video segue il gesto di
       // scroll. Si UCCIDE definitivamente al primo scroll reale; rispetta la
@@ -123,8 +141,8 @@ export default function SolarTwinScene() {
       const proxy = { p: 0 };
       const demo = gsap.to(proxy, {
         p: DEMO_SPAN,
-        duration: 1.25,
-        ease: "sine.inOut",
+        duration: 1.6, // motion: metà del periodo comune 3.2s dei loop decorativi (yoyo)
+        ease: EASE_CAMERA,
         repeat: -1,
         yoyo: true,
         // Montaggio a presentazione GIÀ in pausa (es. remount): parte congelata.

@@ -70,6 +70,13 @@ import {
   rackFocus,
   rackFocusOff,
   useImmersiveScene,
+  DUR,
+  EASE_CAMERA,
+  EASE_IN_SCENE,
+  EASE_OUT_SCENE,
+  EASE_SNAP,
+  enter,
+  hold,
 } from "./shared";
 
 // ─── Dati statici ────────────────────────────────────────────────────────────
@@ -94,7 +101,7 @@ const rowDir = (i: number) => (i === 1 ? -1 : 1);
  *  le righe e il CONTRO-PAN della camera, e àncora il punch sulla tile WhatsApp
  *  che parte SOLO a pan concluso (le misure function-based della camera vanno
  *  fatte su layout fermo — regola 2 del kit). */
-const PAN_DUR = 2.6;
+const PAN_DUR = DUR.scene * 2.5;
 
 /** Chat mock deterministica (orari fissi, testo fisso): esempio WhatsApp. */
 const CHAT = {
@@ -132,7 +139,7 @@ export default function ImmersiveIntegrazioni() {
     //    nel verso di partenza del pan; chat e bolle spente ──
     gsap.set(tiles, { scale: 0.6, autoAlpha: 0 });
     rows.forEach((row, i) => gsap.set(row, { xPercent: 8 * rowDir(i), willChange: "transform" }));
-    gsap.set(".imm-int-chat", { autoAlpha: 0, scale: 0.9, y: 12, transformOrigin: "50% 50%" });
+    gsap.set(".imm-int-chat", { autoAlpha: 0, y: 12, transformOrigin: "50% 50%" });
     gsap.set([".imm-int-msg-1", ".imm-int-msg-2", ".imm-int-msg-3"], { autoAlpha: 0, y: 10 });
     gsap.set(".imm-int-typing", { autoAlpha: 0 });
 
@@ -163,28 +170,30 @@ export default function ImmersiveIntegrazioni() {
       {
         scale: 1,
         autoAlpha: 1,
-        duration: 0.5,
+        duration: DUR.beat,
         // Ondata radiale deterministica: le tile sono in DOM in ordine di riga
         // (3×6), quindi il grid-stagger dal centro produce un'onda concentrica.
         stagger: { each: 0.07, grid: [3, 6], from: "center" },
-        ease: "back.out(1.7)",
+        ease: EASE_SNAP,
       },
       "carrellata+=0.1",
     );
 
     // ── ② ESEMPIO WHATSAPP: PUNCH di camera sulla tile, il cursore clicca, il
     //    resto perde fuoco (rack focus) e si apre la chat mock centrata ──
-    // CAMERA · PUNCH-IN (a): la camera si tuffa sulla tile WhatsApp con micro-
-    // overshoot (back.out). Parte SOLO a pan concluso (àncora esplicita, NON
+    // RESPIRO (R2): mezzo hold tra la fine del pan e il punch — il montaggio
+    // alterna accento e pausa; l'àncora del punch qui sotto slitta di pari passo.
+    hold(tl, 0.5);
+    // CAMERA · PUNCH-IN (a): la camera si tuffa sulla tile WhatsApp (ease di
+    // palette camera, mai overshoot). Parte SOLO a pan concluso (àncora esplicita, NON
     // ">": l'ultimo tween inserito è la stagger delle tile che finisce prima
     // delle righe) così la misura function-based avviene su tile ferma. Nessun
     // clickZoom locale da rimuovere su questo beat (regola 4): c'era solo il
     // pressButton, che resta — è la pressione del bottone, non uno zoom.
     cameraTo(tl, ".imm-int-wa", {
       scale: 1.45,
-      duration: 0.5,
-      ease: "back.out(1.2)",
-      position: `carrellata+=${PAN_DUR}`,
+      duration: DUR.beat,
+      position: `carrellata+=${PAN_DUR + DUR.hold * 0.5}`,
     });
     // Regola 2 del kit: camera PRIMA, cursore per ULTIMO (append in coda, parte
     // a punch concluso) → cursorTo misura il layout ormai zoomato e assestato;
@@ -193,12 +202,12 @@ export default function ImmersiveIntegrazioni() {
     pressButton(tl, ".imm-int-wa");
     // Dim locale dei loghi non protagonisti: 0.45 (non più 0.25) perché ora si
     // SOMMA al rack focus sul wall (0.45 × 0.55 ≈ 0.25 → resa percepita di prima).
-    tl.to(others, { autoAlpha: 0.45, duration: 0.5, ease: "power2.out" }, ">-0.2");
-    tl.to(
-      ".imm-int-chat",
-      { autoAlpha: 1, scale: 1, y: 0, duration: 0.55, ease: "back.out(1.5)" },
-      "<0.1",
-    );
+    tl.to(others, { autoAlpha: 0.45, duration: DUR.beat, ease: EASE_IN_SCENE }, ">-0.2");
+    // ANTICIPAZIONE (R2): l'apertura della chat è l'ingresso IMPORTANTE della
+    // scena → enter(anticipate): offset maggiorato + arrivo con overshoot &
+    // settle (EASE_SNAP). Il vecchio pop di scala è sostituito dall'overshoot
+    // verticale del brand (lo scale iniziale è stato tolto dal set qui sopra).
+    enter(tl, ".imm-int-chat", { y: 12, duration: DUR.beat, anticipate: true, position: "<0.1" });
     tl.addLabel("chat", "<"); // inizio apertura chat: àncora per le bolle
     // CAMERA · RACK FOCUS (e): la chat prende il primo piano, la carrellata
     // dietro perde fuoco (opacity+scale sul wall, niente blur). Si ripristina
@@ -210,27 +219,34 @@ export default function ImmersiveIntegrazioni() {
     // e i movimenti di camera successivi (push-in, pull-back) lo lascerebbero
     // visibilmente disallineato dalla tile (criterio P11: mai offset cursore↔
     // target dopo un movimento di camera). Scrubbando indietro riappare.
-    tl.to(".imm-cursor", { autoAlpha: 0, duration: 0.3, ease: "power2.out" }, "chat");
+    tl.to(".imm-cursor", { autoAlpha: 0, duration: DUR.micro, ease: EASE_OUT_SCENE }, "chat");
 
     // ── ③ Sequenza bolle (fade+rise, una alla volta) con caption in parallelo ──
     say(tl, 1); // «Per esempio: le notifiche ti arrivano su WhatsApp.»
-    tl.to(".imm-int-msg-1", { autoAlpha: 1, y: 0, duration: 0.4, ease: "power2.out" }, "chat+=0.7");
-    tl.to(".imm-int-typing", { autoAlpha: 1, duration: 0.25, ease: "power2.out" }, ">0.35");
-    tl.to(".imm-int-typing", { autoAlpha: 0, duration: 0.2, ease: "power2.in" }, ">0.55");
-    tl.to(".imm-int-msg-2", { autoAlpha: 1, y: 0, duration: 0.4, ease: "power2.out" }, "<0.05");
-    tl.to(".imm-int-msg-3", { autoAlpha: 1, y: 0, duration: 0.4, ease: "power2.out" }, ">0.4");
+    tl.to(
+      ".imm-int-msg-1",
+      { autoAlpha: 1, y: 0, duration: DUR.beat, ease: EASE_SNAP },
+      "chat+=0.7",
+    );
+    tl.to(".imm-int-typing", { autoAlpha: 1, duration: DUR.micro, ease: EASE_IN_SCENE }, ">0.35");
+    tl.to(
+      ".imm-int-typing",
+      { autoAlpha: 0, duration: DUR.micro / 2, ease: EASE_OUT_SCENE },
+      ">0.55",
+    );
+    tl.to(".imm-int-msg-2", { autoAlpha: 1, y: 0, duration: DUR.beat, ease: EASE_SNAP }, "<0.05");
+    tl.to(".imm-int-msg-3", { autoAlpha: 1, y: 0, duration: DUR.beat, ease: EASE_SNAP }, ">0.4");
     // CAMERA · PUSH-IN lento (b): mentre le bolle arrivano, la camera avanza
     // piano sulla chat (1.45 → 1.5, respiro da documentario). Àncora esplicita
-    // "chat+=0.6": a tween start la chat è già aperta e ferma (apertura 0.55s)
+    // "chat+=0.6": a tween start la chat è già aperta e ferma (apertura DUR.beat)
     // → misura function-based stabile; finisce prima della chiusura, quindi non
     // si sovrappone mai al pull-back (un solo tween di camera alla volta).
     cameraTo(tl, ".imm-int-chat", {
       scale: 1.5,
-      duration: 2.2,
-      ease: "power1.inOut",
+      duration: DUR.scene * 2,
       position: "chat+=0.6",
     });
-    tl.to({}, { duration: 0.6 }); // hold: tempo di lettura della conversazione
+    hold(tl); // respiro: tempo di lettura della conversazione
 
     // ── ④ CHIUSURA — la richiusura della chat vive solo nel percorso animato.
     //    Con reduced-motion il kit salta a progress(1) e lo stato finale è "chat
@@ -241,22 +257,22 @@ export default function ImmersiveIntegrazioni() {
     if (!reduced) {
       tl.to(
         ".imm-int-chat",
-        { autoAlpha: 0, scale: 0.92, y: 12, duration: 0.35, ease: "power2.in" },
+        { autoAlpha: 0, scale: 0.92, y: 12, duration: DUR.micro, ease: EASE_OUT_SCENE },
         ">0.3",
       );
       // Il fondale torna a fuoco insieme alla chiusura della chat…
       rackFocusOff(tl, ".imm-int-wall", { position: "<" });
-      tl.to(others, { autoAlpha: 1, duration: 0.45, ease: "power2.out" }, "<");
+      tl.to(others, { autoAlpha: 1, duration: DUR.beat, ease: EASE_IN_SCENE }, "<");
       // …e CAMERA · PULL-BACK REVEAL (f): dal push sulla chat (1.5) a campo
       // largo (1) sulla griglia piena — il cameraReset È il pull-back, in sync
       // con la riapertura del fondale. Obbligatorio prima della fine timeline.
-      cameraReset(tl, { duration: 0.9, position: "<" });
-      tl.to({}, { duration: 0.5 }); // respiro finale sulla carrellata piena e pulita
+      cameraReset(tl, { duration: DUR.scene, position: "<" });
+      hold(tl, 0.5); // respiro finale sulla carrellata piena e pulita
     } else {
-      tl.to(others, { autoAlpha: 1, duration: 0.3 }, ">");
+      tl.to(others, { autoAlpha: 1, duration: DUR.micro }, ">");
       // Ramo reduced: la chat resta aperta ma la camera DEVE finire neutra anche
       // qui — a progress(1) l'ultimo stato di camera è questo reset (regola 3).
-      cameraReset(tl, { duration: 0.3, position: "<" });
+      cameraReset(tl, { duration: DUR.micro, position: "<" });
     }
 
     // ── Float continuo sfalsato (motion-safe, indipendente dallo scroll) ─────
@@ -270,8 +286,8 @@ export default function ImmersiveIntegrazioni() {
       const floats = tiles.map((tile, i) =>
         gsap.to(tile, {
           y: "-=8",
-          duration: 1.6 + (i % 5) * 0.2,
-          ease: "sine.inOut",
+          duration: 1.6, // motion: mezzo periodo del loop decorativo comune 3.2s (yoyo); sfalsato dai delay
+          ease: EASE_CAMERA,
           repeat: -1,
           yoyo: true,
           delay: (i % 6) * 0.18,
