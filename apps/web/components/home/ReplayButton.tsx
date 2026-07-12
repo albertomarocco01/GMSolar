@@ -24,7 +24,7 @@ export default function ReplayButton() {
 
   return (
     <Button variant="solid" size="lg" onClick={onClick}>
-      Rivedi la presentazione
+      Ricomincia la presentazione
     </Button>
   );
 }
