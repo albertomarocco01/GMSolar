@@ -138,7 +138,12 @@ export default function SolarTwinScene() {
       // scroll. Si UCCIDE definitivamente al primo scroll reale; rispetta la
       // pausa globale via `presentation:pausechange`.
       const dot = stage.querySelector<HTMLElement>(".st-cue .sc-dot");
+      // Frecce ↑/↓ del cue: la demo accende quella nel verso corrente → si vede
+      // che lo scrollytelling va avanti E indietro (richiesta: interazione chiara).
+      const upArrow = stage.querySelector<HTMLElement>(".st-cue .sc-up");
+      const downArrow = stage.querySelector<HTMLElement>(".st-cue .sc-down");
       const proxy = { p: 0 };
+      let lastP = 0;
       const demo = gsap.to(proxy, {
         p: DEMO_SPAN,
         duration: 1.6, // motion: metà del periodo comune 3.2s dei loop decorativi (yoyo)
@@ -150,6 +155,14 @@ export default function SolarTwinScene() {
         onUpdate: () => {
           videoRef.current?.seek(proxy.p);
           if (dot) gsap.set(dot, { y: (proxy.p / DEMO_SPAN) * DEMO_DOT_TRAVEL });
+          // Direzione della demo → enfasi sulla freccia corrispondente (set
+          // istantaneo, scrub-safe: nessun tween annidato dentro l'onUpdate).
+          const dir = proxy.p - lastP;
+          lastP = proxy.p;
+          if (dir !== 0 && upArrow && downArrow) {
+            gsap.set(downArrow, { opacity: dir > 0 ? 1 : 0.3 });
+            gsap.set(upArrow, { opacity: dir < 0 ? 1 : 0.3 });
+          }
         },
       });
 
@@ -178,8 +191,10 @@ export default function SolarTwinScene() {
         if (!demoAlive) return;
         demoAlive = false;
         demo.kill();
-        // Dot a riposo: se si torna in cima (scrub indietro) il cue ricompare pulito.
+        // Dot a riposo e frecce neutre (entrambe visibili): se si torna in cima
+        // (scrub indietro) il cue ricompare pulito e ancora bidirezionale.
         if (dot) gsap.set(dot, { y: 0 });
+        if (upArrow && downArrow) gsap.set([upArrow, downArrow], { opacity: 0.7 });
         disposeDemo();
       };
       disposeDemo = () => {
@@ -272,8 +287,11 @@ export default function SolarTwinScene() {
           {/* Header di sito vetrina (decorativo) */}
           <FakeSiteHeader />
 
-          {/* HERO del finto sito: video scrubbato che riempie il frame sotto l'header */}
-          <div className="relative flex-1 overflow-hidden text-white">
+          {/* HERO del finto sito: video scrubbato che riempie il frame sotto l'header.
+              `isolate` è OBBLIGATORIO: video (-z-10) e fallback (-z-20) hanno z
+              negativo — senza uno stacking context locale finirebbero DIETRO il
+              `bg-background` del device frame (schermo grigio, fix post-R3). */}
+          <div className="relative isolate flex-1 overflow-hidden text-white">
             {/* Fallback branded scuro (contrasto garantito se il video non parte) */}
             <div
               aria-hidden
@@ -298,7 +316,7 @@ export default function SolarTwinScene() {
                 → testo bianco leggibile): il dot del mousino è pilotato dalla
                 micro-demo (GSAP), non da keyframe CSS. */}
             <div className="st-cue pointer-events-none absolute bottom-6 left-6 z-30">
-              <ScrollCue reduced={reduced} />
+              <ScrollCue />
             </div>
           </div>
         </div>
