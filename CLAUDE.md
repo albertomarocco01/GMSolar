@@ -43,9 +43,10 @@ Route vive (le uniche che esistono):
 
 ## Fonte di verità
 
-Il piano e l'architettura aggiornati vivono in **`docs/PROGETTO.md`**. La roadmap attiva è
-**`docs/roadmap-migliorie-2/00-ORCHESTRATORE.md`** (round di migliorie corrente; le roadmap
-precedenti sono deprecate ed eliminate). In caso di dubbio, quelli vincono su questo file.
+Il piano e l'architettura aggiornati vivono in **`docs/PROGETTO.md`**. L'ultima roadmap è
+**`docs/roadmap-migliorie-3/00-ORCHESTRATORE.md`** (round COMPLETATO 2026-07-12: R1–R2
+tutte chiuse, tag `migliorie3-*-ok`; le roadmap precedenti sono deprecate). In caso di
+dubbio, quelli vincono su questo file.
 
 ---
 

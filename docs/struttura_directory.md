@@ -1,6 +1,7 @@
 # Struttura delle Directory — Vetrina Servizi
 
-> Generato da Code Maniac · aggiornato 2026-07-12 (R1, roadmap-migliorie-3). **Documento
+> Generato da Code Maniac · aggiornato 2026-07-12 (roadmap-migliorie-3 completata: R1–R2;
+> albero invariato da R1 — R3/R2 hanno solo modificato file esistenti). **Documento
 > deterministico:** albero da `tree.mjs`, non modificarlo a mano — modifica il codice, poi rigenera.
 
 ## Mappa (generata)

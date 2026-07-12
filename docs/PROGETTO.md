@@ -33,7 +33,7 @@ I sette servizi da raccontare:
 > **Nota:** la numerazione qui sopra è quella del brief; la narrativa della home è a
 > **8 capitoli** (01→08, vedi «Stato della home» qui sotto).
 
-## Stato della home (aggiornato dopo migliorie round 2 — `docs/roadmap-migliorie-2/`)
+## Stato della home (aggiornato dopo migliorie round 3 — `docs/roadmap-migliorie-3/`, R1–R2 tutte chiuse)
 
 La home (`apps/web/app/page.tsx`) è la presentazione scrollytelling chromeless. Ordine
 delle scene, tutte `<section>` figlie di `#top` (capitoli 01→08):
@@ -43,12 +43,12 @@ delle scene, tutte `<section>` figlie di `#top` (capitoli 01→08):
    SOLO video (niente card 3D). Apre con una **title card di capitolo one-shot** (chiara,
    titolo nero) mostrata e **tenuta ferma PRIMA** che parta lo scroll (evento
    `presentation:introdone` → AutoScroll), poi si solleva rivelando l'hero.
-2. **Interfacce grafiche moderne** (`scenes/InterfacceScene.tsx`) — **snippet di sito
-   vetrina** (`vetrina/VetrinaTeaser`): quattro sezioni modellate su gmsolar.it (Chi è GM
-   Solar, i numeri, Tipologia di impianti, I nostri servizi) dentro finestre che le
-   RITAGLIANO ai bordi, scoperte da un sipario ink che si scosta. Micro-vita scrubbata:
-   headline che si digita + CTA premuta, counter dei 4 numeri, tile a maschera, righe dei
-   servizi in cascata. **Senza video**, fondo chiaro (un solo snippet su fondo ink).
+2. **Interfacce grafiche moderne** (`scenes/InterfacceScene.tsx`, **v4 — R4A**) —
+   **showcase di card UI moderne** (`home/showcase/`): vetro liquido (LiquidGlassCard),
+   glassmorphism con form (GlassFormCard), card elettrica/neon scura (ElectricCard) e
+   micro-interazioni sui bottoni (AnimatedButtonsCard). Carrellata scrubbata card per
+   card, poi griglia finale 2×2 «Stili diversi, la stessa cura». Isole dark ammesse su
+   fondo chiaro; `backdrop-filter` solo su superfici piccole statiche, mai in scrub.
 3. **Assistente AI** · 4. **Dashboard** · 5. **Segnalazioni** · 6. **Gestionali su misura**
    · 7. **App con assistente AI integrato** · 8. **Integrazioni** — scene immersive
    (`components/home/immersive/`) costruite sul kit `shared.tsx` (`useImmersiveScene`):
@@ -62,6 +62,18 @@ delle scene, tutte `<section>` figlie di `#top` (capitoli 01→08):
    sfondo discreto (aloni accent che respirano; si ferma in pausa e con reduced-motion).
 
 Sistemi trasversali:
+
+- **Layout armonico (R3)**: le UI mock vivono in **device frame** centrati (~16:10,
+  `max-w-6xl`), mai full-bleed; immagini SEMPRE con `aspect-ratio` esplicito +
+  `object-cover`; card con larghezza da contenuto (KPI 240–320px, contenuto 360–480px);
+  spaziature dalla scala 4/8; telefono Ricarica a rapporto reale ~19.5:9.
+- **Linguaggio di motion (R2)**: definito UNA volta nel kit `shared.tsx` — palette di 4
+  ease nominate (`EASE_IN_SCENE` expo.out · `EASE_OUT_SCENE` power2.in · `EASE_SNAP`
+  back.out(1.6) · `EASE_CAMERA` power1.inOut, mai back) + scala durate `DUR`
+  (micro 0.3 · beat 0.6 · scene 1.0 · hold 0.8) + helper `hold()` (respiro) ed
+  `enter()` (ingresso con anticipazione/settle). Lo **stacco tra capitoli** è
+  standardizzato in `chapterIntro` (stessa durata/curva ovunque); i loop decorativi
+  respirano a periodo comune 3.2s. Eccezioni solo con commento `// motion:`.
 
 - **Capitoli + HUD** (P12): ogni scena apre con una `ChapterCard` **chiara** (titolo nero
   grande che si rivela con un **wipe continuo sinistra→destra**; la numerazione «0X / 08» è
