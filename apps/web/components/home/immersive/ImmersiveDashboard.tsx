@@ -702,7 +702,7 @@ export default function ImmersiveDashboard() {
                           alt=""
                           loading="lazy"
                           decoding="async"
-                          className="mb-2 aspect-[4/3] w-full rounded-lg object-cover"
+                          className="mb-2 aspect-square w-full rounded-lg object-cover"
                         />
                         <p className="text-foreground text-sm font-semibold">{p.nome}</p>
                         <p className="text-accent-ink text-xs font-bold">{p.prezzo}</p>
@@ -716,7 +716,7 @@ export default function ImmersiveDashboard() {
                         alt=""
                         loading="lazy"
                         decoding="async"
-                        className="mb-2 aspect-[4/3] w-full rounded-lg object-cover"
+                        className="mb-2 aspect-square w-full rounded-lg object-cover"
                       />
                       <p className="text-foreground text-sm font-semibold">Stazione DC 50 kW</p>
                       <p className="text-accent-ink text-xs font-bold">3.200 €</p>
@@ -760,7 +760,7 @@ export default function ImmersiveDashboard() {
                         Foto
                       </label>
                       <div className="flex items-center gap-2">
-                        <span className="imm-form-foto block aspect-[4/3] w-14 overflow-hidden rounded-lg">
+                        <span className="imm-form-foto block aspect-square w-12 overflow-hidden rounded-lg">
                           <img
                             src="/assets/products/cavo-05.jpg"
                             alt=""
