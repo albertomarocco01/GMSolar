@@ -17,23 +17,32 @@
  *     (`gmsolar.it/dashboard/contenuti` in font-mono) con badge «Rilevata in
  *     automatico ✓» — NESSUN copia/incolla. Il cursore (caret) digita SOLO la
  *     descrizione, preme «Invia segnalazione» → toast «Segnalazione ricevuta ✓»
- *     con badge stato «In lavorazione».
- *   • Beat ③ — IL FIX: il drawer si richiude, il badge di stato FLIPPA in 3D
- *     «In lavorazione» → «Risolta ✓» (pattern rotateY del Gestionale), la foto
- *     corretta SOSTITUISCE l'immagine rotta con un wipe (maskReveal) e compare
- *     il mini-toast «Fix pubblicato ✓».
+ *     con timeline di stato a 3 tappe (Ricevuta ✓ → In lavorazione → Risolta).
+ *   • Beat ②½ — PRESA IN CARICO UMANA: entra una card messaggio con avatar
+ *     (iniziali «MB» su disco accent) di Marco, assistenza tecnica («Ci penso
+ *     io: sto sistemando l'immagine della hero.»). La camera la inquadra
+ *     (`cameraTo`), hold di lettura, poi la tappa 1→2 del binario si accende
+ *     (linea che si riempie con `maskReveal`, come il wipe della foto). Chiude
+ *     il vuoto tra «form inviato» e «fix pronto»: si VEDE chi prende in carico.
+ *   • Beat ③ — IL FIX: il drawer si richiude, la tappa 2→3 del binario si
+ *     accende e il dot finale FLIPPA in 3D da «in attesa» a «Risolta ✓»
+ *     (pattern rotateY del Gestionale, riusato solo per l'ultima tappa), la
+ *     foto corretta SOSTITUISCE l'immagine rotta con un wipe (maskReveal) e
+ *     compare il mini-toast «Fix pubblicato da Marco ✓» (chiude il cerchio
+ *     persona → soluzione aperto nel beat ②½).
  *
  *   Usa il kit condiviso `./shared`. CAMERA (P11 — shot-list della scena):
  *   punch (a) su «Segnala un problema» → pull-back+rack focus (e) sul modulo
  *   (dashboard `.imm-seg-bg` attenuata dietro il drawer) → lock (c) sul typing
- *   della descrizione → push-in lento (b) sulla card mentre l'immagine si
- *   sistema → pull-back reveal (f) + cameraReset finale (camera neutra a
- *   progress(1), regola 3).
+ *   della descrizione → punch leggero sulla card di Marco (beat ②½) →
+ *   push-in lento (b) sulla card mentre l'immagine si sistema → pull-back
+ *   reveal (f) + cameraReset finale (camera neutra a progress(1), regola 3).
  *   Reduced-motion (kit → tl.progress(1)): stato finale leggibile = modulo
- *   inviato (toast «Segnalazione ricevuta ✓») + difetto RISOLTO (immagine ok,
- *   badge «Risolta ✓», mini-toast «Fix pubblicato ✓»); drawer richiuso. La
- *   ChapterCard a progress(1) è nascosta → heading statico «04 · Segnalazioni»
- *   in cima come titolo di capitolo.
+ *   inviato (toast «Segnalazione ricevuta ✓»), timeline di stato tutta accesa
+ *   su «Risolta ✓», card di Marco rientrata ma RIASSUNTA nel mini-toast «Fix
+ *   pubblicato da Marco ✓»; drawer richiuso. La ChapterCard a progress(1) è
+ *   nascosta → heading statico «04 · Segnalazioni» in cima come titolo di
+ *   capitolo.
  */
 import { Check, ImageOff, MessageSquareWarning } from "lucide-react";
 import { gsap } from "@gmgroup/lib/gsap";
@@ -78,6 +87,15 @@ const PAGINA_RILEVATA = "gmsolar.it/dashboard/contenuti";
  *  Dashboard pubblica come «impianto-2026.jpg» → continuità visiva. */
 const FOTO_FIX = "/assets/products/pannello-01.jpg";
 
+/** Tecnico che prende in carico la segnalazione (beat ②½) — mock deterministico:
+ *  niente foto/asset esterni, l'avatar è un disco accent con le iniziali. */
+const TECNICO = {
+  nome: "Marco",
+  ruolo: "Assistenza tecnica",
+  iniziali: "MB",
+  messaggio: "Ci penso io: sto sistemando l'immagine della hero.",
+} as const;
+
 // ── Componente ────────────────────────────────────────────────────────────────
 
 export default function ImmersiveSegnalazioni() {
@@ -88,10 +106,11 @@ export default function ImmersiveSegnalazioni() {
     // ── Stato iniziale ───────────────────────────────────────────────────────
     // Il difetto (immagine rotta) è visibile dal frame 0; la foto corretta
     // `.imm-img-fix` è coperta dal maskReveal (fromTo + immediateRender).
-    // Drawer chiuso fuori campo a destra; toast nascosti; flip di stato pronto
-    // («In lavorazione» in piano, «Risolta ✓» girata via a -90°).
+    // Drawer chiuso fuori campo a destra; toast e card di Marco nascosti; il dot
+    // finale della timeline è pronto al flip (pending in piano, check a -90°).
     gsap.set(".imm-seg-drawer", { xPercent: 100 });
     gsap.set(".imm-seg-toast", { autoAlpha: 0, y: 48 });
+    gsap.set(".imm-seg-assist", { autoAlpha: 0, y: 24 });
     gsap.set(".imm-fix-toast", { autoAlpha: 0, y: -28 });
     gsap.set(".imm-seg-old", { transformPerspective: 400, transformOrigin: "50% 50%" });
     gsap.set(".imm-seg-new", {
@@ -151,12 +170,33 @@ export default function ImmersiveSegnalazioni() {
     tl.to(".imm-seg-toast", { autoAlpha: 1, y: 0, duration: 0.55, ease: "expo.out" }, "<0.1");
     clickZoom(tl, ".imm-seg-toast", { position: "<0.14", scale: 1.05 });
 
+    // ── Beat ②½ — presa in carico: un tecnico reale risponde ─────────────────
+    // Card messaggio con avatar: entra DOPO il toast di ricezione (regola 2 —
+    // nessuna partenza simultanea camera/contenuto sullo stesso target).
+    tl.to(".imm-seg-assist", { autoAlpha: 1, y: 0, duration: 0.5, ease: "back.out(1.6)" }, ">0.2");
+    // CAMERA · inquadra la card di Marco: si legge il messaggio a camera ferma.
+    cameraTo(tl, ".imm-seg-assist", { scale: 1.25, duration: 0.55, position: "<0.1" });
+    // Sul binario di stato: la tappa 1→2 si accende (linea che si riempie —
+    // stesso pattern maskReveal del wipe sulla foto corretta, item 2 del beat).
+    maskReveal(tl, ".imm-step-line-1", { dir: "l", duration: 0.45, position: "<0.15" });
+    tl.to(".imm-step-2", { scale: 1.2, duration: 0.3, ease: "back.out(2.6)" }, "<");
+    tl.to(".imm-step-2", { scale: 1, duration: 0.25, ease: "power2.out" }, ">");
+    // Hold di lettura (~1s) sulla card di Marco, poi la caption spiega il valore.
+    tl.to({}, { duration: 1 });
+    say(tl, 2); // «Un nostro tecnico la prende in carico e la sistema...»
+    // Chiusura beat (regola 3): la card esce, la camera torna neutra.
+    tl.to(".imm-seg-assist", { autoAlpha: 0, y: -12, duration: 0.4, ease: "power2.in" }, ">-0.2");
+    cameraReset(tl, { duration: 0.6, position: "<" });
+
     // ── Beat ③ — IL FIX: si torna alla dashboard e il difetto è risolto ───────
     tl.to(".imm-seg-drawer", { xPercent: 100, duration: 0.8, ease: "expo.inOut" }, ">0.25");
     // CAMERA · il rack focus si chiude col drawer: la dashboard torna a fuoco
     // (rackFocus/rackFocusOff bilanciati — regola 3).
     rackFocusOff(tl, ".imm-seg-bg", { position: "<" });
-    // Il badge di stato flippa in 3D: «In lavorazione» gira via, «Risolta ✓» entra
+    // Sul binario di stato: la tappa 2→3 si accende in sync col flip finale.
+    maskReveal(tl, ".imm-step-line-2", { dir: "l", duration: 0.4 });
+    // Il dot finale flippa in 3D: «in attesa» gira via, «Risolta ✓» entra
+    // (pattern rotateY riusato SOLO per l'ultima tappa, come da roadmap).
     tl.to(
       ".imm-seg-old",
       { rotationY: 90, autoAlpha: 0, duration: 0.3, ease: "power2.in" },
@@ -183,18 +223,18 @@ export default function ImmersiveSegnalazioni() {
     // svelare la dashboard riparata → a progress(1) la camera è neutra.
     cameraReset(tl, { duration: 0.9, position: ">0.2" });
     // Mini-toast di conferma mentre il campo si allarga (rientra in alto al centro)
+    // — attribuita a Marco: chiude il cerchio persona→soluzione aperto nel ②½.
     tl.to(
       ".imm-fix-toast",
       { autoAlpha: 1, y: 0, duration: 0.45, ease: "back.out(1.7)" },
       ">-0.35",
     );
-    say(tl, 2); // «Riceviamo la segnalazione, sistemiamo, e vedi la versione aggiornata.»
 
     tl.to({}, { duration: 0.6 }); // hold finale
   });
 
   return (
-    <ImmersiveStage ref={ref} heightVh={480} label={CHAPTERS[4].title} chapterIndex={4}>
+    <ImmersiveStage ref={ref} heightVh={530} label={CHAPTERS[4].title} chapterIndex={4}>
       {/* Reduced-motion: heading statico di capitolo (la ChapterCard animata a
           progress(1) è nascosta) — nella fascia alta libera (pt-10 del frame). */}
       {reduced ? (
@@ -417,38 +457,92 @@ export default function ImmersiveSegnalazioni() {
 
       {/* ── Toast globali (fuori dall'app: non vengono clippati dal drawer) ── */}
 
-      {/* «Segnalazione ricevuta ✓» + badge stato con FLIP «In lavorazione» → «Risolta ✓» */}
+      {/* «Segnalazione ricevuta ✓» + timeline di stato a 3 tappe (beat ②/②½/③):
+          Ricevuta ✓ → In lavorazione (avatar del tecnico) → Risolta ✓. Le prime
+          due tappe sono dot fissi; il binario tra loro si "accende" col beat
+          ②½, il dot finale flippa in 3D (pattern del Gestionale, solo lì). */}
       <div
-        className="imm-seg-toast border-border bg-surface pointer-events-none absolute bottom-8 left-1/2 z-50 flex -translate-x-1/2 items-center gap-3 rounded-xl border px-5 py-3 shadow-lg"
+        className="imm-seg-toast border-border bg-surface pointer-events-none absolute bottom-8 left-1/2 z-50 w-[380px] -translate-x-1/2 rounded-xl border px-5 py-3.5 shadow-lg"
         aria-live="polite"
         style={{ opacity: 0 }}
       >
-        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-emerald-100">
-          <Check className="h-4 w-4 text-emerald-600" aria-hidden />
-        </span>
-        <div>
-          <p className="text-foreground text-sm font-semibold">Segnalazione ricevuta ✓</p>
-          <p className="text-muted text-xs">Hero homepage · {PAGINA_RILEVATA}</p>
+        <div className="flex items-center gap-3">
+          <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-emerald-100">
+            <Check className="h-4 w-4 text-emerald-600" aria-hidden />
+          </span>
+          <div className="min-w-0">
+            <p className="text-foreground text-sm font-semibold">Segnalazione ricevuta ✓</p>
+            <p className="text-muted truncate text-xs">Hero homepage · {PAGINA_RILEVATA}</p>
+          </div>
         </div>
-        {/* I due stati occupano la stessa cella (grid) → il flip 3D gira sul posto */}
-        <span className="ml-1 inline-grid shrink-0">
-          <span className="imm-seg-old col-start-1 row-start-1 rounded-full bg-amber-100 px-2.5 py-1 text-center text-[11px] font-semibold text-amber-700">
-            In lavorazione
+
+        <div className="mt-3 flex items-center gap-1.5 pl-1">
+          {/* Tappa 1 · Ricevuta — attiva da subito (il toast appare solo a invio avvenuto) */}
+          <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-emerald-500 text-white">
+            <Check className="h-3 w-3" aria-hidden />
           </span>
-          <span className="imm-seg-new col-start-1 row-start-1 rounded-full bg-emerald-100 px-2.5 py-1 text-center text-[11px] font-semibold text-emerald-700">
-            Risolta ✓
+          {/* Binario 1→2: si riempie nel beat ②½ (maskReveal, stesso pattern del wipe foto) */}
+          <span className="bg-border relative h-0.5 w-9 shrink-0 overflow-hidden rounded-full">
+            <span className="imm-step-line-1 bg-accent absolute inset-0" />
           </span>
-        </span>
+          {/* Tappa 2 · In lavorazione — avatar del tecnico che prende in carico */}
+          <span className="imm-step-2 bg-accent text-accent-contrast flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[8px] font-bold">
+            {TECNICO.iniziali}
+          </span>
+          {/* Binario 2→3: si riempie nel beat ③, in sync col flip finale */}
+          <span className="bg-border relative h-0.5 w-9 shrink-0 overflow-hidden rounded-full">
+            <span className="imm-step-line-2 bg-accent absolute inset-0" />
+          </span>
+          {/* Tappa 3 · Risolta — gli stati occupano la stessa cella (grid): il flip 3D gira sul posto */}
+          <span className="inline-grid shrink-0">
+            <span className="imm-seg-old col-start-1 row-start-1 h-5 w-5 rounded-full border border-amber-300 bg-amber-100" />
+            <span className="imm-seg-new col-start-1 row-start-1 flex h-5 w-5 items-center justify-center rounded-full bg-emerald-500 text-white">
+              <Check className="h-3 w-3" aria-hidden />
+            </span>
+          </span>
+        </div>
+        <div className="text-muted mt-1 flex items-center justify-between pl-1 text-[9px] font-semibold tracking-wide uppercase">
+          <span>Ricevuta</span>
+          <span>In lavorazione</span>
+          <span>Risolta</span>
+        </div>
       </div>
 
-      {/* Mini-toast «Fix pubblicato ✓» (conferma visiva del beat finale) */}
+      {/* Beat ②½ · card messaggio del tecnico che prende in carico (avatar +
+          nome/ruolo + testo breve). Mock deterministico (costante TECNICO). */}
+      <div
+        className="imm-seg-assist border-border bg-surface pointer-events-none absolute top-24 left-1/2 z-50 flex w-[360px] -translate-x-1/2 items-start gap-3 rounded-xl border px-4 py-3 shadow-lg"
+        aria-live="polite"
+        style={{ opacity: 0 }}
+      >
+        <span
+          className="bg-accent text-accent-contrast flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-xs font-bold"
+          aria-hidden
+        >
+          {TECNICO.iniziali}
+        </span>
+        <div className="min-w-0">
+          <p className="text-foreground text-xs font-semibold">
+            {TECNICO.nome} <span className="text-muted font-normal">· {TECNICO.ruolo}</span>
+          </p>
+          <p className="text-muted mt-0.5 text-xs">{TECNICO.messaggio}</p>
+        </div>
+      </div>
+
+      {/* Mini-toast «Fix pubblicato da Marco ✓» — chiude il cerchio persona→soluzione */}
       <div
         className="imm-fix-toast border-border bg-surface pointer-events-none absolute top-8 left-1/2 z-50 flex -translate-x-1/2 items-center gap-2 rounded-full border px-4 py-2 shadow-lg"
         aria-live="polite"
         style={{ opacity: 0 }}
       >
+        <span
+          className="bg-accent text-accent-contrast flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[8px] font-bold"
+          aria-hidden
+        >
+          {TECNICO.iniziali}
+        </span>
         <Check className="h-4 w-4 text-emerald-600" aria-hidden />
-        <p className="text-foreground text-sm font-semibold">Fix pubblicato ✓</p>
+        <p className="text-foreground text-sm font-semibold">Fix pubblicato da {TECNICO.nome} ✓</p>
       </div>
 
       {/* Title card di capitolo (P12) — apre la scena al posto della vecchia veil */}
@@ -459,7 +553,7 @@ export default function ImmersiveSegnalazioni() {
         Il link della pagina si compila da solo.
       </Say>
       <Say i={2} variant="caption">
-        Riceviamo la segnalazione, sistemiamo, e vedi la versione aggiornata.
+        Un nostro tecnico la prende in carico e la sistema: tu vedi solo il risultato.
       </Say>
     </ImmersiveStage>
   );
