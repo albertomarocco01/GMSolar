@@ -415,409 +415,487 @@ export default function ImmersiveDashboard() {
           {CHAPTERS[3].title}
         </h2>
       )}
-      {/* Stessi token della scena Gestionale adiacente: fondi, grigi e accent
-          identici (prima era bg-white + scala slate hardcoded → salto di tono). */}
-      <div className="bg-background text-foreground flex h-full pt-10">
-        {/* ── Sidebar ────────────────────────────────────────────────────────── */}
-        <aside className="border-border bg-surface relative hidden w-52 shrink-0 border-r p-4 sm:block">
-          <div className="text-foreground mb-6 flex items-center gap-2 px-2 font-semibold">
-            <span className="bg-accent h-4 w-4 rounded-[5px]" />
-            Dashboard
-          </div>
-
-          <nav className="relative space-y-1">
-            {/* Indicatore scorrevole della voce attiva */}
-            <span
-              className="imm-nav-ind bg-accent-soft pointer-events-none absolute inset-x-0 h-10 rounded-lg"
-              style={{ top: 0 }}
-              aria-hidden
-            />
-            {NAV.map((n) => (
-              <div
-                key={n}
-                className="imm-nav-item text-foreground relative rounded-lg px-3 py-2.5 text-sm font-medium"
-              >
-                {n}
-              </div>
-            ))}
-          </nav>
-
-          {/* Siti connessi */}
-          <div className="border-border mt-6 border-t pt-4">
-            <p className="text-muted mb-2 px-2 text-[11px] font-semibold tracking-wider uppercase">
-              Siti
-            </p>
-            {["Solar", "Mobility", "Shop"].map((s) => (
-              <div
-                key={s}
-                className="text-muted flex items-center gap-2 rounded-lg px-3 py-2 text-sm"
-              >
-                <span className="bg-accent/60 h-2 w-2 rounded-full" />
-                {s}
-              </div>
-            ))}
-          </div>
-        </aside>
-
-        {/* ── Area principale ───────────────────────────────────────────────── */}
-        {/* Reduced-motion: overflow-x-auto → il binario a 4 pannelli si scorre a mano
-            (il pan scrubbato non c'è, vedi useReducedMotion sopra). */}
-        <div
-          className={`relative flex-1 ${
-            reduced ? "overflow-x-auto overflow-y-hidden" : "overflow-hidden"
-          }`}
-        >
-          {/* Topbar */}
-          <div className="border-border bg-background/80 flex h-12 items-center gap-3 border-b px-5 backdrop-blur">
-            <span className="h-2 w-2 rounded-full bg-emerald-400" />
-            <span className="text-muted text-xs font-semibold">3 siti connessi</span>
-            <div className="ml-auto flex items-center gap-1.5">
-              {["Solar", "Mobility"].map((s) => (
-                <span
-                  key={s}
-                  className="bg-surface-2 text-muted rounded-full px-3 py-1 text-[11px] font-semibold"
-                >
-                  {s}
-                </span>
-              ))}
-              <span className="bg-accent text-accent-contrast rounded-full px-3 py-1 text-[11px] font-semibold">
-                Shop ✓
-              </span>
+      {/* R3 regola 1: la dashboard non è più full-bleed ma vive in un DEVICE
+          FRAME centrato ~16:10 (max-w-6xl) su fondo neutro → proporzioni da
+          vero pannello admin. Stessi token della scena Gestionale adiacente. */}
+      <div className="bg-surface flex h-full items-center justify-center px-6">
+        <div className="border-border bg-background text-foreground flex aspect-[16/10] w-full max-w-6xl overflow-hidden rounded-2xl border shadow-2xl">
+          {/* ── Sidebar ────────────────────────────────────────────────────────── */}
+          <aside className="border-border bg-surface relative hidden w-52 shrink-0 border-r p-4 sm:block">
+            <div className="text-foreground mb-6 flex items-center gap-2 px-2 font-semibold">
+              <span className="bg-accent h-4 w-4 rounded-[5px]" />
+              Dashboard
             </div>
-          </div>
 
-          {/* Track orizzontale: 4 schermate → width 400%, ogni pannello w-1/4.
-              Ogni pannello: contenuto centrato in max-w-5xl, griglie dense. */}
-          <div className="imm-track flex h-[calc(100%-3rem)]" style={{ width: "400%" }}>
-            {/* ① CONTENUTI: lista pagine + editor della voce selezionata ─────── */}
-            <div className="w-1/4 shrink-0 overflow-hidden p-5">
-              <div className="mx-auto max-w-5xl">
-                <div className="mb-3 flex items-center justify-between">
-                  <p className="text-foreground font-semibold">Contenuti del sito</p>
-                  <span className="text-muted text-xs">gmsolar.it · 3 pagine pubblicate</span>
+            <nav className="relative space-y-1">
+              {/* Indicatore scorrevole della voce attiva */}
+              <span
+                className="imm-nav-ind bg-accent-soft pointer-events-none absolute inset-x-0 h-10 rounded-lg"
+                style={{ top: 0 }}
+                aria-hidden
+              />
+              {NAV.map((n) => (
+                <div
+                  key={n}
+                  className="imm-nav-item text-foreground relative rounded-lg px-3 py-2.5 text-sm font-medium"
+                >
+                  {n}
                 </div>
+              ))}
+            </nav>
 
-                <div className="grid grid-cols-[240px_minmax(0,1fr)] items-start gap-4">
-                  {/* Colonna sinistra: pagine GIÀ popolate, con anteprima e stato */}
-                  <div className="border-border bg-surface rounded-xl border shadow-sm">
-                    <p className="text-muted border-border border-b px-3 py-2 text-[11px] font-semibold tracking-wider uppercase">
-                      Pagine del sito
-                    </p>
-                    <div className="space-y-1 p-2">
-                      {PAGINE.map(({ nome, hero }) => (
-                        <div
-                          key={nome}
-                          className={`relative flex items-center gap-2.5 rounded-lg px-2.5 py-2 ${
-                            hero ? "imm-page-hero" : ""
-                          }`}
-                        >
-                          {/* Highlight della voce selezionata: appare al click del cursore */}
-                          {hero && (
-                            <span
-                              className="imm-page-active bg-accent-soft absolute inset-0 rounded-lg"
-                              aria-hidden
-                            />
-                          )}
-                          {/* Mini-anteprima: foto reale della pagina */}
-                          {hero ? (
-                            <img
-                              src={FOTO_ATTUALE}
-                              alt=""
-                              loading="lazy"
-                              decoding="async"
-                              className="relative h-8 w-11 shrink-0 rounded-md object-cover"
-                              aria-hidden
-                            />
-                          ) : (
-                            <img
-                              src="/assets/products/cavo-02.jpg"
-                              alt=""
-                              loading="lazy"
-                              decoding="async"
-                              className="border-border relative h-8 w-11 shrink-0 rounded-md border object-cover"
-                              aria-hidden
-                            />
-                          )}
-                          <span className="relative min-w-0 flex-1">
-                            <span className="text-foreground block truncate text-xs font-semibold">
-                              {nome}
-                            </span>
-                            <span className="mt-0.5 inline-block rounded-full bg-emerald-100 px-1.5 py-px text-[9px] font-semibold text-emerald-700">
-                              Pubblicata
-                            </span>
-                          </span>
-                        </div>
-                      ))}
-                    </div>
+            {/* Siti connessi */}
+            <div className="border-border mt-6 border-t pt-4">
+              <p className="text-muted mb-2 px-2 text-[11px] font-semibold tracking-wider uppercase">
+                Siti
+              </p>
+              {["Solar", "Mobility", "Shop"].map((s) => (
+                <div
+                  key={s}
+                  className="text-muted flex items-center gap-2 rounded-lg px-3 py-2 text-sm"
+                >
+                  <span className="bg-accent/60 h-2 w-2 rounded-full" />
+                  {s}
+                </div>
+              ))}
+            </div>
+          </aside>
+
+          {/* ── Area principale ───────────────────────────────────────────────── */}
+          {/* Reduced-motion: overflow-x-auto → il binario a 4 pannelli si scorre a mano
+            (il pan scrubbato non c'è, vedi useReducedMotion sopra). */}
+          <div
+            className={`relative flex-1 ${
+              reduced ? "overflow-x-auto overflow-y-hidden" : "overflow-hidden"
+            }`}
+          >
+            {/* Topbar */}
+            <div className="border-border bg-background/80 flex h-12 items-center gap-3 border-b px-5 backdrop-blur">
+              <span className="h-2 w-2 rounded-full bg-emerald-400" />
+              <span className="text-muted text-xs font-semibold">3 siti connessi</span>
+              <div className="ml-auto flex items-center gap-1.5">
+                {["Solar", "Mobility"].map((s) => (
+                  <span
+                    key={s}
+                    className="bg-surface-2 text-muted rounded-full px-3 py-1 text-[11px] font-semibold"
+                  >
+                    {s}
+                  </span>
+                ))}
+                <span className="bg-accent text-accent-contrast rounded-full px-3 py-1 text-[11px] font-semibold">
+                  Shop ✓
+                </span>
+              </div>
+            </div>
+
+            {/* Track orizzontale: 4 schermate → width 400%, ogni pannello w-1/4.
+              Ogni pannello: contenuto centrato in max-w-5xl, griglie dense. */}
+            <div className="imm-track flex h-[calc(100%-3rem)]" style={{ width: "400%" }}>
+              {/* ① CONTENUTI: lista pagine + editor della voce selezionata ─────── */}
+              <div className="w-1/4 shrink-0 overflow-hidden p-5">
+                <div className="mx-auto max-w-5xl">
+                  <div className="mb-3 flex items-center justify-between">
+                    <p className="text-foreground font-semibold">Contenuti del sito</p>
+                    <span className="text-muted text-xs">gmsolar.it · 3 pagine pubblicate</span>
                   </div>
 
-                  {/* Colonna destra: editor «Hero homepage», GIÀ COMPILATO */}
-                  <div className="imm-zoom-local border-border bg-surface relative rounded-xl border p-4 shadow-sm">
-                    <div className="mb-3 flex items-center justify-between">
-                      <p className="text-foreground text-sm font-semibold">Hero homepage</p>
-                      <span className="text-muted text-[11px]">Ultima modifica: 12/06/2026</span>
+                  <div className="grid grid-cols-[240px_minmax(0,1fr)] items-start gap-4">
+                    {/* Colonna sinistra: pagine GIÀ popolate, con anteprima e stato */}
+                    <div className="border-border bg-surface rounded-xl border shadow-sm">
+                      <p className="text-muted border-border border-b px-3 py-2 text-[11px] font-semibold tracking-wider uppercase">
+                        Pagine del sito
+                      </p>
+                      <div className="space-y-1 p-2">
+                        {PAGINE.map(({ nome, hero }) => (
+                          <div
+                            key={nome}
+                            className={`relative flex items-center gap-2.5 rounded-lg px-2.5 py-2 ${
+                              hero ? "imm-page-hero" : ""
+                            }`}
+                          >
+                            {/* Highlight della voce selezionata: appare al click del cursore */}
+                            {hero && (
+                              <span
+                                className="imm-page-active bg-accent-soft absolute inset-0 rounded-lg"
+                                aria-hidden
+                              />
+                            )}
+                            {/* Mini-anteprima: foto reale della pagina */}
+                            {hero ? (
+                              <img
+                                src={FOTO_ATTUALE}
+                                alt=""
+                                loading="lazy"
+                                decoding="async"
+                                className="relative aspect-video w-14 shrink-0 rounded-md object-cover"
+                                aria-hidden
+                              />
+                            ) : (
+                              <img
+                                src="/assets/products/cavo-02.jpg"
+                                alt=""
+                                loading="lazy"
+                                decoding="async"
+                                className="border-border relative h-8 w-11 shrink-0 rounded-md border object-cover"
+                                aria-hidden
+                              />
+                            )}
+                            <span className="relative min-w-0 flex-1">
+                              <span className="text-foreground block truncate text-xs font-semibold">
+                                {nome}
+                              </span>
+                              <span className="mt-0.5 inline-block rounded-full bg-emerald-100 px-1.5 py-px text-xs font-semibold text-emerald-700">
+                                Pubblicata
+                              </span>
+                            </span>
+                          </div>
+                        ))}
+                      </div>
                     </div>
 
-                    <div className="grid grid-cols-[280px_minmax(0,1fr)] gap-4">
-                      {/* Immagine: attuale sotto, NUOVA sopra (coperta → wipe maskReveal) */}
-                      <div>
-                        <div className="relative h-32 overflow-hidden rounded-lg">
-                          <div className="absolute inset-0" aria-hidden>
-                            <img
-                              src={FOTO_ATTUALE}
-                              alt=""
-                              loading="lazy"
-                              decoding="async"
-                              className="h-full w-full object-cover"
-                            />
-                            <div className="absolute inset-0 flex items-center justify-center">
-                              <span className="bg-background/85 text-foreground rounded-lg px-3 py-1.5 text-xs font-semibold shadow-sm">
-                                foto-attuale.jpg
-                              </span>
-                            </div>
-                          </div>
-                          <div className="imm-img-new absolute inset-0" aria-hidden>
-                            <img
-                              src={FOTO_NUOVA}
-                              alt=""
-                              loading="lazy"
-                              decoding="async"
-                              className="h-full w-full object-cover"
-                            />
-                            <div className="absolute inset-0 flex items-center justify-center">
-                              <span className="bg-background/85 text-foreground rounded-lg px-3 py-1.5 text-xs font-semibold shadow-sm">
-                                impianto-2026.jpg
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                        <button
-                          className="imm-replace-btn border-border bg-surface-2 text-foreground mt-2 rounded-lg border px-3 py-1.5 text-xs font-semibold"
-                          tabIndex={-1}
-                          aria-hidden
-                        >
-                          Sostituisci immagine
-                        </button>
+                    {/* Colonna destra: editor «Hero homepage», GIÀ COMPILATO */}
+                    <div className="imm-zoom-local border-border bg-surface relative rounded-xl border p-4 shadow-sm">
+                      <div className="mb-3 flex items-center justify-between">
+                        <p className="text-foreground text-sm font-semibold">Hero homepage</p>
+                        <span className="text-muted text-[11px]">Ultima modifica: 12/06/2026</span>
                       </div>
 
-                      {/* Campi testo: GIÀ compilati (si modifica, non si parte da zero) */}
-                      <div className="space-y-3">
+                      <div className="grid grid-cols-[280px_minmax(0,1fr)] gap-4">
+                        {/* Immagine: attuale sotto, NUOVA sopra (coperta → wipe maskReveal) */}
                         <div>
-                          <label className="text-muted mb-1 block text-[11px] font-semibold tracking-wider uppercase">
-                            Titolo
-                          </label>
-                          {/* Titolo vecchio in flusso; il NUOVO è in overlay e si
-                              digita per clip-path (typeInField) mentre il vecchio sfuma */}
-                          <div className="imm-title-field border-border bg-surface-2 text-foreground relative min-h-[34px] rounded-lg border px-3 py-2 text-sm">
-                            <span className="imm-title-old inline-block whitespace-nowrap">
-                              Energia solare per la tua casa
-                            </span>
-                            <span className="imm-title-new absolute top-2 left-3 inline-block whitespace-nowrap">
-                              Energia solare per la tua azienda
-                            </span>
+                          {/* R3 regola 3: aspect 16/9 esplicito (era h-32 → schiacciata) */}
+                          <div className="relative aspect-video overflow-hidden rounded-lg">
+                            <div className="absolute inset-0" aria-hidden>
+                              <img
+                                src={FOTO_ATTUALE}
+                                alt=""
+                                loading="lazy"
+                                decoding="async"
+                                className="h-full w-full object-cover"
+                              />
+                              <div className="absolute inset-0 flex items-center justify-center">
+                                <span className="bg-background/85 text-foreground rounded-lg px-3 py-1.5 text-xs font-semibold shadow-sm">
+                                  foto-attuale.jpg
+                                </span>
+                              </div>
+                            </div>
+                            <div className="imm-img-new absolute inset-0" aria-hidden>
+                              <img
+                                src={FOTO_NUOVA}
+                                alt=""
+                                loading="lazy"
+                                decoding="async"
+                                className="h-full w-full object-cover"
+                              />
+                              <div className="absolute inset-0 flex items-center justify-center">
+                                <span className="bg-background/85 text-foreground rounded-lg px-3 py-1.5 text-xs font-semibold shadow-sm">
+                                  impianto-2026.jpg
+                                </span>
+                              </div>
+                            </div>
                           </div>
-                        </div>
-                        <div>
-                          <label className="text-muted mb-1 block text-[11px] font-semibold tracking-wider uppercase">
-                            Descrizione
-                          </label>
-                          <div className="border-border bg-surface-2 text-muted min-h-[52px] rounded-lg border px-3 py-2 text-sm">
-                            Impianti fotovoltaici e ricarica EV chiavi in mano, dal sopralluogo
-                            all&apos;allaccio.
-                          </div>
-                        </div>
-
-                        <div className="flex items-center justify-between pt-1">
-                          <span className="text-muted text-[11px]">
-                            Stato: <span className="font-semibold">Pubblicata</span>
-                          </span>
                           <button
-                            className="imm-publish-btn bg-accent text-accent-contrast rounded-lg px-4 py-1.5 text-sm font-semibold"
+                            className="imm-replace-btn border-border bg-surface-2 text-foreground mt-2 rounded-lg border px-3 py-1.5 text-xs font-semibold"
                             tabIndex={-1}
                             aria-hidden
                           >
-                            Pubblica
+                            Sostituisci immagine
                           </button>
                         </div>
+
+                        {/* Campi testo: GIÀ compilati (si modifica, non si parte da zero) */}
+                        <div className="space-y-3">
+                          <div>
+                            <label className="text-muted mb-1 block text-[11px] font-semibold tracking-wider uppercase">
+                              Titolo
+                            </label>
+                            {/* Titolo vecchio in flusso; il NUOVO è in overlay e si
+                              digita per clip-path (typeInField) mentre il vecchio sfuma */}
+                            <div className="imm-title-field border-border bg-surface-2 text-foreground relative min-h-[34px] rounded-lg border px-3 py-2 text-sm">
+                              <span className="imm-title-old inline-block whitespace-nowrap">
+                                Energia solare per la tua casa
+                              </span>
+                              <span className="imm-title-new absolute top-2 left-3 inline-block whitespace-nowrap">
+                                Energia solare per la tua azienda
+                              </span>
+                            </div>
+                          </div>
+                          <div>
+                            <label className="text-muted mb-1 block text-[11px] font-semibold tracking-wider uppercase">
+                              Descrizione
+                            </label>
+                            <div className="border-border bg-surface-2 text-muted min-h-[52px] rounded-lg border px-3 py-2 text-sm">
+                              Impianti fotovoltaici e ricarica EV chiavi in mano, dal sopralluogo
+                              all&apos;allaccio.
+                            </div>
+                          </div>
+
+                          <div className="flex items-center justify-between pt-1">
+                            <span className="text-muted text-[11px]">
+                              Stato: <span className="font-semibold">Pubblicata</span>
+                            </span>
+                            <button
+                              className="imm-publish-btn bg-accent text-accent-contrast rounded-lg px-4 py-1.5 text-sm font-semibold"
+                              tabIndex={-1}
+                              aria-hidden
+                            >
+                              Pubblica
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Toast di conferma: appare dopo «Pubblica» */}
+                      <div
+                        className="imm-toast bg-foreground text-background absolute top-3 right-3 rounded-lg px-3 py-1.5 text-xs font-semibold shadow-lg"
+                        aria-hidden
+                      >
+                        Modifiche pubblicate ✓
                       </div>
                     </div>
+                  </div>
+                </div>
+              </div>
 
-                    {/* Toast di conferma: appare dopo «Pubblica» */}
-                    <div
-                      className="imm-toast bg-foreground text-background absolute top-3 right-3 rounded-lg px-3 py-1.5 text-xs font-semibold shadow-lg"
+              {/* ② PRODOTTI: griglia densa a 3 colonne + mini-form di aggiunta ─── */}
+              <div className="relative w-1/4 shrink-0 overflow-hidden p-5">
+                <div className="mx-auto max-w-5xl">
+                  <div className="mb-3 flex items-center justify-between">
+                    <p className="text-foreground font-semibold">Catalogo prodotti</p>
+                    <button
+                      className="imm-add-btn bg-accent text-accent-contrast rounded-lg px-4 py-1.5 text-xs font-semibold shadow-sm"
+                      tabIndex={-1}
                       aria-hidden
                     >
-                      Modifiche pubblicate ✓
-                    </div>
+                      + Aggiungi prodotto
+                    </button>
                   </div>
-                </div>
-              </div>
-            </div>
 
-            {/* ② PRODOTTI: griglia densa a 3 colonne + mini-form di aggiunta ─── */}
-            <div className="relative w-1/4 shrink-0 overflow-hidden p-5">
-              <div className="mx-auto max-w-5xl">
-                <div className="mb-3 flex items-center justify-between">
-                  <p className="text-foreground font-semibold">Catalogo prodotti</p>
-                  <button
-                    className="imm-add-btn bg-accent text-accent-contrast rounded-lg px-4 py-1.5 text-xs font-semibold shadow-sm"
-                    tabIndex={-1}
-                    aria-hidden
-                  >
-                    + Aggiungi prodotto
-                  </button>
-                </div>
-
-                <div className="grid grid-cols-3 gap-3">
-                  {PRODOTTI_INIT.map((p) => (
-                    <div
-                      key={p.nome}
-                      className="border-border bg-surface rounded-xl border p-3 shadow-sm"
-                    >
-                      <img
-                        src={p.img}
-                        alt=""
-                        loading="lazy"
-                        decoding="async"
-                        className="mb-2 h-10 w-full rounded-lg object-cover"
-                      />
-                      <p className="text-foreground text-sm font-semibold">{p.nome}</p>
-                      <p className="text-accent-ink text-xs font-bold">{p.prezzo}</p>
-                    </div>
-                  ))}
-
-                  {/* Nuova card: entra con back.out dopo il «Salva» del form */}
-                  <div className="imm-new-card border-accent/40 bg-accent/5 rounded-xl border-2 p-3 shadow-sm">
-                    <img
-                      src="/assets/products/cavo-05.jpg"
-                      alt=""
-                      loading="lazy"
-                      decoding="async"
-                      className="mb-2 h-10 w-full rounded-lg object-cover"
-                    />
-                    <p className="text-foreground text-sm font-semibold">Batteria 10 kWh</p>
-                    <p className="text-accent-ink text-xs font-bold">3.200 €</p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Mini-form «Nuovo prodotto»: si apre al click su «+ Aggiungi
-                  prodotto», i campi si digitano da soli (typeInField), la foto
-                  si carica con un wipe, «Salva prodotto» lo chiude e fa entrare
-                  la card qui sopra. Parte nascosto (set nel build). */}
-              <div
-                className="imm-add-form border-border bg-background absolute top-1/2 left-1/2 z-10 w-80 -translate-x-1/2 -translate-y-1/2 rounded-2xl border p-4 shadow-2xl"
-                style={{ opacity: 0 }}
-                aria-hidden
-              >
-                <p className="text-foreground mb-3 text-sm font-semibold">Nuovo prodotto</p>
-                <div className="space-y-2.5">
-                  <div>
-                    <label className="text-muted mb-1 block text-[11px] font-semibold tracking-wider uppercase">
-                      Nome
-                    </label>
-                    <div className="border-border bg-surface-2 text-foreground min-h-[32px] overflow-hidden rounded-lg border px-3 py-1.5 text-sm">
-                      <span className="imm-form-nome inline-block whitespace-nowrap">
-                        Batteria 10 kWh
-                      </span>
-                    </div>
-                  </div>
-                  <div>
-                    <label className="text-muted mb-1 block text-[11px] font-semibold tracking-wider uppercase">
-                      Prezzo
-                    </label>
-                    <div className="border-border bg-surface-2 text-foreground min-h-[32px] overflow-hidden rounded-lg border px-3 py-1.5 text-sm">
-                      <span className="imm-form-prezzo inline-block whitespace-nowrap">
-                        3.200 €
-                      </span>
-                    </div>
-                  </div>
-                  <div>
-                    <label className="text-muted mb-1 block text-[11px] font-semibold tracking-wider uppercase">
-                      Foto
-                    </label>
-                    <div className="flex items-center gap-2">
-                      <span className="imm-form-foto block h-10 w-14 overflow-hidden rounded-lg">
+                  <div className="grid grid-cols-3 gap-4">
+                    {PRODOTTI_INIT.map((p) => (
+                      <div
+                        key={p.nome}
+                        className="border-border bg-surface rounded-xl border p-3 shadow-sm"
+                      >
                         <img
-                          src="/assets/products/cavo-05.jpg"
+                          src={p.img}
                           alt=""
                           loading="lazy"
                           decoding="async"
-                          className="h-full w-full object-cover"
+                          className="mb-2 aspect-[4/3] w-full rounded-lg object-cover"
                         />
-                      </span>
-                      <span className="text-muted text-xs">batteria-10kwh.jpg</span>
+                        <p className="text-foreground text-sm font-semibold">{p.nome}</p>
+                        <p className="text-accent-ink text-xs font-bold">{p.prezzo}</p>
+                      </div>
+                    ))}
+
+                    {/* Nuova card: entra con back.out dopo il «Salva» del form */}
+                    <div className="imm-new-card border-accent/40 bg-accent/5 rounded-xl border-2 p-3 shadow-sm">
+                      <img
+                        src="/assets/products/cavo-05.jpg"
+                        alt=""
+                        loading="lazy"
+                        decoding="async"
+                        className="mb-2 aspect-[4/3] w-full rounded-lg object-cover"
+                      />
+                      <p className="text-foreground text-sm font-semibold">Batteria 10 kWh</p>
+                      <p className="text-accent-ink text-xs font-bold">3.200 €</p>
                     </div>
                   </div>
                 </div>
-                <div className="mt-3 flex justify-end">
-                  <button
-                    className="imm-form-save bg-accent text-accent-contrast rounded-lg px-4 py-1.5 text-sm font-semibold"
-                    tabIndex={-1}
-                    aria-hidden
-                  >
-                    Salva prodotto
-                  </button>
+
+                {/* Mini-form «Nuovo prodotto»: si apre al click su «+ Aggiungi
+                  prodotto», i campi si digitano da soli (typeInField), la foto
+                  si carica con un wipe, «Salva prodotto» lo chiude e fa entrare
+                  la card qui sopra. Parte nascosto (set nel build). */}
+                <div
+                  className="imm-add-form border-border bg-background absolute top-1/2 left-1/2 z-10 w-80 -translate-x-1/2 -translate-y-1/2 rounded-2xl border p-4 shadow-2xl"
+                  style={{ opacity: 0 }}
+                  aria-hidden
+                >
+                  <p className="text-foreground mb-3 text-sm font-semibold">Nuovo prodotto</p>
+                  <div className="space-y-2.5">
+                    <div>
+                      <label className="text-muted mb-1 block text-[11px] font-semibold tracking-wider uppercase">
+                        Nome
+                      </label>
+                      <div className="border-border bg-surface-2 text-foreground min-h-[32px] overflow-hidden rounded-lg border px-3 py-1.5 text-sm">
+                        <span className="imm-form-nome inline-block whitespace-nowrap">
+                          Batteria 10 kWh
+                        </span>
+                      </div>
+                    </div>
+                    <div>
+                      <label className="text-muted mb-1 block text-[11px] font-semibold tracking-wider uppercase">
+                        Prezzo
+                      </label>
+                      <div className="border-border bg-surface-2 text-foreground min-h-[32px] overflow-hidden rounded-lg border px-3 py-1.5 text-sm">
+                        <span className="imm-form-prezzo inline-block whitespace-nowrap">
+                          3.200 €
+                        </span>
+                      </div>
+                    </div>
+                    <div>
+                      <label className="text-muted mb-1 block text-[11px] font-semibold tracking-wider uppercase">
+                        Foto
+                      </label>
+                      <div className="flex items-center gap-2">
+                        <span className="imm-form-foto block aspect-[4/3] w-14 overflow-hidden rounded-lg">
+                          <img
+                            src="/assets/products/cavo-05.jpg"
+                            alt=""
+                            loading="lazy"
+                            decoding="async"
+                            className="h-full w-full object-cover"
+                          />
+                        </span>
+                        <span className="text-muted text-xs">batteria-10kwh.jpg</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="mt-3 flex justify-end">
+                    <button
+                      className="imm-form-save bg-accent text-accent-contrast rounded-lg px-4 py-1.5 text-sm font-semibold"
+                      tabIndex={-1}
+                      aria-hidden
+                    >
+                      Salva prodotto
+                    </button>
+                  </div>
                 </div>
               </div>
-            </div>
 
-            {/* ③ VISITE: 4 KPI compatti + sparkline|barre affiancate ─────────── */}
-            {/* overflow-y-auto: su viewport molto bassi (landscape) i grafici in fondo
+              {/* ③ VISITE: 4 KPI compatti + sparkline|barre affiancate ─────────── */}
+              {/* overflow-y-auto: su viewport molto bassi (landscape) i grafici in fondo
                 restano raggiungibili invece di essere clippati. */}
-            <div className="w-1/4 shrink-0 overflow-y-auto p-5">
-              <div className="mx-auto max-w-5xl">
-                <p className="text-foreground mb-3 font-semibold">Visite · ultimi 30 giorni</p>
+              <div className="w-1/4 shrink-0 overflow-y-auto p-5">
+                <div className="mx-auto max-w-5xl">
+                  <p className="text-foreground mb-3 font-semibold">Visite · ultimi 30 giorni</p>
 
-                {/* 4 card KPI compatte: counter animato via proxy GSAP.
+                  {/* 4 card KPI compatte: counter animato via proxy GSAP.
                     `imm-kpi-grid` = target del push-in di camera durante il countUp. */}
-                <div className="imm-kpi-grid mb-3 grid grid-cols-4 gap-3">
-                  {KPI.map(({ label, dir, delta, fmt }, i) => (
-                    <div
-                      key={label}
-                      className={`imm-kpi-card border-border bg-surface rounded-xl border p-3 shadow-sm ${
-                        i === 0 ? "imm-kpi-zoom" : ""
-                      }`}
-                    >
-                      <p
-                        className={`imm-kpi-val-${i} text-accent-ink font-display text-xl font-bold tabular-nums`}
-                      >
-                        {fmt === "time" ? "0:00" : "0"}
-                      </p>
-                      <p className="text-muted mt-0.5 text-xs">{label}</p>
-                      {/* Trend mock: freccia + delta (su = accent, giù = muted). */}
-                      <p
-                        className={`mt-1 flex items-center gap-0.5 text-[0.65rem] font-semibold ${
-                          dir === "up" ? "text-accent-ink" : "text-muted"
+                  <div className="imm-kpi-grid mb-3 grid grid-cols-4 gap-4">
+                    {KPI.map(({ label, dir, delta, fmt }, i) => (
+                      <div
+                        key={label}
+                        className={`imm-kpi-card border-border bg-surface rounded-xl border p-3 shadow-sm ${
+                          i === 0 ? "imm-kpi-zoom" : ""
                         }`}
                       >
-                        <span aria-hidden>{dir === "up" ? "▲" : "▼"}</span>
-                        {delta}
-                      </p>
-                    </div>
-                  ))}
-                </div>
+                        <p
+                          className={`imm-kpi-val-${i} text-accent-ink font-display text-xl font-bold tabular-nums`}
+                        >
+                          {fmt === "time" ? "0:00" : "0"}
+                        </p>
+                        <p className="text-muted mt-0.5 text-xs">{label}</p>
+                        {/* Trend mock: freccia + delta (su = accent, giù = muted). */}
+                        <p
+                          className={`mt-1 flex items-center gap-0.5 text-xs font-semibold ${
+                            dir === "up" ? "text-accent-ink" : "text-muted"
+                          }`}
+                        >
+                          <span aria-hidden>{dir === "up" ? "▲" : "▼"}</span>
+                          {delta}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
 
-                {/* Due colonne affiancate: sparkline | barre giornaliere */}
-                <div className="grid grid-cols-2 gap-3">
-                  {/* Sparkline: disegnata tramite strokeDashoffset → 0 */}
-                  <div className="border-border bg-surface rounded-xl border p-4 shadow-sm">
-                    <p className="text-muted mb-2 text-[11px] font-semibold tracking-wider uppercase">
-                      Trend visite
-                    </p>
+                  {/* Due colonne affiancate: sparkline | barre giornaliere */}
+                  <div className="grid grid-cols-2 gap-4">
+                    {/* Sparkline: disegnata tramite strokeDashoffset → 0 */}
+                    <div className="border-border bg-surface rounded-xl border p-4 shadow-sm">
+                      <p className="text-muted mb-2 text-[11px] font-semibold tracking-wider uppercase">
+                        Trend visite
+                      </p>
+                      <svg
+                        viewBox="0 0 200 60"
+                        className="h-20 w-full"
+                        preserveAspectRatio="none"
+                        aria-hidden
+                      >
+                        <defs>
+                          <linearGradient id="imm-db2-spark-grad" x1="0" y1="0" x2="0" y2="1">
+                            {/* var() non è valido negli attributi SVG di presentazione → style */}
+                            <stop
+                              offset="0%"
+                              style={{ stopColor: "var(--accent)" }}
+                              stopOpacity="0.15"
+                            />
+                            <stop
+                              offset="100%"
+                              style={{ stopColor: "var(--accent)" }}
+                              stopOpacity="0"
+                            />
+                          </linearGradient>
+                        </defs>
+                        <path d={`${SPARK_D} L200,60 L0,60 Z`} fill="url(#imm-db2-spark-grad)" />
+                        <path
+                          className="imm-spark-path stroke-accent"
+                          d={SPARK_D}
+                          fill="none"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                      </svg>
+                    </div>
+
+                    {/* Barre giornaliere: scaleY 0→1 dal basso con stagger */}
+                    <div className="border-border bg-surface rounded-xl border p-4 shadow-sm">
+                      <p className="text-muted mb-2 text-[11px] font-semibold tracking-wider uppercase">
+                        Visite per giorno
+                      </p>
+                      <div className="flex h-20 items-end gap-1.5">
+                        {BARS.map((h, i) => (
+                          <span
+                            key={i}
+                            className={`imm-bar flex-1 rounded-t ${
+                              i === BARS.length - 1 ? "bg-accent" : "bg-accent/25"
+                            }`}
+                            style={{ height: `${h}%` }}
+                          />
+                        ))}
+                      </div>
+                      {/* Etichette giorno (mock statico) */}
+                      <div className="text-muted mt-1.5 flex gap-1.5 text-xs font-medium">
+                        {["L", "M", "M", "G", "V", "S", "D"].map((d, i) => (
+                          <span key={i} className="flex-1 text-center">
+                            {d}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Grafico DETTAGLIO visite: compare al click sulla card KPI
+                    «Visite» (beat ③) — area chart dedicato, con tempo di lettura. */}
+                  <div
+                    className="imm-visits-detail border-border bg-surface mt-3 rounded-xl border p-4 shadow-sm"
+                    style={{ opacity: 0 }}
+                    aria-hidden
+                  >
+                    <div className="mb-2 flex items-center justify-between">
+                      <p className="text-muted text-[11px] font-semibold tracking-wider uppercase">
+                        Dettaglio visite · per settimana
+                      </p>
+                      <span className="text-accent-ink text-[11px] font-semibold">
+                        ▲ 12% vs periodo precedente
+                      </span>
+                    </div>
                     <svg
-                      viewBox="0 0 200 60"
-                      className="h-20 w-full"
+                      viewBox="0 0 400 80"
+                      className="h-24 w-full"
                       preserveAspectRatio="none"
                       aria-hidden
                     >
                       <defs>
-                        <linearGradient id="imm-db2-spark-grad" x1="0" y1="0" x2="0" y2="1">
+                        <linearGradient id="imm-db2-detail-grad" x1="0" y1="0" x2="0" y2="1">
                           {/* var() non è valido negli attributi SVG di presentazione → style */}
                           <stop
                             offset="0%"
                             style={{ stopColor: "var(--accent)" }}
-                            stopOpacity="0.15"
+                            stopOpacity="0.2"
                           />
                           <stop
                             offset="100%"
@@ -826,222 +904,149 @@ export default function ImmersiveDashboard() {
                           />
                         </linearGradient>
                       </defs>
-                      <path d={`${SPARK_D} L200,60 L0,60 Z`} fill="url(#imm-db2-spark-grad)" />
+                      {/* Area: si riempie dopo che la linea si è disegnata */}
                       <path
-                        className="imm-spark-path stroke-accent"
-                        d={SPARK_D}
+                        className="imm-detail-area"
+                        d={`${DETAIL_D} L400,80 L0,80 Z`}
+                        fill="url(#imm-db2-detail-grad)"
+                        style={{ opacity: 0 }}
+                      />
+                      <path
+                        className="imm-detail-path stroke-accent"
+                        d={DETAIL_D}
                         fill="none"
-                        strokeWidth="2"
+                        strokeWidth="2.5"
                         strokeLinecap="round"
                         strokeLinejoin="round"
                       />
                     </svg>
-                  </div>
-
-                  {/* Barre giornaliere: scaleY 0→1 dal basso con stagger */}
-                  <div className="border-border bg-surface rounded-xl border p-4 shadow-sm">
-                    <p className="text-muted mb-2 text-[11px] font-semibold tracking-wider uppercase">
-                      Visite per giorno
-                    </p>
-                    <div className="flex h-20 items-end gap-1.5">
-                      {BARS.map((h, i) => (
-                        <span
-                          key={i}
-                          className={`imm-bar flex-1 rounded-t ${
-                            i === BARS.length - 1 ? "bg-accent" : "bg-accent/25"
-                          }`}
-                          style={{ height: `${h}%` }}
-                        />
+                    <div className="text-muted mt-1 flex justify-between text-xs font-medium">
+                      {["Sett. 1", "Sett. 2", "Sett. 3", "Sett. 4"].map((s) => (
+                        <span key={s}>{s}</span>
                       ))}
                     </div>
-                    {/* Etichette giorno (mock statico) */}
-                    <div className="text-muted mt-1.5 flex gap-1.5 text-[9px] font-medium">
-                      {["L", "M", "M", "G", "V", "S", "D"].map((d, i) => (
-                        <span key={i} className="flex-1 text-center">
-                          {d}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Grafico DETTAGLIO visite: compare al click sulla card KPI
-                    «Visite» (beat ③) — area chart dedicato, con tempo di lettura. */}
-                <div
-                  className="imm-visits-detail border-border bg-surface mt-3 rounded-xl border p-4 shadow-sm"
-                  style={{ opacity: 0 }}
-                  aria-hidden
-                >
-                  <div className="mb-2 flex items-center justify-between">
-                    <p className="text-muted text-[11px] font-semibold tracking-wider uppercase">
-                      Dettaglio visite · per settimana
-                    </p>
-                    <span className="text-accent-ink text-[11px] font-semibold">
-                      ▲ 12% vs periodo precedente
-                    </span>
-                  </div>
-                  <svg
-                    viewBox="0 0 400 80"
-                    className="h-24 w-full"
-                    preserveAspectRatio="none"
-                    aria-hidden
-                  >
-                    <defs>
-                      <linearGradient id="imm-db2-detail-grad" x1="0" y1="0" x2="0" y2="1">
-                        {/* var() non è valido negli attributi SVG di presentazione → style */}
-                        <stop
-                          offset="0%"
-                          style={{ stopColor: "var(--accent)" }}
-                          stopOpacity="0.2"
-                        />
-                        <stop
-                          offset="100%"
-                          style={{ stopColor: "var(--accent)" }}
-                          stopOpacity="0"
-                        />
-                      </linearGradient>
-                    </defs>
-                    {/* Area: si riempie dopo che la linea si è disegnata */}
-                    <path
-                      className="imm-detail-area"
-                      d={`${DETAIL_D} L400,80 L0,80 Z`}
-                      fill="url(#imm-db2-detail-grad)"
-                      style={{ opacity: 0 }}
-                    />
-                    <path
-                      className="imm-detail-path stroke-accent"
-                      d={DETAIL_D}
-                      fill="none"
-                      strokeWidth="2.5"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                  </svg>
-                  <div className="text-muted mt-1 flex justify-between text-[9px] font-medium">
-                    {["Sett. 1", "Sett. 2", "Sett. 3", "Sett. 4"].map((s) => (
-                      <span key={s}>{s}</span>
-                    ))}
                   </div>
                 </div>
               </div>
-            </div>
 
-            {/* ④ ORDINI: mini-KPI + tabella + dettaglio ordine ───────────────── */}
-            <div className="w-1/4 shrink-0 overflow-hidden p-5">
-              <div className="mx-auto max-w-5xl">
-                <p className="text-foreground mb-3 font-semibold">Ordini recenti</p>
+              {/* ④ ORDINI: mini-KPI + tabella + dettaglio ordine ───────────────── */}
+              <div className="w-1/4 shrink-0 overflow-hidden p-5">
+                <div className="mx-auto max-w-5xl">
+                  <p className="text-foreground mb-3 font-semibold">Ordini recenti</p>
 
-                {/* Mini-KPI della vista ordini: entrano e contano prima della tabella */}
-                <div className="mb-3 grid grid-cols-3 gap-3">
-                  {ORD_STATS.map((s, i) => (
-                    <div
-                      key={s.label}
-                      className="imm-ord-stat border-border bg-surface rounded-xl border p-3 shadow-sm"
-                    >
-                      <p
-                        className={`imm-ord-stat-val-${i} text-accent-ink font-display text-xl font-bold tabular-nums`}
+                  {/* Mini-KPI della vista ordini: entrano e contano prima della tabella */}
+                  <div className="mb-3 grid grid-cols-3 gap-4">
+                    {ORD_STATS.map((s, i) => (
+                      <div
+                        key={s.label}
+                        className="imm-ord-stat border-border bg-surface rounded-xl border p-3 shadow-sm"
                       >
-                        0
-                      </p>
-                      <p className="text-muted mt-0.5 text-xs">{s.label}</p>
-                    </div>
-                  ))}
-                </div>
-
-                <div className="border-border bg-surface overflow-hidden rounded-xl border shadow-sm">
-                  {/* Intestazione tabella */}
-                  <div className="bg-surface-2 text-muted grid grid-cols-[auto_1fr_auto_auto_auto_auto] gap-3 px-4 py-2 text-[11px] font-semibold tracking-wider uppercase">
-                    <span>N°</span>
-                    <span>Cliente</span>
-                    <span>Data</span>
-                    <span>Canale</span>
-                    <span>Importo</span>
-                    <span>Stato</span>
+                        <p
+                          className={`imm-ord-stat-val-${i} text-accent-ink font-display text-xl font-bold tabular-nums`}
+                        >
+                          0
+                        </p>
+                        <p className="text-muted mt-0.5 text-xs">{s.label}</p>
+                      </div>
+                    ))}
                   </div>
 
-                  {/* Righe compatte: entrano con slide+fade staggered. La PRIMA
+                  <div className="border-border bg-surface overflow-hidden rounded-xl border shadow-sm">
+                    {/* Intestazione tabella */}
+                    <div className="bg-surface-2 text-muted grid grid-cols-[3.5rem_minmax(0,1fr)_3.5rem_5.5rem_5rem_6.5rem] gap-3 px-4 py-2 text-[11px] font-semibold tracking-wider uppercase">
+                      <span>N°</span>
+                      <span>Cliente</span>
+                      <span>Data</span>
+                      <span>Canale</span>
+                      <span>Importo</span>
+                      <span>Stato</span>
+                    </div>
+
+                    {/* Righe compatte: entrano con slide+fade staggered. La PRIMA
                       (`imm-ord-first`) è il bersaglio del click che apre il
                       dettaglio; `imm-ord-active` = highlight della selezione. */}
-                  <div className="divide-border divide-y">
-                    {ORDINI.map((o, oi) => (
-                      <div
-                        key={o.n}
-                        className={`imm-ord-row relative grid grid-cols-[auto_1fr_auto_auto_auto_auto] items-center gap-3 px-4 py-2 text-sm ${
-                          oi === 0 ? "imm-ord-first" : ""
-                        }`}
-                      >
-                        {oi === 0 && (
-                          <span
-                            className="imm-ord-active bg-accent-soft pointer-events-none absolute inset-0"
-                            aria-hidden
-                          />
-                        )}
-                        <span className="text-muted font-mono text-xs">{o.n}</span>
-                        <span className="text-foreground font-medium">{o.cliente}</span>
-                        <span className="text-muted font-mono text-xs">{o.data}</span>
-                        <span className="text-muted text-xs">{o.canale}</span>
-                        <span className="text-foreground font-mono">{o.importo}</span>
-                        <span
-                          className={`rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${STATO_CLS[o.stato] ?? "bg-surface-2 text-muted"}`}
+                    <div className="divide-border divide-y">
+                      {ORDINI.map((o, oi) => (
+                        <div
+                          key={o.n}
+                          className={`imm-ord-row relative grid grid-cols-[3.5rem_minmax(0,1fr)_3.5rem_5.5rem_5rem_6.5rem] items-center gap-3 px-4 py-2 text-sm ${
+                            oi === 0 ? "imm-ord-first" : ""
+                          }`}
                         >
-                          {o.stato}
-                        </span>
-                      </div>
-                    ))}
+                          {oi === 0 && (
+                            <span
+                              className="imm-ord-active bg-accent-soft pointer-events-none absolute inset-0"
+                              aria-hidden
+                            />
+                          )}
+                          <span className="text-muted font-mono text-xs">{o.n}</span>
+                          <span className="text-foreground font-medium">{o.cliente}</span>
+                          <span className="text-muted font-mono text-xs">{o.data}</span>
+                          <span className="text-muted text-xs">{o.canale}</span>
+                          <span className="text-foreground font-mono">{o.importo}</span>
+                          <span
+                            className={`justify-self-start rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${STATO_CLS[o.stato] ?? "bg-surface-2 text-muted"}`}
+                          >
+                            {o.stato}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Totale periodo (mock statico) — somma degli importi sopra. */}
+                    <div className="border-border bg-surface-2 flex items-center justify-between border-t px-4 py-2.5">
+                      <span className="text-muted text-xs font-semibold tracking-wide uppercase">
+                        Totale periodo
+                      </span>
+                      <span className="text-foreground font-mono text-sm font-bold">16.889 €</span>
+                    </div>
                   </div>
 
-                  {/* Totale periodo (mock statico) — somma degli importi sopra. */}
-                  <div className="border-border bg-surface-2 flex items-center justify-between border-t px-4 py-2.5">
-                    <span className="text-muted text-xs font-semibold tracking-wide uppercase">
-                      Totale periodo
-                    </span>
-                    <span className="text-foreground font-mono text-sm font-bold">16.889 €</span>
-                  </div>
-                </div>
-
-                {/* DETTAGLIO ordine #1042: si apre al click sulla prima riga —
+                  {/* DETTAGLIO ordine #1042: si apre al click sulla prima riga —
                     righe articolo, spedizione e consegna (somma = 2.340 €). */}
-                <div
-                  className="imm-ord-detail border-accent/40 bg-surface mt-3 rounded-xl border-2 p-4 shadow-sm"
-                  style={{ opacity: 0 }}
-                  aria-hidden
-                >
-                  <div className="mb-2.5 flex items-center justify-between">
-                    <p className="text-foreground text-sm font-semibold">
-                      Ordine <span className="font-mono">#1042</span> · Rossi S.r.l.
-                    </p>
-                    <span className="rounded-full bg-emerald-100 px-2.5 py-0.5 text-[11px] font-semibold text-emerald-700">
-                      Completato
-                    </span>
-                  </div>
-                  <div className="divide-border divide-y text-sm">
-                    {[
-                      { articolo: "Wallbox 22 kW", qta: "×2", importo: "1.798 €" },
-                      { articolo: "Cavo Type 2 · 5 m", qta: "×3", importo: "447 €" },
-                      { articolo: "Spedizione espressa", qta: "—", importo: "95 €" },
-                    ].map((r) => (
-                      <div
-                        key={r.articolo}
-                        className="grid grid-cols-[1fr_auto_auto] items-center gap-4 py-1.5"
-                      >
-                        <span className="text-foreground">{r.articolo}</span>
-                        <span className="text-muted text-xs">{r.qta}</span>
-                        <span className="text-foreground font-mono text-xs">{r.importo}</span>
-                      </div>
-                    ))}
-                  </div>
-                  <div className="border-border mt-1 flex items-center justify-between border-t pt-2">
-                    <span className="text-muted text-xs">
-                      Consegna:{" "}
-                      <span className="text-foreground font-semibold">30/06 · Torino</span>
-                    </span>
-                    <span className="text-foreground font-mono text-sm font-bold">2.340 €</span>
+                  <div
+                    className="imm-ord-detail border-accent/40 bg-surface mt-3 rounded-xl border-2 p-4 shadow-sm"
+                    style={{ opacity: 0 }}
+                    aria-hidden
+                  >
+                    <div className="mb-2.5 flex items-center justify-between">
+                      <p className="text-foreground text-sm font-semibold">
+                        Ordine <span className="font-mono">#1042</span> · Rossi S.r.l.
+                      </p>
+                      <span className="rounded-full bg-emerald-100 px-2.5 py-0.5 text-[11px] font-semibold text-emerald-700">
+                        Completato
+                      </span>
+                    </div>
+                    <div className="divide-border divide-y text-sm">
+                      {[
+                        { articolo: "Wallbox 22 kW", qta: "×2", importo: "1.798 €" },
+                        { articolo: "Cavo Type 2 · 5 m", qta: "×3", importo: "447 €" },
+                        { articolo: "Spedizione espressa", qta: "—", importo: "95 €" },
+                      ].map((r) => (
+                        <div
+                          key={r.articolo}
+                          className="grid grid-cols-[1fr_auto_auto] items-center gap-4 py-1.5"
+                        >
+                          <span className="text-foreground">{r.articolo}</span>
+                          <span className="text-muted text-xs">{r.qta}</span>
+                          <span className="text-foreground font-mono text-xs">{r.importo}</span>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="border-border mt-1 flex items-center justify-between border-t pt-2">
+                      <span className="text-muted text-xs">
+                        Consegna:{" "}
+                        <span className="text-foreground font-semibold">30/06 · Torino</span>
+                      </span>
+                      <span className="text-foreground font-mono text-sm font-bold">2.340 €</span>
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
           </div>
         </div>
+        {/* /device frame */}
       </div>
 
       {/* Title card di capitolo (P12): apre la scena al posto del vecchio veil

@@ -320,7 +320,9 @@ export default function ImmersiveIntegrazioni() {
                 <div
                   key={icon.title}
                   className={cn(
-                    "imm-tile border-border bg-surface flex h-20 w-20 shrink-0 items-center justify-center rounded-2xl border shadow-sm sm:h-24 sm:w-24",
+                    // R3: aspect-ratio esplicito (1/1) al posto della coppia h/w fissa —
+                    // tile della carrellata tutte uniformi, quadrate per costruzione.
+                    "imm-tile border-border bg-surface flex aspect-square w-20 shrink-0 items-center justify-center rounded-2xl border shadow-sm sm:w-24",
                     icon === siWhatsapp && "imm-int-wa",
                   )}
                   style={{ opacity: 0 }}
@@ -349,7 +351,7 @@ export default function ImmersiveIntegrazioni() {
           aria-hidden
         >
           <div
-            className="imm-int-chat border-border bg-background w-[340px] overflow-hidden rounded-2xl border shadow-2xl"
+            className="imm-int-chat border-border bg-background w-[360px] overflow-hidden rounded-2xl border shadow-2xl"
             style={{ opacity: 0 }}
           >
             {/* Header nel verde UFFICIALE del brand (hex da simple-icons, mai hardcodato) */}
@@ -380,15 +382,17 @@ export default function ImmersiveIntegrazioni() {
                 className="imm-int-msg-1 border-border bg-surface max-w-[85%] self-start rounded-xl rounded-tl-sm border px-3 py-2 shadow-sm"
                 style={{ opacity: 0 }}
               >
-                <p className="text-foreground text-xs">{CHAT.msg1}</p>
-                <p className="text-muted mt-1 text-right text-[0.6rem]">{CHAT.t1}</p>
+                {/* R3 tipografia: corpo text-sm, meta text-xs (mai sotto gli 11px) —
+                    3 livelli in tutta la chat: nome semibold / corpo / meta. */}
+                <p className="text-foreground text-sm">{CHAT.msg1}</p>
+                <p className="text-muted mt-1 text-right text-xs">{CHAT.t1}</p>
               </div>
 
               {/* ② Typing-dots e seconda bolla nella STESSA cella: l'indicatore
                   sfuma e lascia il posto al messaggio, senza buchi nel layout */}
               <div className="relative max-w-[85%] self-start">
                 <div
-                  className="imm-int-typing border-border bg-surface text-muted absolute top-0 left-0 flex items-center gap-1 rounded-xl rounded-tl-sm border px-3 py-2.5 shadow-sm"
+                  className="imm-int-typing border-border bg-surface text-muted absolute top-0 left-0 flex items-center gap-1 rounded-xl rounded-tl-sm border px-3 py-3 shadow-sm"
                   style={{ opacity: 0 }}
                 >
                   <span className="h-1.5 w-1.5 rounded-full bg-current" />
@@ -399,8 +403,8 @@ export default function ImmersiveIntegrazioni() {
                   className="imm-int-msg-2 border-border bg-surface rounded-xl rounded-tl-sm border px-3 py-2 shadow-sm"
                   style={{ opacity: 0 }}
                 >
-                  <p className="text-foreground text-xs">{CHAT.msg2}</p>
-                  <p className="text-muted mt-1 text-right text-[0.6rem]">{CHAT.t1}</p>
+                  <p className="text-foreground text-sm">{CHAT.msg2}</p>
+                  <p className="text-muted mt-1 text-right text-xs">{CHAT.t1}</p>
                 </div>
               </div>
 
@@ -409,8 +413,8 @@ export default function ImmersiveIntegrazioni() {
                 className="imm-int-msg-3 max-w-[85%] self-end rounded-xl rounded-tr-sm px-3 py-2 shadow-sm"
                 style={{ opacity: 0, background: `#${siWhatsapp.hex}26` }}
               >
-                <p className="text-foreground text-xs">{CHAT.reply}</p>
-                <p className="text-muted mt-1 flex items-center justify-end gap-1 text-[0.6rem]">
+                <p className="text-foreground text-sm">{CHAT.reply}</p>
+                <p className="text-muted mt-1 flex items-center justify-end gap-1 text-xs">
                   {CHAT.t2}
                   <span style={{ color: `#${siWhatsapp.hex}` }}>✓✓</span>
                 </p>

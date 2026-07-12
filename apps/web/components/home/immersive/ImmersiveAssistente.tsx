@@ -246,326 +246,339 @@ export default function ImmersiveAssistente() {
 
   return (
     <ImmersiveStage ref={ref} heightVh={640} label={CHAPTERS[2].title} chapterIndex={2}>
-      <div className="relative flex h-full flex-col overflow-hidden">
-        {/* ── Fallback reduced-motion: a progress(1) la ChapterCard è nascosta →
-            heading statico del capitolo in cima alla scena (solo `reduced`,
-            così lo scrub animato non ha elementi in più nel layout). ──────── */}
-        {reduced && (
-          <p className="border-border bg-surface text-accent-ink relative z-10 shrink-0 border-b px-6 py-2 font-mono text-xs font-semibold tracking-[0.3em] uppercase">
-            {CHAPTERS[2].title}
-          </p>
-        )}
-        {/* ── Header della pagina prodotti (sito vetrina / e-commerce) ──────
+      {/* ── Fallback reduced-motion: a progress(1) la ChapterCard è nascosta →
+          heading statico del capitolo sullo stage, FUORI dal device frame
+          (stesso pattern del Gestionale; solo `reduced`). ─────────────────── */}
+      {reduced && (
+        <p className="text-accent-ink absolute top-4 left-6 z-20 font-mono text-xs font-semibold tracking-[0.3em] uppercase">
+          {CHAPTERS[2].title}
+        </p>
+      )}
+      {/* Device frame (R3, regola 1): il sito mock vive in una cornice da laptop
+          ~16:10 centrata sullo stage (max-w-6xl), NON full-bleed da bordo a
+          bordo. Tutti i target GSAP (.imm-*) restano invariati dentro la cornice
+          (misure a runtime → flyPt/camera/cursore corretti). */}
+      <div className="flex h-full items-center justify-center px-8 pt-12">
+        <div className="border-border bg-background relative flex aspect-[16/10] w-full max-w-6xl flex-col overflow-hidden rounded-2xl border shadow-2xl">
+          {/* ── Header della pagina prodotti (sito vetrina / e-commerce) ──────
             `.imm-behind` = pagina DIETRO la genui (header, titolo, griglia):
             perde fuoco col rack focus quando l'interfaccia generata entra. */}
-        <header className="imm-behind border-border bg-surface/90 relative z-10 flex h-14 shrink-0 items-center justify-between border-b px-6 backdrop-blur">
-          <div className="flex items-center gap-2">
-            <span className="bg-accent h-4 w-4 rounded-[5px]" aria-hidden />
-            <span className="font-display text-foreground text-base font-bold tracking-tight">
-              GM Solar Shop
-            </span>
-          </div>
-          <nav className="hidden items-center gap-5 sm:flex" aria-hidden>
-            {SHOP_NAV.map((l) => (
-              <span key={l} className="text-muted cursor-default text-sm">
-                {l}
+          <header className="imm-behind border-border bg-surface/90 relative z-10 flex h-14 shrink-0 items-center justify-between border-b px-6 backdrop-blur">
+            <div className="flex items-center gap-2">
+              <span className="bg-accent h-4 w-4 rounded-[5px]" aria-hidden />
+              <span className="font-display text-foreground text-base font-bold tracking-tight">
+                GM Solar Shop
               </span>
-            ))}
-          </nav>
-          {/* Badge carrello: icona + contatore a due stati (0 → 1) pilotato dal
-              beat "aggiungi al carrello" — .imm-cart pulsa all'arrivo del volo. */}
-          <span className="imm-cart bg-surface-2 text-muted flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold">
-            <ShoppingCart className="h-3.5 w-3.5 shrink-0" aria-hidden />
-            Carrello ·{" "}
-            <span className="relative inline-block w-[1ch]">
-              <span className="imm-cart-0">0</span>
-              <span
-                className="imm-cart-1 text-accent-ink absolute top-0 left-0"
-                style={{ opacity: 0 }}
-              >
-                1
-              </span>
-            </span>
-          </span>
-        </header>
-
-        {/* ── Corpo: titolo + griglia prodotti ───────────────────────────── */}
-        <div className="imm-behind px-6 pt-4">
-          <h2 className="font-display text-foreground text-lg font-bold tracking-tight">
-            Cavi di ricarica
-          </h2>
-          <p className="text-muted mt-0.5 text-xs">Trova il cavo giusto per la tua auto.</p>
-        </div>
-
-        <div className="imm-grid imm-behind grid grid-cols-2 content-start gap-3 overflow-hidden px-6 pt-3 pb-44 sm:grid-cols-3">
-          {PRODUCTS.map((p, i) => (
-            <article
-              key={p.id}
-              className="imm-prod border-border bg-surface relative flex flex-col overflow-hidden rounded-xl border"
-            >
-              {/* Area visiva: foto prodotto placeholder (royalty-free, tema
-                  ricarica EV) — decorativa (alt="") con badge in overlay. */}
-              <div className="relative h-24 overflow-hidden">
-                <img
-                  src={`/assets/products/cavo-0${i + 1}.jpg`}
-                  alt=""
-                  aria-hidden
-                  loading="lazy"
-                  decoding="async"
-                  className="h-24 w-full object-cover"
-                />
-                {p.bestSeller && (
-                  <span className="bg-accent text-accent-contrast absolute top-2 left-2 rounded-full px-2 py-0.5 text-[0.6rem] font-bold">
-                    Best seller
-                  </span>
-                )}
-              </div>
-              <div className="flex flex-1 flex-col p-3">
-                <p className="text-foreground line-clamp-2 text-xs leading-snug font-semibold">
-                  {p.name}
-                </p>
-                <p className="text-muted mt-1 text-[0.65rem]">{p.use}</p>
-                {/* Rating (mock statico) — credibilità e-commerce. */}
-                <div className="mt-1.5 flex items-center gap-1 text-[0.62rem]">
-                  <StarIcon className="text-accent-ink h-3 w-3" />
-                  <span className="text-foreground font-semibold">
-                    {RATINGS[i % RATINGS.length].score}
-                  </span>
-                  <span className="text-muted">· {RATINGS[i % RATINGS.length].count}</span>
-                </div>
-                <div className="mt-2 flex flex-wrap gap-1">
-                  <Chip>{p.phase}</Chip>
-                  <Chip>{p.shape}</Chip>
-                </div>
-                <p className="text-foreground mt-auto pt-2 text-sm font-bold">{p.price}</p>
-              </div>
-            </article>
-          ))}
-        </div>
-
-        {/* ── Indicatore "sta ragionando…" (sopra la barra): dots + un mini-spec
-            che si DISEGNA durante la pausa di ragionamento (imm-think-path) ── */}
-        <div className="imm-typing absolute bottom-28 left-1/2 z-10 -translate-x-1/2" aria-hidden>
-          <div className="bg-surface-2 border-border flex items-center gap-2.5 rounded-full border px-4 py-3 shadow-lg">
-            <span className="flex items-center gap-1">
-              {[0, 1, 2].map((d) => (
-                <span
-                  key={d}
-                  className="bg-muted h-1.5 w-1.5 animate-bounce rounded-full"
-                  style={{ animationDelay: `${d * 0.16}s` }}
-                />
-              ))}
-            </span>
-            <span className="bg-border h-4 w-px" />
-            <span className="text-muted text-[10px] font-semibold tracking-wide">
-              Genero l&apos;interfaccia
-            </span>
-            <svg viewBox="0 0 72 24" className="text-accent-ink h-5 w-16" fill="none" aria-hidden>
-              <path
-                className="imm-think-path"
-                d="M2 20 L14 12 L26 15 L38 6 L50 10 L70 4"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
-          </div>
-        </div>
-
-        {/* ── INTERFACCIA GENERATA dall'AI: vista dettaglio + configuratore ──
-            Overlay assoluto (la griglia sotto conserva il box → altezza scena
-            stabile). Parte nascosta; entra quando l'assistente "genera". */}
-        <div
-          className="imm-genui absolute inset-x-0 top-30 bottom-23 z-10 px-5 sm:top-21"
-          style={{ opacity: 0 }}
-        >
-          <div className="mx-auto flex h-full max-w-3xl flex-col">
-            {/* Etichetta "generato dall'AI" */}
-            <div className="imm-genui-item mb-2.5 flex items-center gap-2">
-              <SparkIcon className="text-accent-ink h-4 w-4" />
-              <p className="text-accent-ink text-xs font-semibold tracking-widest uppercase">
-                {GENERATED.eyebrow}
-              </p>
             </div>
+            <nav className="hidden items-center gap-5 sm:flex" aria-hidden>
+              {SHOP_NAV.map((l) => (
+                <span key={l} className="text-muted cursor-default text-sm">
+                  {l}
+                </span>
+              ))}
+            </nav>
+            {/* Badge carrello: icona + contatore a due stati (0 → 1) pilotato dal
+              beat "aggiungi al carrello" — .imm-cart pulsa all'arrivo del volo. */}
+            <span className="imm-cart bg-surface-2 text-muted flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold">
+              <ShoppingCart className="h-3.5 w-3.5 shrink-0" aria-hidden />
+              Carrello ·{" "}
+              <span className="relative inline-block w-[1ch]">
+                <span className="imm-cart-0">0</span>
+                <span
+                  className="imm-cart-1 text-accent-ink absolute top-0 left-0"
+                  style={{ opacity: 0 }}
+                >
+                  1
+                </span>
+              </span>
+            </span>
+          </header>
 
-            {/* Corpo della vista generata. overflow-y-auto: su viewport bassi
-                (landscape/zoom) prezzo e CTA in fondo restano raggiungibili invece
-                di essere clippati (era overflow-hidden). */}
-            <div className="border-border bg-background grid min-h-0 flex-1 grid-cols-1 gap-4 overflow-y-auto rounded-2xl border p-4 shadow-2xl sm:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)] sm:p-5">
-              {/* Colonna visiva: foto prodotto placeholder (wallbox a muro) +
-                  gallery di 4 thumbnail (foto già usate nelle card, crop quadrato);
-                  la thumbnail attiva (indice 0) conserva l'anello accent.
-                  Decorativa: il contenitore è già aria-hidden. */}
-              <div className="imm-genui-item flex min-h-0 flex-col gap-2.5" aria-hidden>
-                <div className="h-24 overflow-hidden rounded-xl sm:h-auto sm:flex-1">
+          {/* ── Corpo: titolo + griglia prodotti ───────────────────────────── */}
+          <div className="imm-behind px-6 pt-4">
+            <h2 className="font-display text-foreground text-lg font-bold tracking-tight">
+              Cavi di ricarica
+            </h2>
+            <p className="text-muted mt-0.5 text-xs">Trova il cavo giusto per la tua auto.</p>
+          </div>
+
+          {/* R3: gap dalla scala (16); nel frame le card ~360px (contenuto), la
+            seconda riga si tronca al "fold" dietro la barra — da vero e-commerce. */}
+          <div className="imm-grid imm-behind grid grid-cols-2 content-start gap-4 overflow-hidden px-6 pt-3 pb-44 sm:grid-cols-3">
+            {PRODUCTS.map((p, i) => (
+              <article
+                key={p.id}
+                className="imm-prod border-border bg-surface relative flex flex-col overflow-hidden rounded-xl border"
+              >
+                {/* Area visiva: foto prodotto placeholder (royalty-free, tema
+                  ricarica EV) — decorativa (alt="") con badge in overlay. */}
+                {/* R3 regola 3: aspect-ratio esplicito 4/3 (prodotto) al posto
+                  dell'altezza fissa h-24 che schiacciava la foto. */}
+                <div className="relative aspect-[4/3] overflow-hidden">
                   <img
-                    src="/assets/products/cavo-01.jpg"
+                    src={`/assets/products/cavo-0${i + 1}.jpg`}
                     alt=""
+                    aria-hidden
                     loading="lazy"
                     decoding="async"
                     className="h-full w-full object-cover"
                   />
+                  {p.bestSeller && (
+                    <span className="bg-accent text-accent-contrast absolute top-2 left-2 rounded-full px-2 py-0.5 text-[0.7rem] font-bold">
+                      Best seller
+                    </span>
+                  )}
                 </div>
-                <div className="hidden grid-cols-4 gap-2 sm:grid">
-                  {[0, 1, 2, 3].map((i) => (
-                    <div
-                      key={i}
-                      className={cn(
-                        "h-11 overflow-hidden rounded-lg border",
-                        i === 0 ? "border-accent ring-accent-ring ring-2" : "border-border",
-                      )}
-                    >
-                      <img
-                        src={`/assets/products/cavo-0${i + 1}.jpg`}
-                        alt=""
-                        loading="lazy"
-                        decoding="async"
-                        className="h-full w-full object-cover"
-                      />
-                    </div>
-                  ))}
+                <div className="flex flex-1 flex-col p-3">
+                  <p className="text-foreground line-clamp-2 text-xs leading-snug font-semibold">
+                    {p.name}
+                  </p>
+                  <p className="text-muted mt-1 text-[0.7rem]">{p.use}</p>
+                  {/* Rating (mock statico) — credibilità e-commerce. */}
+                  <div className="mt-1.5 flex items-center gap-1 text-[0.7rem]">
+                    <StarIcon className="text-accent-ink h-3 w-3" />
+                    <span className="text-foreground font-semibold">
+                      {RATINGS[i % RATINGS.length].score}
+                    </span>
+                    <span className="text-muted">· {RATINGS[i % RATINGS.length].count}</span>
+                  </div>
+                  <div className="mt-2 flex flex-wrap gap-1">
+                    <Chip>{p.phase}</Chip>
+                    <Chip>{p.shape}</Chip>
+                  </div>
+                  <p className="text-foreground mt-auto pt-2 text-sm font-bold">{p.price}</p>
                 </div>
+              </article>
+            ))}
+          </div>
+
+          {/* ── Indicatore "sta ragionando…" (sopra la barra): dots + un mini-spec
+            che si DISEGNA durante la pausa di ragionamento (imm-think-path) ── */}
+          <div className="imm-typing absolute bottom-28 left-1/2 z-10 -translate-x-1/2" aria-hidden>
+            <div className="bg-surface-2 border-border flex items-center gap-2.5 rounded-full border px-4 py-3 shadow-lg">
+              <span className="flex items-center gap-1">
+                {[0, 1, 2].map((d) => (
+                  <span
+                    key={d}
+                    className="bg-muted h-1.5 w-1.5 animate-bounce rounded-full"
+                    style={{ animationDelay: `${d * 0.16}s` }}
+                  />
+                ))}
+              </span>
+              <span className="bg-border h-4 w-px" />
+              <span className="text-muted text-[0.7rem] font-semibold tracking-wide">
+                Genero l&apos;interfaccia
+              </span>
+              <svg viewBox="0 0 72 24" className="text-accent-ink h-5 w-16" fill="none" aria-hidden>
+                <path
+                  className="imm-think-path"
+                  d="M2 20 L14 12 L26 15 L38 6 L50 10 L70 4"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+            </div>
+          </div>
+
+          {/* ── INTERFACCIA GENERATA dall'AI: vista dettaglio + configuratore ──
+            Overlay assoluto (la griglia sotto conserva il box → altezza scena
+            stabile). Parte nascosta; entra quando l'assistente "genera". */}
+          <div
+            className="imm-genui absolute inset-x-0 top-30 bottom-23 z-10 px-5 sm:top-21"
+            style={{ opacity: 0 }}
+          >
+            <div className="mx-auto flex h-full max-w-3xl flex-col">
+              {/* Etichetta "generato dall'AI" */}
+              <div className="imm-genui-item mb-2.5 flex items-center gap-2">
+                <SparkIcon className="text-accent-ink h-4 w-4" />
+                <p className="text-accent-ink text-xs font-semibold tracking-widest uppercase">
+                  {GENERATED.eyebrow}
+                </p>
               </div>
 
-              {/* Colonna dettaglio: titolo, badge, configuratore, motivi, prezzo */}
-              <div className="flex min-w-0 flex-col">
-                <h3 className="imm-genui-item font-display text-foreground text-base leading-snug font-bold tracking-tight text-balance sm:text-lg">
-                  {GENERATED.title}
-                </h3>
-                <div className="imm-genui-item mt-2 flex flex-wrap gap-1.5">
-                  {GENERATED.badges.map((b, i) => (
-                    <span
-                      key={b}
-                      className={
-                        i === 0
-                          ? "bg-accent text-accent-contrast rounded-full px-2 py-0.5 text-[0.65rem] font-semibold"
-                          : "bg-surface-2 text-muted rounded-full px-2 py-0.5 text-[0.65rem] font-medium"
-                      }
-                    >
-                      {b}
-                    </span>
-                  ))}
+              {/* Corpo della vista generata. overflow-y-auto: su viewport bassi
+                (landscape/zoom) prezzo e CTA in fondo restano raggiungibili invece
+                di essere clippati (era overflow-hidden). */}
+              <div className="border-border bg-background grid min-h-0 flex-1 grid-cols-1 gap-4 overflow-y-auto rounded-2xl border p-4 shadow-2xl sm:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)] sm:p-5">
+                {/* Colonna visiva: foto prodotto placeholder (wallbox a muro) +
+                  gallery di 4 thumbnail (foto già usate nelle card, crop quadrato);
+                  la thumbnail attiva (indice 0) conserva l'anello accent.
+                  Decorativa: il contenitore è già aria-hidden. */}
+                <div className="imm-genui-item flex min-h-0 flex-col gap-2.5" aria-hidden>
+                  {/* R3 regola 3: base aspect 4/3 esplicito (niente h-24 che
+                    schiaccia); a ≥sm riempie la colonna (flex-1, object-cover). */}
+                  <div className="aspect-[4/3] overflow-hidden rounded-xl sm:aspect-auto sm:min-h-0 sm:flex-1">
+                    <img
+                      src="/assets/products/cavo-01.jpg"
+                      alt=""
+                      loading="lazy"
+                      decoding="async"
+                      className="h-full w-full object-cover"
+                    />
+                  </div>
+                  <div className="hidden grid-cols-4 gap-2 sm:grid">
+                    {[0, 1, 2, 3].map((i) => (
+                      <div
+                        key={i}
+                        className={cn(
+                          // R3 regola 3: thumb quadrata (1/1), non striscia h-11.
+                          "aspect-square overflow-hidden rounded-lg border",
+                          i === 0 ? "border-accent ring-accent-ring ring-2" : "border-border",
+                        )}
+                      >
+                        <img
+                          src={`/assets/products/cavo-0${i + 1}.jpg`}
+                          alt=""
+                          loading="lazy"
+                          decoding="async"
+                          className="h-full w-full object-cover"
+                        />
+                      </div>
+                    ))}
+                  </div>
                 </div>
 
-                {/* Configuratore (mock): l'AI pre-seleziona «5 m»; il cursore poi
+                {/* Colonna dettaglio: titolo, badge, configuratore, motivi, prezzo */}
+                <div className="flex min-w-0 flex-col">
+                  <h3 className="imm-genui-item font-display text-foreground text-base leading-snug font-bold tracking-tight text-balance sm:text-lg">
+                    {GENERATED.title}
+                  </h3>
+                  <div className="imm-genui-item mt-2 flex flex-wrap gap-1.5">
+                    {GENERATED.badges.map((b, i) => (
+                      <span
+                        key={b}
+                        className={
+                          i === 0
+                            ? "bg-accent text-accent-contrast rounded-full px-2 py-0.5 text-[0.7rem] font-semibold"
+                            : "bg-surface-2 text-muted rounded-full px-2 py-0.5 text-[0.7rem] font-medium"
+                        }
+                      >
+                        {b}
+                      </span>
+                    ))}
+                  </div>
+
+                  {/* Configuratore (mock): l'AI pre-seleziona «5 m»; il cursore poi
                     SCEGLIE «7 m» (`.imm-config-pick`). La riga Lunghezza ha due
                     stati: overlay "selezionato" .imm-len-sel-0 (5 m, visibile) e
                     .imm-len-sel-1 (7 m, nascosto) — la timeline li crossfada al
                     click. Il punch è DI CAMERA (P11), non locale. */}
-                <div className="mt-3 space-y-2">
-                  {GENERATED.options.map((opt, oi) => (
-                    <div key={opt.label} className="imm-genui-item">
-                      <p className="text-muted text-[0.65rem] font-medium">{opt.label}</p>
-                      <div className="mt-1 flex flex-wrap gap-1.5" aria-hidden>
-                        {opt.values.map((v, i) => {
-                          // Riga Lunghezza: 5 m / 7 m con overlay a due stati.
-                          const dual = oi === 0 && (i === 0 || i === 1);
-                          return (
-                            <span
-                              key={v}
-                              className={cn(
-                                "rounded-lg border px-2.5 py-1 text-xs",
-                                !dual && i === opt.selected
-                                  ? "border-accent bg-accent-soft text-accent-ink font-semibold"
-                                  : "border-border text-muted",
-                                dual && "relative",
-                                oi === 0 && i === 1 && "imm-config-pick",
-                              )}
-                            >
-                              {dual && (
-                                <span
-                                  className={cn(
-                                    "border-accent text-accent-ink absolute inset-0 flex items-center justify-center rounded-lg border font-semibold",
-                                    `imm-len-sel-${i}`,
-                                  )}
-                                  style={{
-                                    opacity: i === 0 ? 1 : 0,
-                                    background:
-                                      "color-mix(in oklab, var(--accent) 14%, var(--background))",
-                                  }}
-                                >
-                                  {v}
-                                </span>
-                              )}
-                              {v}
-                            </span>
-                          );
-                        })}
+                  <div className="mt-3 space-y-2">
+                    {GENERATED.options.map((opt, oi) => (
+                      <div key={opt.label} className="imm-genui-item">
+                        <p className="text-muted text-[0.7rem] font-medium">{opt.label}</p>
+                        <div className="mt-1 flex flex-wrap gap-1.5" aria-hidden>
+                          {opt.values.map((v, i) => {
+                            // Riga Lunghezza: 5 m / 7 m con overlay a due stati.
+                            const dual = oi === 0 && (i === 0 || i === 1);
+                            return (
+                              <span
+                                key={v}
+                                className={cn(
+                                  "rounded-lg border px-2.5 py-1 text-xs",
+                                  !dual && i === opt.selected
+                                    ? "border-accent bg-accent-soft text-accent-ink font-semibold"
+                                    : "border-border text-muted",
+                                  dual && "relative",
+                                  oi === 0 && i === 1 && "imm-config-pick",
+                                )}
+                              >
+                                {dual && (
+                                  <span
+                                    className={cn(
+                                      "border-accent text-accent-ink absolute inset-0 flex items-center justify-center rounded-lg border font-semibold",
+                                      `imm-len-sel-${i}`,
+                                    )}
+                                    style={{
+                                      opacity: i === 0 ? 1 : 0,
+                                      background:
+                                        "color-mix(in oklab, var(--accent) 14%, var(--background))",
+                                    }}
+                                  >
+                                    {v}
+                                  </span>
+                                )}
+                                {v}
+                              </span>
+                            );
+                          })}
+                        </div>
                       </div>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
 
-                {/* Motivi «perché questo» */}
-                <ul className="mt-3 hidden space-y-1.5 sm:block">
-                  {GENERATED.reasons.map((r) => (
-                    <li
-                      key={r}
-                      className="imm-genui-item text-foreground/90 flex items-start gap-2 text-xs"
-                    >
-                      <CheckIcon className="text-accent-ink mt-0.5 h-3.5 w-3.5 shrink-0" />
-                      <span className="leading-snug">{r}</span>
-                    </li>
-                  ))}
-                </ul>
+                  {/* Motivi «perché questo» */}
+                  <ul className="mt-3 hidden space-y-1.5 sm:block">
+                    {GENERATED.reasons.map((r) => (
+                      <li
+                        key={r}
+                        className="imm-genui-item text-foreground/90 flex items-start gap-2 text-xs"
+                      >
+                        <CheckIcon className="text-accent-ink mt-0.5 h-3.5 w-3.5 shrink-0" />
+                        <span className="leading-snug">{r}</span>
+                      </li>
+                    ))}
+                  </ul>
 
-                {/* Prezzo + CTA */}
-                <div className="imm-genui-item mt-auto flex items-center justify-between pt-3">
-                  <span className="text-foreground text-xl font-bold tracking-tight">
-                    {GENERATED.price}
-                  </span>
-                  <span className="imm-cta bg-accent text-accent-contrast relative rounded-full px-4 py-2 text-sm font-semibold">
-                    <span className="imm-cta-label inline-block">{GENERATED.cta}</span>
-                    <span
-                      className="imm-cta-done absolute inset-0 flex items-center justify-center gap-1.5"
-                      style={{ opacity: 0 }}
-                    >
-                      <ShoppingCart className="h-4 w-4 shrink-0" aria-hidden />
-                      Aggiunto ✓
+                  {/* Prezzo + CTA */}
+                  <div className="imm-genui-item mt-auto flex items-center justify-between pt-3">
+                    <span className="text-foreground text-xl font-bold tracking-tight">
+                      {GENERATED.price}
                     </span>
-                  </span>
+                    <span className="imm-cta bg-accent text-accent-contrast relative rounded-full px-4 py-2 text-sm font-semibold">
+                      <span className="imm-cta-label inline-block">{GENERATED.cta}</span>
+                      <span
+                        className="imm-cta-done absolute inset-0 flex items-center justify-center gap-1.5"
+                        style={{ opacity: 0 }}
+                      >
+                        <ShoppingCart className="h-4 w-4 shrink-0" aria-hidden />
+                        Aggiunto ✓
+                      </span>
+                    </span>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
-        </div>
 
-        {/* MINIATURA volante "aggiunto al carrello": la foto del prodotto
+          {/* MINIATURA volante "aggiunto al carrello": la foto del prodotto
             configurato vola dalla CTA al badge carrello (timeline) — molto più
             leggibile del vecchio dot accent. */}
-        <span
-          className="imm-fly border-border bg-surface pointer-events-none absolute z-30 block h-14 w-14 -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-xl border shadow-xl"
-          style={{ opacity: 0 }}
-          aria-hidden
-        >
-          <img
-            src="/assets/products/cavo-01.jpg"
-            alt=""
-            loading="lazy"
-            decoding="async"
-            className="h-full w-full object-cover"
-          />
-        </span>
+          <span
+            className="imm-fly border-border bg-surface pointer-events-none absolute z-30 block h-14 w-14 -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-xl border shadow-xl"
+            style={{ opacity: 0 }}
+            aria-hidden
+          >
+            <img
+              src="/assets/products/cavo-01.jpg"
+              alt=""
+              loading="lazy"
+              decoding="async"
+              className="h-full w-full object-cover"
+            />
+          </span>
 
-        {/* ── Barra assistente AI (in basso) ─────────────────────────────── */}
-        <div className="absolute inset-x-0 bottom-0 z-20 px-5 pb-5" aria-hidden>
-          <div className="imm-bar border-border bg-background/95 relative mx-auto flex max-w-2xl items-center gap-3 rounded-full border px-4 py-2.5 shadow-lg backdrop-blur">
-            <span className="imm-bar-ring border-accent pointer-events-none absolute -inset-px rounded-full border-2" />
-            <span className="bg-accent text-accent-contrast flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-bold">
-              AI
-            </span>
-            <div className="relative flex h-7 min-w-0 flex-1 items-center overflow-hidden text-sm">
-              <span className="imm-placeholder text-muted absolute left-0 whitespace-nowrap">
-                Chiedi all&apos;assistente…
+          {/* ── Barra assistente AI (in basso) ─────────────────────────────── */}
+          <div className="absolute inset-x-0 bottom-0 z-20 px-5 pb-5" aria-hidden>
+            <div className="imm-bar border-border bg-background/95 relative mx-auto flex max-w-2xl items-center gap-3 rounded-full border px-4 py-2.5 shadow-lg backdrop-blur">
+              <span className="imm-bar-ring border-accent pointer-events-none absolute -inset-px rounded-full border-2" />
+              <span className="bg-accent text-accent-contrast flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-bold">
+                AI
               </span>
-              <span className="imm-typed text-foreground absolute left-0 whitespace-nowrap">
-                {QUERY}
+              <div className="relative flex h-7 min-w-0 flex-1 items-center overflow-hidden text-sm">
+                <span className="imm-placeholder text-muted absolute left-0 whitespace-nowrap">
+                  Chiedi all&apos;assistente…
+                </span>
+                <span className="imm-typed text-foreground absolute left-0 whitespace-nowrap">
+                  {QUERY}
+                </span>
+              </div>
+              <span className="imm-send bg-accent text-accent-contrast flex h-9 w-9 shrink-0 items-center justify-center rounded-full">
+                <SendIcon className="h-4 w-4" />
               </span>
             </div>
-            <span className="imm-send bg-accent text-accent-contrast flex h-9 w-9 shrink-0 items-center justify-center rounded-full">
-              <SendIcon className="h-4 w-4" />
-            </span>
           </div>
         </div>
       </div>
@@ -587,7 +600,7 @@ export default function ImmersiveAssistente() {
 
 function Chip({ children }: { children: React.ReactNode }) {
   return (
-    <span className="bg-surface-2 text-muted rounded-full px-2 py-0.5 text-[0.6rem] font-medium">
+    <span className="bg-surface-2 text-muted rounded-full px-2 py-0.5 text-[0.7rem] font-medium">
       {children}
     </span>
   );

@@ -355,7 +355,8 @@ export default function ImmersiveRicarica() {
       <div className="absolute inset-0 flex items-center justify-center pt-10">
         <div
           className="bg-surface-2 border-border relative flex flex-col overflow-hidden rounded-[2.6rem] border-[5px] shadow-[0_24px_60px_rgba(2,6,23,0.18)]"
-          style={{ width: "min(264px, 42vw)", aspectRatio: "9 / 18.6" }}
+          /* R3: rapporto REALE da smartphone (~19.5:9) — prima 18.6 → frame leggermente allargato */
+          style={{ width: "min(264px, 42vw)", aspectRatio: "9 / 19.5" }}
           role="img"
           aria-label="Mockup dell'app di ricarica EV con assistente di bordo"
         >
@@ -369,14 +370,16 @@ export default function ImmersiveRicarica() {
           <div className="bg-background absolute inset-[3px] flex flex-col overflow-hidden rounded-[2.2rem]">
             {/* Testata: identità dell'assistente */}
             <header className="border-border bg-background/90 flex shrink-0 items-center gap-2.5 border-b px-3.5 pt-6 pb-2.5 backdrop-blur">
-              <span className="bg-accent text-accent-contrast flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[9px] font-bold">
+              {/* R3: tipografia a 3 livelli nello schermo — 13px corpo / 12px titoli / 10px meta
+                  (prima 8.5–11.5px sparsi; label mai sotto i 10px, il telefono ha zoom camera) */}
+              <span className="bg-accent text-accent-contrast flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[10px] font-bold">
                 AI
               </span>
               <div className="min-w-0">
-                <p className="text-foreground text-[11.5px] leading-tight font-semibold">
+                <p className="text-foreground text-[12px] leading-tight font-semibold">
                   Assistente di ricarica
                 </p>
-                <p className="text-accent-ink flex items-center gap-1 text-[9px] leading-tight font-medium">
+                <p className="text-accent-ink flex items-center gap-1 text-[10px] leading-tight font-medium">
                   <span className="bg-accent h-1.5 w-1.5 animate-pulse rounded-full" aria-hidden />
                   Auto connessa
                 </p>
@@ -385,7 +388,7 @@ export default function ImmersiveRicarica() {
 
             {/* Viewport chat (clip) + thread che fa auto-scroll via translate Y */}
             <div className="imm-rc-viewport relative flex-1 overflow-hidden">
-              <div className="imm-rc-thread relative flex flex-col gap-2.5 px-3 py-3">
+              <div className="imm-rc-thread relative flex flex-col gap-3 px-3 py-3">
                 {/* Bolla di benvenuto (sempre visibile) */}
                 <div className="max-w-[86%] self-start">
                   <div className="bg-surface-2 text-foreground rounded-2xl rounded-tl-sm px-3 py-2 text-[13px] leading-snug">
@@ -436,13 +439,14 @@ export default function ImmersiveRicarica() {
                       </p>
                       <p className="text-muted text-[10px]">Rete partner</p>
                     </div>
-                    <span className="bg-accent-soft text-accent-ink shrink-0 rounded-full px-2 py-0.5 text-[10.5px] font-bold">
+                    <span className="bg-accent-soft text-accent-ink shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold">
                       175 kW
                     </span>
                   </div>
 
-                  {/* Mini-mappa: rotta che si disegna + pin che pulsa */}
-                  <div className="bg-accent-soft relative h-[88px] w-full overflow-hidden">
+                  {/* Mini-mappa: rotta che si disegna + pin che pulsa.
+                      R3: aspect-ratio esplicito 16/9 (prima h-[88px] fisso → mappa schiacciata) */}
+                  <div className="bg-accent-soft relative aspect-video w-full overflow-hidden">
                     {/* Strade semplificate (statiche) */}
                     <svg
                       className="absolute inset-0 h-full w-full"
@@ -555,10 +559,10 @@ export default function ImmersiveRicarica() {
                   <div className="grid grid-cols-4 gap-px">
                     {STATION_STATS.map((s) => (
                       <div key={s.l} className="imm-rc-stat bg-surface px-1.5 py-2 text-center">
-                        <p className="text-muted text-[8.5px] font-semibold tracking-wide uppercase">
+                        <p className="text-muted text-[10px] font-semibold tracking-wide uppercase">
                           {s.l}
                         </p>
-                        <p className="text-foreground mt-0.5 text-[11px] font-bold">{s.v}</p>
+                        <p className="text-foreground mt-0.5 text-[12px] font-bold">{s.v}</p>
                       </div>
                     ))}
                   </div>
@@ -584,10 +588,10 @@ export default function ImmersiveRicarica() {
                   style={{ opacity: 0 }}
                 >
                   <div className="flex items-center justify-between">
-                    <p className="text-muted text-[9px] font-semibold tracking-widest uppercase">
+                    <p className="text-muted text-[10px] font-semibold tracking-widest uppercase">
                       In ricarica
                     </p>
-                    <span className="text-accent-ink flex items-center gap-1 text-[9.5px] font-bold">
+                    <span className="text-accent-ink flex items-center gap-1 text-[10px] font-bold">
                       <span
                         className="bg-accent h-1.5 w-1.5 animate-pulse rounded-full"
                         aria-hidden
@@ -613,7 +617,7 @@ export default function ImmersiveRicarica() {
                       }}
                     />
                   </div>
-                  <p className="text-muted mt-1 text-[9px]">
+                  <p className="text-muted mt-1 text-[10px]">
                     Obiettivo 80% · <span className="text-accent-ink font-semibold">~18 min</span>
                   </p>
 
@@ -623,13 +627,13 @@ export default function ImmersiveRicarica() {
                       <p className="text-foreground font-mono text-base font-bold">
                         <span className="imm-rc-cost">0,00 €</span>
                       </p>
-                      <p className="text-muted mt-0.5 text-[9px]">Costo</p>
+                      <p className="text-muted mt-0.5 text-[10px]">Costo</p>
                     </div>
                     <div className="bg-surface-2 flex-1 rounded-xl p-2 text-center">
                       <p className="text-foreground font-mono text-base font-bold">
                         <span className="imm-rc-timer">0 min</span>
                       </p>
-                      <p className="text-muted mt-0.5 text-[9px]">Durata</p>
+                      <p className="text-muted mt-0.5 text-[10px]">Durata</p>
                     </div>
                   </div>
                 </div>

@@ -39,10 +39,11 @@ export default function ElectricCard({ mode = "stage" }: { mode?: "stage" | "gri
         }}
       />
 
-      <div className="relative flex h-full flex-col justify-between p-[8%]">
+      {/* Padding dalla scala 4/8 (regola R3 n.4), non percentuale. */}
+      <div className="relative flex h-full flex-col justify-between p-8">
         <div className="flex items-center gap-2">
           <span className="bg-accent h-2 w-2 animate-none rounded-full shadow-[0_0_10px_2px_var(--accent)]" />
-          <span className="font-mono text-[10px] font-semibold tracking-[0.24em] text-white/60 uppercase">
+          <span className="font-mono text-[11px] font-semibold tracking-[0.24em] text-white/60 uppercase">
             Produzione ora
           </span>
         </div>
@@ -68,7 +69,7 @@ export default function ElectricCard({ mode = "stage" }: { mode?: "stage" | "gri
         </div>
       </div>
 
-      <span className="absolute top-4 left-4 z-20 rounded-full border border-white/15 bg-white/10 px-3 py-1 font-mono text-[10px] font-semibold tracking-[0.18em] text-[#7fe3f5] uppercase">
+      <span className="absolute top-4 left-4 z-20 rounded-full border border-white/15 bg-white/10 px-3 py-1 font-mono text-[11px] font-semibold tracking-[0.18em] text-[#7fe3f5] uppercase">
         Neon
       </span>
     </div>

@@ -46,7 +46,8 @@ export default function LiquidGlassCard({ mode = "stage" }: { mode?: "stage" | "
         </div>
 
         {/* Contenuto: controllo "flottante" da liquid glass. */}
-        <div className="relative flex h-full flex-col justify-between p-[8%]">
+        {/* Padding dalla scala 4/8 (regola R3 n.4), non percentuale. */}
+        <div className="relative flex h-full flex-col justify-between p-8">
           <div className="flex items-center gap-3">
             <span className="text-foreground grid h-11 w-11 place-items-center rounded-full border border-white/60 bg-white/50 shadow-sm">
               <svg viewBox="0 0 24 24" className="h-5 w-5 fill-current">
@@ -86,7 +87,7 @@ export default function LiquidGlassCard({ mode = "stage" }: { mode?: "stage" | "
 /** Micro-caption italiana del pezzo (racconto, non etichetta tecnica). */
 function Caption({ children }: { children: React.ReactNode }) {
   return (
-    <span className="border-border bg-background/80 text-accent-ink absolute top-4 left-4 z-20 rounded-full border px-3 py-1 font-mono text-[10px] font-semibold tracking-[0.18em] uppercase">
+    <span className="border-border bg-background/80 text-accent-ink absolute top-4 left-4 z-20 rounded-full border px-3 py-1 font-mono text-[11px] font-semibold tracking-[0.18em] uppercase">
       {children}
     </span>
   );

@@ -332,321 +332,334 @@ export default function ImmersiveGestionale() {
           {CHAPTERS[5].title}
         </h2>
       )}
-      <div className="flex h-full pt-12">
-        {/* Sidebar SCURA da console operativa: è il tratto visivo che distingue
+      {/* Device frame (R3, regola 1): l'app vive in una cornice da laptop ~16:10
+          centrata sullo stage (max-w-6xl), NON full-bleed da bordo a bordo. Tutti
+          i target GSAP (.imm-*) restano invariati dentro la cornice. */}
+      <div className="flex h-full items-center justify-center px-8 pt-12">
+        <div className="border-border bg-surface flex aspect-[16/10] w-full max-w-6xl overflow-hidden rounded-2xl border shadow-2xl">
+          {/* Sidebar SCURA da console operativa: è il tratto visivo che distingue
             il Gestionale dalla Dashboard (sidebar chiara). */}
-        <aside className="bg-foreground relative hidden w-56 shrink-0 p-4 sm:block">
-          <div className="mb-6 flex items-center gap-2 px-2 font-semibold text-white">
-            <span className="bg-accent h-4 w-4 rounded-[5px]" /> Gestionale
-          </div>
-          <nav className="relative space-y-1">
-            <span
-              className="imm-nav-ind pointer-events-none absolute inset-x-0 h-10 rounded-lg bg-white/10"
-              style={{ top: 0 }}
-              aria-hidden
-            >
-              {/* Tacca accent della voce attiva (leggibile sul fondo scuro) */}
-              <span className="bg-accent absolute top-2 bottom-2 left-0 w-1 rounded-full" />
-            </span>
-            {NAV.map(({ label, Icon }) => (
-              <div
-                key={label}
-                className="imm-nav-item relative flex items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm font-medium text-white/75"
+          <aside className="bg-foreground relative hidden w-56 shrink-0 p-4 sm:block">
+            <div className="mb-6 flex items-center gap-2 px-2 font-semibold text-white">
+              <span className="bg-accent h-4 w-4 rounded-[5px]" /> Gestionale
+            </div>
+            <nav className="relative space-y-1">
+              <span
+                className="imm-nav-ind pointer-events-none absolute inset-x-0 h-10 rounded-lg bg-white/10"
+                style={{ top: 0 }}
+                aria-hidden
               >
-                <Icon className="h-4 w-4 shrink-0 text-white/50" aria-hidden />
-                {label}
+                {/* Tacca accent della voce attiva (leggibile sul fondo scuro) */}
+                <span className="bg-accent absolute top-2 bottom-2 left-0 w-1 rounded-full" />
+              </span>
+              {NAV.map(({ label, Icon }) => (
+                <div
+                  key={label}
+                  className="imm-nav-item relative flex items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm font-medium text-white/75"
+                >
+                  <Icon className="h-4 w-4 shrink-0 text-white/50" aria-hidden />
+                  {label}
+                </div>
+              ))}
+            </nav>
+            <div className="mt-6 border-t border-white/10 px-2 pt-4">
+              <p className="mb-2 text-[11px] font-semibold tracking-wider text-white/40 uppercase">
+                Rete
+              </p>
+              <div className="flex items-center gap-2 text-sm text-white/75">
+                <span className="h-2 w-2 rounded-full bg-emerald-400" aria-hidden />
+                46 colonnine connesse
               </div>
-            ))}
-          </nav>
-          <div className="mt-6 border-t border-white/10 px-2 pt-4">
-            <p className="mb-2 text-[11px] font-semibold tracking-wider text-white/40 uppercase">
-              Rete
-            </p>
-            <div className="flex items-center gap-2 text-sm text-white/75">
-              <span className="h-2 w-2 rounded-full bg-emerald-400" aria-hidden />
-              46 colonnine connesse
             </div>
-          </div>
-        </aside>
+          </aside>
 
-        {/* Reduced-motion: overflow-x-auto → binario a 3 pannelli scorribile a mano. */}
-        <div
-          className={`relative flex-1 ${
-            reduced ? "overflow-x-auto overflow-y-hidden" : "overflow-hidden"
-          }`}
-        >
-          <div className="border-border bg-surface/60 flex h-14 items-center gap-3 border-b px-6 backdrop-blur">
-            <span className="flex shrink-0 items-center gap-1.5 rounded-full bg-emerald-100 px-3 py-1 text-[11px] font-semibold text-emerald-700">
-              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" aria-hidden />
-              Rete online
-            </span>
-            <div className="bg-surface-2 text-muted flex h-8 max-w-md flex-1 items-center rounded-full px-4 text-sm">
-              Cerca o chiedi all&apos;AI…
+          {/* Reduced-motion: overflow-x-auto → binario a 3 pannelli scorribile a mano. */}
+          <div
+            className={`relative flex-1 ${
+              reduced ? "overflow-x-auto overflow-y-hidden" : "overflow-hidden"
+            }`}
+          >
+            <div className="border-border bg-surface/60 flex h-14 items-center gap-3 border-b px-6 backdrop-blur">
+              <span className="flex shrink-0 items-center gap-1.5 rounded-full bg-emerald-100 px-3 py-1 text-[11px] font-semibold text-emerald-700">
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" aria-hidden />
+                Rete online
+              </span>
+              <div className="bg-surface-2 text-muted flex h-8 max-w-md flex-1 items-center rounded-full px-4 text-sm">
+                Cerca o chiedi all&apos;AI…
+              </div>
+              {/* Bottone che apre il pannello assistente (il cursore lo preme al beat ③) */}
+              <span className="imm-ai-btn bg-accent-soft text-accent-ink flex h-8 shrink-0 items-center gap-1.5 rounded-full px-3 text-xs font-bold">
+                <span className="bg-accent h-1.5 w-1.5 rounded-full" aria-hidden />
+                Assistente AI
+              </span>
             </div>
-            {/* Bottone che apre il pannello assistente (il cursore lo preme al beat ③) */}
-            <span className="imm-ai-btn bg-accent-soft text-accent-ink flex h-8 shrink-0 items-center gap-1.5 rounded-full px-3 text-xs font-bold">
-              <span className="bg-accent h-1.5 w-1.5 rounded-full" aria-hidden />
-              Assistente AI
-            </span>
-          </div>
 
-          <div className="imm-track flex h-[calc(100%-3.5rem)]" style={{ width: "300%" }}>
-            {/* 1 · Panoramica */}
-            <div className="w-1/3 shrink-0 overflow-hidden p-6">
-              <div className="grid grid-cols-3 gap-4">
-                {KPI.map(({ v, l, Icon, iconCls, trend, trendCls }) => (
-                  <div key={l} className="imm-kpi border-border bg-surface rounded-xl border p-4">
-                    <div className="flex items-center justify-between">
-                      <span
-                        className={`flex h-8 w-8 items-center justify-center rounded-lg ${iconCls}`}
-                      >
-                        <Icon className="h-4 w-4" aria-hidden />
-                      </span>
-                      <span
-                        className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${trendCls}`}
-                      >
-                        {trend}
-                      </span>
+            <div className="imm-track flex h-[calc(100%-3.5rem)]" style={{ width: "300%" }}>
+              {/* 1 · Panoramica */}
+              <div className="w-1/3 shrink-0 overflow-hidden p-6">
+                <div className="grid grid-cols-3 gap-4">
+                  {KPI.map(({ v, l, Icon, iconCls, trend, trendCls }) => (
+                    <div key={l} className="imm-kpi border-border bg-surface rounded-xl border p-4">
+                      <div className="flex items-center justify-between">
+                        <span
+                          className={`flex h-8 w-8 items-center justify-center rounded-lg ${iconCls}`}
+                        >
+                          <Icon className="h-4 w-4" aria-hidden />
+                        </span>
+                        <span
+                          className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${trendCls}`}
+                        >
+                          {trend}
+                        </span>
+                      </div>
+                      <p className="text-foreground font-display mt-3 text-3xl font-bold">{v}</p>
+                      <p className="text-muted mt-0.5 text-sm">{l}</p>
                     </div>
-                    <p className="text-foreground font-display mt-3 text-3xl font-bold">{v}</p>
-                    <p className="text-muted mt-0.5 text-sm">{l}</p>
+                  ))}
+                </div>
+                <div className="mt-4 grid grid-cols-[minmax(0,1fr)_240px] gap-4">
+                  <div className="imm-kpi border-border bg-surface rounded-xl border p-5">
+                    <p className="text-muted mb-3 text-xs font-semibold tracking-wider uppercase">
+                      Sessioni per giorno
+                    </p>
+                    <div className="flex h-28 items-end gap-3">
+                      {SESSIONI.map((h, i) => (
+                        <span
+                          key={i}
+                          className={`imm-pano-bar flex-1 rounded-t ${
+                            i === 5 ? "bg-accent" : "bg-brand-200"
+                          }`}
+                          style={{ height: `${h}%` }}
+                        />
+                      ))}
+                    </div>
+                    <div className="mt-1.5 flex gap-3">
+                      {GIORNI.map((g) => (
+                        <span key={g} className="text-muted flex-1 text-center text-[10px]">
+                          {g}
+                        </span>
+                      ))}
+                    </div>
                   </div>
-                ))}
-              </div>
-              <div className="mt-4 grid grid-cols-[minmax(0,1fr)_240px] gap-4">
-                <div className="imm-kpi border-border bg-surface rounded-xl border p-5">
-                  <p className="text-muted mb-3 text-xs font-semibold tracking-wider uppercase">
-                    Sessioni per giorno
-                  </p>
-                  <div className="flex h-28 items-end gap-3">
-                    {SESSIONI.map((h, i) => (
-                      <span
-                        key={i}
-                        className={`imm-pano-bar flex-1 rounded-t ${
-                          i === 5 ? "bg-accent" : "bg-brand-200"
-                        }`}
-                        style={{ height: `${h}%` }}
-                      />
-                    ))}
-                  </div>
-                  <div className="mt-1.5 flex gap-3">
-                    {GIORNI.map((g) => (
-                      <span key={g} className="text-muted flex-1 text-center text-[10px]">
-                        {g}
-                      </span>
-                    ))}
+                  {/* Stato rete: prepara la storia — 2 Offline (beat ②③) e la
+                    Manutenzione (beat ④) sono già qui, a colori. */}
+                  <div className="imm-kpi border-border bg-surface rounded-xl border p-5">
+                    <p className="text-muted mb-3 text-xs font-semibold tracking-wider uppercase">
+                      Stato rete
+                    </p>
+                    <div className="space-y-3">
+                      {RETE.map(({ l, n, w, dot, bar }) => (
+                        <div key={l}>
+                          <div className="flex items-center justify-between text-sm">
+                            <span className="text-foreground flex items-center gap-2">
+                              <span className={`h-2 w-2 rounded-full ${dot}`} aria-hidden />
+                              {l}
+                            </span>
+                            <span className="text-foreground font-mono text-xs">{n}</span>
+                          </div>
+                          <div className="bg-surface-2 mt-1.5 h-1.5 overflow-hidden rounded-full">
+                            <span
+                              className={`imm-net-bar block h-full rounded-full ${bar}`}
+                              style={{ width: w }}
+                            />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 </div>
-                {/* Stato rete: prepara la storia — 2 Offline (beat ②③) e la
-                    Manutenzione (beat ④) sono già qui, a colori. */}
-                <div className="imm-kpi border-border bg-surface rounded-xl border p-5">
-                  <p className="text-muted mb-3 text-xs font-semibold tracking-wider uppercase">
-                    Stato rete
-                  </p>
-                  <div className="space-y-3">
-                    {RETE.map(({ l, n, w, dot, bar }) => (
-                      <div key={l}>
-                        <div className="flex items-center justify-between text-sm">
-                          <span className="text-foreground flex items-center gap-2">
-                            <span className={`h-2 w-2 rounded-full ${dot}`} aria-hidden />
-                            {l}
-                          </span>
-                          <span className="text-foreground font-mono text-xs">{n}</span>
-                        </div>
-                        <div className="bg-surface-2 mt-1.5 h-1.5 overflow-hidden rounded-full">
+              </div>
+
+              {/* 2 · Colonnine */}
+              <div className="relative w-1/3 shrink-0 overflow-hidden p-6">
+                {/* R3, regole 2+6: la tabella NON si stira su tutta la larghezza del
+                  pannello — larghezza di lettura max-w-2xl, allineata a sinistra;
+                  la barra query condivide lo stesso asse/larghezza. */}
+                <div className="mb-4 flex max-w-2xl items-center justify-between">
+                  {/* Barra query: l'enfasi sul typing è il camera-track del caret (P11). */}
+                  <div className="bg-surface-2 text-foreground flex h-9 max-w-sm flex-1 items-center rounded-full px-4 text-sm">
+                    <span className="imm-query block whitespace-nowrap">colonnine offline</span>
+                  </div>
+                  <span className="imm-badge bg-accent text-accent-contrast ml-3 rounded-full px-3 py-1 text-xs font-semibold">
+                    2 risultati
+                  </span>
+                </div>
+                {/* Colonne PROPORZIONATE al contenuto (non 3 colonne uguali): nome
+                  flessibile, potenza e stato a larghezza fissa. */}
+                <div className="border-border max-w-2xl overflow-hidden rounded-xl border">
+                  <div className="bg-surface-2 text-muted grid grid-cols-[minmax(0,1fr)_7rem_10rem] gap-2 px-4 py-2.5 text-xs font-semibold tracking-wider uppercase">
+                    <span>Colonnina</span>
+                    <span>Potenza</span>
+                    <span>Stato</span>
+                  </div>
+                  <div className="divide-border divide-y">
+                    {COLONNINE.map((c, i) => (
+                      <div
+                        key={i}
+                        className={`relative grid grid-cols-[minmax(0,1fr)_7rem_10rem] items-center gap-2 px-4 py-3 text-sm ${c.m ? "imm-row-m" : "imm-row-n"}`}
+                      >
+                        {c.m && (
+                          <span className="imm-match bg-accent-soft border-accent absolute inset-0 border-l-[3px]" />
+                        )}
+                        <span className="text-foreground relative font-medium">{c.id}</span>
+                        <span className="text-foreground relative font-mono">{c.p}</span>
+                        <span className="relative">
                           <span
-                            className={`imm-net-bar block h-full rounded-full ${bar}`}
-                            style={{ width: w }}
-                          />
-                        </div>
+                            className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${CHIP[c.s]}`}
+                          >
+                            {c.s}
+                          </span>
+                        </span>
                       </div>
                     ))}
                   </div>
                 </div>
               </div>
+
+              {/* 3 · Manutenzione (beat ④): interventi programmati + uptime */}
+              <div className="w-1/3 shrink-0 overflow-hidden p-6">
+                <div className="mb-4 flex items-center justify-between">
+                  <div>
+                    <p className="text-foreground font-semibold">Manutenzione programmata</p>
+                    <p className="text-muted text-xs">Interventi sulla rete · prossimi 7 giorni</p>
+                  </div>
+                  <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-700">
+                    3 interventi aperti
+                  </span>
+                </div>
+                <div className="grid grid-cols-[minmax(0,1fr)_230px] gap-4">
+                  <div className="imm-mant-list border-border overflow-hidden rounded-xl border">
+                    <div className="bg-surface-2 text-muted flex items-center justify-between px-4 py-2.5 text-xs font-semibold tracking-wider uppercase">
+                      <span>Intervento</span>
+                      <span>Stato</span>
+                    </div>
+                    <div className="divide-border divide-y">
+                      {INTERVENTI.map((m) => (
+                        <div key={m.id} className="imm-mant-row flex items-center gap-3 px-4 py-3">
+                          <span className="bg-surface-2 text-muted flex h-8 w-8 shrink-0 items-center justify-center rounded-lg">
+                            <Wrench className="h-4 w-4" aria-hidden />
+                          </span>
+                          <div className="min-w-0 flex-1">
+                            <p className="text-foreground truncate text-sm font-medium">{m.id}</p>
+                            <p className="text-muted truncate text-xs">{m.t}</p>
+                          </div>
+                          <span className="text-muted shrink-0 font-mono text-xs">{m.q}</span>
+                          <span
+                            className={`imm-mant-chip shrink-0 rounded-full px-2.5 py-0.5 text-xs font-semibold ${CHIP[m.s]}`}
+                          >
+                            {m.s}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="space-y-4">
+                    <div className="imm-mant-row border-border bg-surface rounded-xl border p-4">
+                      <p className="text-muted text-xs font-semibold tracking-wider uppercase">
+                        Uptime rete · 30 gg
+                      </p>
+                      <p className="font-display mt-2 text-3xl font-bold text-emerald-600">99,2%</p>
+                      <p className="text-muted mt-1 text-xs">obiettivo 98% superato</p>
+                    </div>
+                    <div className="imm-mant-row border-border bg-surface rounded-xl border p-4">
+                      <p className="text-muted text-xs font-semibold tracking-wider uppercase">
+                        Prossimo intervento
+                      </p>
+                      <p className="text-foreground mt-2 text-sm font-semibold">Oggi · 14:30</p>
+                      <p className="text-muted mt-1 text-xs">COL-015 · Alba — connettore CCS</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
 
-            {/* 2 · Colonnine */}
-            <div className="relative w-1/3 shrink-0 overflow-hidden p-6">
-              <div className="mb-4 flex items-center justify-between">
-                {/* Barra query: l'enfasi sul typing è il camera-track del caret (P11). */}
-                <div className="bg-surface-2 text-foreground flex h-9 max-w-sm flex-1 items-center rounded-full px-4 text-sm">
-                  <span className="imm-query block whitespace-nowrap">colonnine offline</span>
-                </div>
-                <span className="imm-badge bg-accent text-accent-contrast ml-3 rounded-full px-3 py-1 text-xs font-semibold">
-                  2 risultati
+            {/* ── Pannello ASSISTENTE AI (drawer "copilot", sopra la vista Colonnine)
+              Fuori dal track: entra da destra via xPercent, non viene pannato;
+              si richiude al beat ④ (a progress(1) è fuori campo). */}
+            <div className="imm-ag-drawer border-border bg-surface absolute inset-y-0 right-0 z-10 flex w-[min(420px,46%)] flex-col border-l p-5 shadow-2xl">
+              <div className="text-foreground mb-4 flex items-center gap-2 font-semibold">
+                <span className="bg-accent-soft text-accent-ink flex h-7 w-7 items-center justify-center rounded-full text-[10px] font-bold">
+                  AI
                 </span>
+                Assistente AI
               </div>
-              <div className="border-border overflow-hidden rounded-xl border">
-                <div className="bg-surface-2 text-muted grid grid-cols-3 gap-2 px-4 py-2.5 text-xs font-semibold tracking-wider uppercase">
+
+              {/* Richiesta dell'utente in linguaggio naturale */}
+              <div className="flex items-start gap-3">
+                <span className="bg-surface-2 text-muted flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[10px] font-bold">
+                  TU
+                </span>
+                <div className="bg-surface-2 text-foreground max-w-full rounded-2xl rounded-tl-none px-4 py-2.5 text-sm">
+                  <span className="imm-ag-req block whitespace-nowrap">
+                    «riavvia le colonnine offline»
+                  </span>
+                </div>
+              </div>
+
+              {/* L'assistente esegue: sequenza di step operativi */}
+              <ul className="mt-4 space-y-1.5">
+                {AGENT_STEPS.map((s, i) => (
+                  <li
+                    key={i}
+                    className="imm-ag-step text-foreground flex items-center gap-2 text-sm"
+                  >
+                    {/* Check che "poppa" (scale 0→1) quando lo step è fatto */}
+                    <span className="imm-ag-check bg-accent text-accent-contrast flex h-4 w-4 shrink-0 items-center justify-center rounded-full">
+                      <svg viewBox="0 0 24 24" fill="none" className="h-2.5 w-2.5" aria-hidden>
+                        <path
+                          d="m5 13 4 4L19 7"
+                          stroke="currentColor"
+                          strokeWidth="3"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                      </svg>
+                    </span>
+                    {s}
+                  </li>
+                ))}
+              </ul>
+
+              {/* Le stesse 2 colonnine filtrate al beat ②: flippano Offline → Online ✓.
+                `imm-ag-list` = target del PUNCH di camera (P11) sul flip. */}
+              <div className="imm-ag-list border-border mt-5 overflow-hidden rounded-xl border">
+                <div className="bg-surface-2 text-muted grid grid-cols-[1fr_auto_6rem] gap-3 px-4 py-2 text-xs font-semibold tracking-wider uppercase">
                   <span>Colonnina</span>
                   <span>Potenza</span>
-                  <span>Stato</span>
+                  <span className="text-right">Stato</span>
                 </div>
                 <div className="divide-border divide-y">
-                  {COLONNINE.map((c, i) => (
+                  {FILTRATE.map((c, i) => (
                     <div
                       key={i}
-                      className={`relative grid grid-cols-3 items-center gap-2 px-4 py-3 text-sm ${c.m ? "imm-row-m" : "imm-row-n"}`}
+                      className="grid grid-cols-[1fr_auto_6rem] items-center gap-3 px-4 py-2.5 text-sm"
                     >
-                      {c.m && (
-                        <span className="imm-match bg-accent-soft border-accent absolute inset-0 border-l-[3px]" />
-                      )}
-                      <span className="text-foreground relative font-medium">{c.id}</span>
-                      <span className="text-foreground relative font-mono">{c.p}</span>
-                      <span className="relative">
-                        <span
-                          className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${CHIP[c.s]}`}
-                        >
-                          {c.s}
+                      <span className="text-foreground truncate font-medium">{c.id}</span>
+                      <span className="text-foreground font-mono">{c.p}</span>
+                      <span className="relative flex h-6 items-center justify-end">
+                        {/* stato iniziale */}
+                        <span className="imm-ag-old rounded-full bg-rose-100 px-2.5 py-0.5 text-xs font-semibold text-rose-700">
+                          Offline
+                        </span>
+                        {/* stato dopo l'azione dell'assistente */}
+                        <span className="imm-ag-new absolute right-0 rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-semibold text-emerald-700">
+                          Online ✓
                         </span>
                       </span>
                     </div>
                   ))}
                 </div>
               </div>
-            </div>
 
-            {/* 3 · Manutenzione (beat ④): interventi programmati + uptime */}
-            <div className="w-1/3 shrink-0 overflow-hidden p-6">
-              <div className="mb-4 flex items-center justify-between">
-                <div>
-                  <p className="text-foreground font-semibold">Manutenzione programmata</p>
-                  <p className="text-muted text-xs">Interventi sulla rete · prossimi 7 giorni</p>
-                </div>
-                <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-700">
-                  3 interventi aperti
+              {/* CONSEGUENZA sul gestionale: il contatore di Panoramica si aggiorna */}
+              <div className="bg-surface-2 mt-auto flex items-center justify-between rounded-xl px-4 py-3">
+                <span className="text-muted text-xs font-semibold tracking-wider uppercase">
+                  Colonnine offline
+                </span>
+                <span className="text-accent-ink font-display text-xl font-bold tabular-nums">
+                  <span className="imm-ag-kpi">2</span>
                 </span>
               </div>
-              <div className="grid grid-cols-[minmax(0,1fr)_230px] gap-4">
-                <div className="imm-mant-list border-border overflow-hidden rounded-xl border">
-                  <div className="bg-surface-2 text-muted flex items-center justify-between px-4 py-2.5 text-xs font-semibold tracking-wider uppercase">
-                    <span>Intervento</span>
-                    <span>Stato</span>
-                  </div>
-                  <div className="divide-border divide-y">
-                    {INTERVENTI.map((m) => (
-                      <div key={m.id} className="imm-mant-row flex items-center gap-3 px-4 py-3">
-                        <span className="bg-surface-2 text-muted flex h-8 w-8 shrink-0 items-center justify-center rounded-lg">
-                          <Wrench className="h-4 w-4" aria-hidden />
-                        </span>
-                        <div className="min-w-0 flex-1">
-                          <p className="text-foreground truncate text-sm font-medium">{m.id}</p>
-                          <p className="text-muted truncate text-xs">{m.t}</p>
-                        </div>
-                        <span className="text-muted shrink-0 font-mono text-xs">{m.q}</span>
-                        <span
-                          className={`imm-mant-chip shrink-0 rounded-full px-2.5 py-0.5 text-xs font-semibold ${CHIP[m.s]}`}
-                        >
-                          {m.s}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-                <div className="space-y-4">
-                  <div className="imm-mant-row border-border bg-surface rounded-xl border p-4">
-                    <p className="text-muted text-xs font-semibold tracking-wider uppercase">
-                      Uptime rete · 30 gg
-                    </p>
-                    <p className="font-display mt-2 text-3xl font-bold text-emerald-600">99,2%</p>
-                    <p className="text-muted mt-1 text-xs">obiettivo 98% superato</p>
-                  </div>
-                  <div className="imm-mant-row border-border bg-surface rounded-xl border p-4">
-                    <p className="text-muted text-xs font-semibold tracking-wider uppercase">
-                      Prossimo intervento
-                    </p>
-                    <p className="text-foreground mt-2 text-sm font-semibold">Oggi · 14:30</p>
-                    <p className="text-muted mt-1 text-xs">COL-015 · Alba — connettore CCS</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* ── Pannello ASSISTENTE AI (drawer "copilot", sopra la vista Colonnine)
-              Fuori dal track: entra da destra via xPercent, non viene pannato;
-              si richiude al beat ④ (a progress(1) è fuori campo). */}
-          <div className="imm-ag-drawer border-border bg-surface absolute inset-y-0 right-0 z-10 flex w-[min(420px,46%)] flex-col border-l p-5 shadow-2xl">
-            <div className="text-foreground mb-4 flex items-center gap-2 font-semibold">
-              <span className="bg-accent-soft text-accent-ink flex h-7 w-7 items-center justify-center rounded-full text-[10px] font-bold">
-                AI
-              </span>
-              Assistente AI
-            </div>
-
-            {/* Richiesta dell'utente in linguaggio naturale */}
-            <div className="flex items-start gap-3">
-              <span className="bg-surface-2 text-muted flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[10px] font-bold">
-                TU
-              </span>
-              <div className="bg-surface-2 text-foreground max-w-full rounded-2xl rounded-tl-none px-4 py-2.5 text-sm">
-                <span className="imm-ag-req block whitespace-nowrap">
-                  «riavvia le colonnine offline»
-                </span>
-              </div>
-            </div>
-
-            {/* L'assistente esegue: sequenza di step operativi */}
-            <ul className="mt-4 space-y-1.5">
-              {AGENT_STEPS.map((s, i) => (
-                <li key={i} className="imm-ag-step text-foreground flex items-center gap-2 text-sm">
-                  {/* Check che "poppa" (scale 0→1) quando lo step è fatto */}
-                  <span className="imm-ag-check bg-accent text-accent-contrast flex h-4 w-4 shrink-0 items-center justify-center rounded-full">
-                    <svg viewBox="0 0 24 24" fill="none" className="h-2.5 w-2.5" aria-hidden>
-                      <path
-                        d="m5 13 4 4L19 7"
-                        stroke="currentColor"
-                        strokeWidth="3"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                    </svg>
-                  </span>
-                  {s}
-                </li>
-              ))}
-            </ul>
-
-            {/* Le stesse 2 colonnine filtrate al beat ②: flippano Offline → Online ✓.
-                `imm-ag-list` = target del PUNCH di camera (P11) sul flip. */}
-            <div className="imm-ag-list border-border mt-5 overflow-hidden rounded-xl border">
-              <div className="bg-surface-2 text-muted grid grid-cols-[1fr_auto_6rem] gap-3 px-4 py-2 text-xs font-semibold tracking-wider uppercase">
-                <span>Colonnina</span>
-                <span>Potenza</span>
-                <span className="text-right">Stato</span>
-              </div>
-              <div className="divide-border divide-y">
-                {FILTRATE.map((c, i) => (
-                  <div
-                    key={i}
-                    className="grid grid-cols-[1fr_auto_6rem] items-center gap-3 px-4 py-2.5 text-sm"
-                  >
-                    <span className="text-foreground truncate font-medium">{c.id}</span>
-                    <span className="text-foreground font-mono">{c.p}</span>
-                    <span className="relative flex h-6 items-center justify-end">
-                      {/* stato iniziale */}
-                      <span className="imm-ag-old rounded-full bg-rose-100 px-2.5 py-0.5 text-xs font-semibold text-rose-700">
-                        Offline
-                      </span>
-                      {/* stato dopo l'azione dell'assistente */}
-                      <span className="imm-ag-new absolute right-0 rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-semibold text-emerald-700">
-                        Online ✓
-                      </span>
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* CONSEGUENZA sul gestionale: il contatore di Panoramica si aggiorna */}
-            <div className="bg-surface-2 mt-auto flex items-center justify-between rounded-xl px-4 py-3">
-              <span className="text-muted text-xs font-semibold tracking-wider uppercase">
-                Colonnine offline
-              </span>
-              <span className="text-accent-ink font-display text-xl font-bold tabular-nums">
-                <span className="imm-ag-kpi">2</span>
-              </span>
             </div>
           </div>
         </div>

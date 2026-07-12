@@ -163,8 +163,9 @@ export default function InterfacceScene() {
         {/* BINARIO orizzontale: 4 slot larghi un viewport, uno per pezzo. */}
         <div className="shw-rail flex h-full" style={{ width: "400%" }}>
           {PIECES.map(({ key, Comp }, i) => (
-            <div key={key} className="flex w-1/4 shrink-0 items-center justify-center px-[3vw]">
-              <div className={`shw-card-${i} aspect-[16/11] w-full max-w-[620px]`}>
+            <div key={key} className="flex w-1/4 shrink-0 items-center justify-center">
+              {/* Larghezza da contenuto (regola R3 n.2: card contenuto ≤480px), aspect esplicito. */}
+              <div className={`shw-card-${i} aspect-[16/11] w-full max-w-[480px]`}>
                 <Comp mode="stage" />
               </div>
             </div>
@@ -173,7 +174,7 @@ export default function InterfacceScene() {
 
         {/* GRIGLIA finale: gli stessi pezzi, compatti e a riposo (heading sopra). */}
         <div className="shw-grid pointer-events-none absolute inset-0 flex flex-col items-center justify-center px-[5vw]">
-          <div className="mb-7 text-center">
+          <div className="mb-8 text-center">
             <p className="text-accent-ink font-mono text-[11px] font-semibold tracking-[0.24em] uppercase">
               Interfacce grafiche moderne
             </p>

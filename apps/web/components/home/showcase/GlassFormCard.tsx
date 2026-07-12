@@ -29,7 +29,8 @@ export default function GlassFormCard({ mode = "stage" }: { mode?: "stage" | "gr
       </div>
 
       {/* Pannello smerigliato. */}
-      <div className="absolute inset-5 flex flex-col justify-center gap-4 rounded-[1.4rem] border border-white/50 bg-white/45 p-[8%] shadow-[inset_0_1px_0_rgba(255,255,255,0.7)]">
+      {/* Padding dalla scala 4/8 (regola R3 n.4), non percentuale. */}
+      <div className="absolute inset-5 flex flex-col justify-center gap-4 rounded-[1.4rem] border border-white/50 bg-white/45 p-8 shadow-[inset_0_1px_0_rgba(255,255,255,0.7)]">
         <p className="font-display text-foreground text-lg font-bold tracking-tight">
           Richiedi contatto
         </p>
@@ -77,7 +78,7 @@ export default function GlassFormCard({ mode = "stage" }: { mode?: "stage" | "gr
         </div>
       </div>
 
-      <span className="border-border bg-background/80 text-accent-ink absolute top-4 left-4 z-20 rounded-full border px-3 py-1 font-mono text-[10px] font-semibold tracking-[0.18em] uppercase">
+      <span className="border-border bg-background/80 text-accent-ink absolute top-4 left-4 z-20 rounded-full border px-3 py-1 font-mono text-[11px] font-semibold tracking-[0.18em] uppercase">
         Glassmorphism
       </span>
     </div>

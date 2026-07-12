@@ -20,6 +20,7 @@
  *   «01 · Siti vetrina» + header finto + poster + frase statica.
  * @indice
  * - SolarTwinScene → scena autonoma (sticky + ScrollTrigger scrub + micro-demo)
+ * - FakeBrowserBar → barra browser mock (traffic dots + URL) sopra il finto sito
  * - FakeSiteHeader → header mock del finto sito (decorativo, nessun link reale)
  */
 import { useRef } from "react";
@@ -206,7 +207,6 @@ export default function SolarTwinScene() {
         data-chapter={0}
         className="bg-background text-foreground relative isolate"
       >
-        <FakeSiteHeader />
         <div className="mx-auto w-full max-w-5xl px-6 py-12">
           {/* Heading di capitolo statico (P12): sotto reduced-motion la title
               card animata resta nascosta → il numero/nome capitolo vive qui,
@@ -214,13 +214,13 @@ export default function SolarTwinScene() {
           <h2 className="font-display text-foreground mb-8 text-xl font-bold tracking-tight">
             {CHAPTERS[0].title}
           </h2>
-          {/* Poster statico al posto del video scrubbato */}
-          <img
-            src={POSTER}
-            alt=""
-            aria-hidden
-            className="border-border w-full rounded-2xl border object-cover"
-          />
+          {/* Finto sito in device frame (browser mock): barra + header + poster
+              con aspect esplicito 16/9 al posto del video scrubbato. */}
+          <div className="border-border overflow-hidden rounded-2xl border shadow-lg">
+            <FakeBrowserBar />
+            <FakeSiteHeader />
+            <img src={POSTER} alt="" aria-hidden className="aspect-video w-full object-cover" />
+          </div>
           {/* Frase d'apertura come testo statico */}
           <p className="font-display mt-10 text-center text-3xl font-bold tracking-tight text-balance sm:text-4xl">
             {FRASE}
@@ -244,31 +244,44 @@ export default function SolarTwinScene() {
       data-fast-handoff="true"
       className="relative isolate h-[250svh]"
     >
-      <div className="sticky top-0 flex h-svh flex-col overflow-hidden">
-        {/* FINTO SITO — header di sito vetrina (decorativo) */}
-        <FakeSiteHeader />
+      <div className="bg-background sticky top-0 flex h-svh items-center justify-center overflow-hidden">
+        {/* FINTO SITO in DEVICE FRAME (R3 regola 1): browser mock centrato,
+            ~16:10 da laptop, max-w-6xl — mai full-bleed da bordo a bordo. */}
+        <div className="border-border bg-background relative flex aspect-[16/10] w-full max-w-6xl flex-col overflow-hidden rounded-2xl border shadow-2xl">
+          {/* Barra browser mock: vende il "sito vero" (traffic dots + URL) */}
+          <FakeBrowserBar />
 
-        {/* HERO del finto sito: video scrubbato full-bleed sotto l'header */}
-        <div className="relative flex-1 overflow-hidden text-white">
-          {/* Fallback branded scuro (contrasto garantito se il video non parte) */}
-          <div
-            aria-hidden
-            className="absolute inset-0 -z-20 bg-linear-to-br from-[#0b1020] via-[#13210a] to-[#0b1020]"
-          />
-          {/* Video scrubbato dallo scroll (sorgente ALL-KEYFRAME obbligatoria) */}
-          <ScrubVideo ref={videoRef} src={SRC} poster={POSTER} className="absolute inset-0 -z-10" />
+          {/* Header di sito vetrina (decorativo) */}
+          <FakeSiteHeader />
 
-          {/* Scrim leggero di contrasto */}
-          <div aria-hidden className="absolute inset-0 bg-black/20" />
-          <div
-            aria-hidden
-            className="absolute inset-x-0 bottom-0 h-1/3 bg-linear-to-t from-black/45 to-transparent"
-          />
+          {/* HERO del finto sito: video scrubbato che riempie il frame sotto l'header */}
+          <div className="relative flex-1 overflow-hidden text-white">
+            {/* Fallback branded scuro (contrasto garantito se il video non parte) */}
+            <div
+              aria-hidden
+              className="absolute inset-0 -z-20 bg-linear-to-br from-[#0b1020] via-[#13210a] to-[#0b1020]"
+            />
+            {/* Video scrubbato dallo scroll (sorgente ALL-KEYFRAME obbligatoria) */}
+            <ScrubVideo
+              ref={videoRef}
+              src={SRC}
+              poster={POSTER}
+              className="absolute inset-0 -z-10"
+            />
 
-          {/* Cue "Scorri" grande in basso a sinistra: il dot del mousino è
-              pilotato dalla micro-demo (GSAP), non da keyframe CSS. */}
-          <div className="st-cue pointer-events-none absolute bottom-8 left-[6vw] z-30">
-            <ScrollCue reduced={reduced} />
+            {/* Scrim leggero di contrasto */}
+            <div aria-hidden className="absolute inset-0 bg-black/20" />
+            <div
+              aria-hidden
+              className="absolute inset-x-0 bottom-0 h-1/3 bg-linear-to-t from-black/45 to-transparent"
+            />
+
+            {/* Cue "Scorri" in basso a sinistra DENTRO l'hero (sfondo video scuro
+                → testo bianco leggibile): il dot del mousino è pilotato dalla
+                micro-demo (GSAP), non da keyframe CSS. */}
+            <div className="st-cue pointer-events-none absolute bottom-6 left-6 z-30">
+              <ScrollCue reduced={reduced} />
+            </div>
           </div>
         </div>
 
@@ -284,7 +297,7 @@ export default function SolarTwinScene() {
         {/* Barra di avanzamento accent (scaleX = progress) */}
         <div
           aria-hidden
-          className="pointer-events-none absolute inset-x-0 bottom-0 z-30 h-[3px] bg-white/15"
+          className="bg-border pointer-events-none absolute inset-x-0 bottom-0 z-30 h-[3px]"
         >
           <div
             ref={progressRef}
@@ -308,6 +321,31 @@ export default function SolarTwinScene() {
 }
 
 /**
+ * Barra browser mock sopra il finto sito: traffic dots neutri + URL centrata.
+ * Decorativa (aria-hidden), serve solo a leggere il mock come "sito vero"
+ * dentro il device frame.
+ */
+function FakeBrowserBar() {
+  return (
+    <div
+      aria-hidden
+      className="border-border bg-surface relative flex h-10 shrink-0 items-center justify-center border-b px-4"
+    >
+      {/* Traffic dots (neutri, solo token) */}
+      <span className="absolute left-4 flex items-center gap-1.5">
+        <span className="bg-border h-2.5 w-2.5 rounded-full" />
+        <span className="bg-border h-2.5 w-2.5 rounded-full" />
+        <span className="bg-border h-2.5 w-2.5 rounded-full" />
+      </span>
+      {/* URL pill centrata */}
+      <span className="border-border bg-background text-muted rounded-md border px-3 py-1 text-xs font-medium">
+        gmsolar.it
+      </span>
+    </div>
+  );
+}
+
+/**
  * Header mock del finto sito vetrina, modellato sul sito attuale GM Solar:
  * logo (anello accent + wordmark «GM SOLAR» con tagline) + nav generica
  * (Home · Chi Siamo · Tipologia di Impianti · Servizi · Gallery · Privacy) +
@@ -318,7 +356,7 @@ function FakeSiteHeader() {
   return (
     <div
       aria-hidden
-      className="border-border bg-background/90 relative z-30 flex h-14 shrink-0 items-center justify-between border-b px-6 backdrop-blur md:px-[4vw]"
+      className="border-border bg-background/90 relative z-30 flex h-14 shrink-0 items-center justify-between border-b px-6 backdrop-blur"
     >
       {/* Logo: anello accent + wordmark con tagline (stile GM Solar) */}
       <div className="flex items-center gap-2.5">
@@ -337,7 +375,8 @@ function FakeSiteHeader() {
       {/* Nav mock + CTA — voci del sito attuale GM Solar (decorative) */}
       <div className="flex items-center gap-8">
         <div className="text-muted hidden items-center gap-6 text-sm font-medium lg:flex">
-          <span>Home</span>
+          {/* Voce attiva evidenziata → nav più credibile */}
+          <span className="text-foreground font-semibold">Home</span>
           <span>Chi Siamo</span>
           <span>Tipologia di Impianti</span>
           <span>Servizi</span>

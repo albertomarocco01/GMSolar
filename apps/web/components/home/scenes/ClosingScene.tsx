@@ -37,8 +37,9 @@ export default function ClosingScene() {
         <ClosingBubbles />
       </div>
 
-      {/* Chiusura: titolo, replay e contatti del team. */}
-      <div className="relative z-10 flex flex-col items-center gap-10 px-6 py-16 text-center">
+      {/* Chiusura: titolo, replay e contatti del team. Asse unico centrato
+          (capitolo narrativo) e ritmo verticale dalla scala 4/8 (gap 48). */}
+      <div className="relative z-10 flex w-full max-w-6xl flex-col items-center gap-12 px-6 py-16 text-center">
         <h2 className="font-display text-foreground text-5xl font-bold tracking-tight md:text-6xl">
           GM Solar Demo
         </h2>
@@ -63,17 +64,17 @@ export default function ClosingScene() {
           ].map((c) => (
             <div
               key={c.nome}
-              className="border-border bg-background/80 rounded-2xl border px-8 py-5 text-left shadow-lg backdrop-blur-sm"
+              className="border-border bg-background/80 w-80 rounded-2xl border px-8 py-5 text-center shadow-lg backdrop-blur-sm"
             >
               <p className="font-display text-foreground text-base font-bold tracking-tight">
                 {c.nome}
               </p>
-              <p className="mt-1.5 text-sm">
+              <p className="mt-3 text-sm">
                 <a href={`tel:${c.telHref}`} className="text-muted hover:text-foreground">
                   {c.tel}
                 </a>
               </p>
-              <p className="text-sm">
+              <p className="mt-1 text-sm">
                 <a href={`mailto:${c.email}`} className="text-accent-ink hover:underline">
                   {c.email}
                 </a>

@@ -236,222 +236,228 @@ export default function ImmersiveSegnalazioni() {
   return (
     <ImmersiveStage ref={ref} heightVh={530} label={CHAPTERS[4].title} chapterIndex={4}>
       {/* Reduced-motion: heading statico di capitolo (la ChapterCard animata a
-          progress(1) è nascosta) — nella fascia alta libera (pt-10 del frame). */}
+          progress(1) è nascosta) — nella fascia alta libera sopra il device frame. */}
       {reduced ? (
         <h2 className="text-muted absolute top-3 left-1/2 z-40 -translate-x-1/2 font-mono text-xs font-semibold tracking-[0.35em] uppercase">
           {CHAPTERS[4].title}
         </h2>
       ) : null}
 
-      {/* ════ Schermata A · la dashboard (compatta) con il difetto ════ */}
-      <div className="bg-background text-foreground flex h-full pt-10">
-        {/* Sidebar compatta — replica della Dashboard, voce «Contenuti» attiva.
+      {/* ════ Schermata A · la dashboard (compatta) con il difetto ════
+          Device frame (R3, regola 1): l'app vive in una "finestra" centrata con
+          proporzioni da laptop (16:10, max-w-6xl), NON full-bleed da bordo a
+          bordo. I toast restano FUORI dal frame (notifiche a livello schermo). */}
+      <div className="flex h-full items-center justify-center px-16 py-12">
+        <div className="border-border bg-background text-foreground flex aspect-[16/10] w-full max-w-6xl overflow-hidden rounded-2xl border shadow-2xl">
+          {/* Sidebar compatta — replica della Dashboard, voce «Contenuti» attiva.
             `imm-seg-bg` = layer "dietro" del rack focus (P11): sidebar + topbar +
             pannello si attenuano quando il drawer è aperto; il drawer (fratello,
             z-20) resta a fuoco. */}
-        <aside className="imm-seg-bg border-border bg-surface hidden w-44 shrink-0 border-r p-4 sm:block">
-          <div className="text-foreground mb-6 flex items-center gap-2 px-2 font-semibold">
-            <span className="bg-accent h-4 w-4 rounded-[5px]" />
-            Dashboard
-          </div>
-          <nav className="space-y-1">
-            {NAV.map((n, i) => (
-              <div
-                key={n}
-                className={`rounded-lg px-3 py-2.5 text-sm font-medium ${
-                  i === 0 ? "bg-accent-soft text-foreground" : "text-muted"
-                }`}
-              >
-                {n}
-              </div>
-            ))}
-          </nav>
-        </aside>
-
-        {/* Area principale: topbar + pannello «Contenuti» + drawer segnalazione */}
-        <div className="relative flex-1 overflow-hidden">
-          {/* Topbar — con lo STESSO bottone «Segnala un problema» della Dashboard */}
-          <div className="imm-seg-bg border-border bg-background/80 flex h-12 items-center gap-3 border-b px-5 backdrop-blur">
-            <span className="h-2 w-2 rounded-full bg-emerald-400" />
-            <span className="text-muted text-xs font-semibold">3 siti connessi</span>
-            <div className="ml-auto flex items-center gap-1.5">
-              {/* Wrapper = target del punch di CAMERA (cameraTo, P11): pressButton
-                  anima la scale del solo bottone, la camera inquadra il wrapper */}
-              <span className="imm-report-wrap inline-flex">
-                <button
-                  className="imm-report-btn bg-accent-soft text-accent-ink flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold"
-                  tabIndex={-1}
-                  aria-hidden
+          <aside className="imm-seg-bg border-border bg-surface hidden w-44 shrink-0 border-r p-4 sm:block">
+            <div className="text-foreground mb-6 flex items-center gap-2 px-2 font-semibold">
+              <span className="bg-accent h-4 w-4 rounded-[5px]" />
+              Dashboard
+            </div>
+            <nav className="space-y-1">
+              {NAV.map((n, i) => (
+                <div
+                  key={n}
+                  className={`rounded-lg px-3 py-2.5 text-sm font-medium ${
+                    i === 0 ? "bg-accent-soft text-foreground" : "text-muted"
+                  }`}
                 >
-                  <MessageSquareWarning className="h-3.5 w-3.5" aria-hidden />
-                  Segnala un problema
-                </button>
-              </span>
-            </div>
-          </div>
-
-          {/* Pannello «Contenuti» compatto: lista pagine + editor con il difetto */}
-          <div className="imm-seg-bg h-[calc(100%-3rem)] overflow-hidden p-5">
-            <div className="mx-auto max-w-4xl">
-              <div className="mb-3 flex items-center justify-between">
-                <p className="text-foreground font-semibold">Contenuti del sito</p>
-                {/* Breadcrumb = la stessa pagina che il modulo rileva in automatico */}
-                <span className="text-muted font-mono text-xs">{PAGINA_RILEVATA}</span>
-              </div>
-
-              <div className="grid grid-cols-[220px_minmax(0,1fr)] items-start gap-4">
-                {/* Colonna sinistra: pagine del sito (come nella Dashboard) */}
-                <div className="border-border bg-surface rounded-xl border shadow-sm">
-                  <p className="text-muted border-border border-b px-3 py-2 text-[11px] font-semibold tracking-wider uppercase">
-                    Pagine del sito
-                  </p>
-                  <div className="space-y-1 p-2">
-                    {PAGINE.map(({ nome, hero }) => (
-                      <div
-                        key={nome}
-                        className={`flex items-center gap-2.5 rounded-lg px-2.5 py-2 ${
-                          hero ? "bg-accent-soft" : ""
-                        }`}
-                      >
-                        <span
-                          className="bg-surface-2 border-border h-8 w-11 shrink-0 rounded-md border"
-                          aria-hidden
-                        />
-                        <span className="min-w-0 flex-1">
-                          <span className="text-foreground block truncate text-xs font-semibold">
-                            {nome}
-                          </span>
-                          <span className="mt-0.5 inline-block rounded-full bg-emerald-100 px-1.5 py-px text-[9px] font-semibold text-emerald-700">
-                            Pubblicata
-                          </span>
-                        </span>
-                      </div>
-                    ))}
-                  </div>
+                  {n}
                 </div>
-
-                {/* Colonna destra: editor «Hero homepage» — il DIFETTO è qui */}
-                <div className="imm-seg-card border-border bg-surface relative rounded-xl border p-4 shadow-sm">
-                  <div className="mb-3 flex items-center justify-between">
-                    <p className="text-foreground text-sm font-semibold">Hero homepage</p>
-                    <span className="text-muted text-[11px]">Ultima modifica: oggi</span>
-                  </div>
-
-                  <div className="grid grid-cols-[260px_minmax(0,1fr)] gap-4">
-                    {/* Immagine ROTTA sotto: PLACEHOLDER puro (nessuna foto dietro →
-                        niente spoiler del fix). La foto nitida sopra è scoperta dal
-                        wipe (maskReveal) solo nel beat del fix */}
-                    <div className="relative h-32 overflow-hidden rounded-lg">
-                      <div
-                        className="bg-surface-2 absolute inset-0 flex flex-col items-center justify-center gap-1.5"
-                        aria-hidden
-                      >
-                        <ImageOff className="text-muted h-6 w-6" aria-hidden />
-                        <span className="text-muted text-[10px] font-semibold">
-                          Immagine non disponibile
-                        </span>
-                      </div>
-                      <div className="imm-img-fix absolute inset-0" aria-hidden>
-                        <img
-                          src={FOTO_FIX}
-                          alt=""
-                          loading="lazy"
-                          decoding="async"
-                          className="h-full w-full object-cover"
-                        />
-                        <div className="absolute inset-0 flex items-center justify-center">
-                          <span className="bg-background/85 text-foreground rounded-lg px-3 py-1.5 text-xs font-semibold shadow-sm">
-                            impianto-2026.jpg
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Campi già compilati (stato post-Dashboard: titolo «azienda») */}
-                    <div className="space-y-3">
-                      <div>
-                        <label className="text-muted mb-1 block text-[11px] font-semibold tracking-wider uppercase">
-                          Titolo
-                        </label>
-                        <div className="border-border bg-surface-2 text-foreground rounded-lg border px-3 py-2 text-sm">
-                          Energia solare per la tua azienda
-                        </div>
-                      </div>
-                      <div>
-                        <label className="text-muted mb-1 block text-[11px] font-semibold tracking-wider uppercase">
-                          Descrizione
-                        </label>
-                        <div className="border-border bg-surface-2 text-muted min-h-[52px] rounded-lg border px-3 py-2 text-sm">
-                          Impianti fotovoltaici e ricarica EV chiavi in mano, dal sopralluogo
-                          all&apos;allaccio.
-                        </div>
-                      </div>
-                      <div className="pt-1">
-                        <span className="text-muted text-[11px]">
-                          Stato: <span className="font-semibold">Pubblicata</span>
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* ════ Drawer · modulo di segnalazione (entra da destra) ════ */}
-          <aside
-            className="imm-seg-drawer border-border bg-surface absolute inset-y-0 right-0 z-20 w-[400px] border-l shadow-2xl"
-            aria-hidden
-          >
-            <div className="imm-zoom-form flex h-full flex-col">
-              <div className="border-border border-b px-6 py-4">
-                <h2 className="text-foreground font-semibold tracking-tight">
-                  Segnala un problema
-                </h2>
-                <p className="text-muted mt-0.5 text-sm">
-                  La pagina è già allegata: descrivi cosa non va
-                </p>
-              </div>
-
-              <div className="flex flex-1 flex-col gap-5 p-6">
-                {/* Campo «Pagina» — GIÀ COMPILATO: link rilevato in automatico */}
-                <div className="space-y-2">
-                  <label className="text-muted text-xs font-semibold tracking-widest uppercase">
-                    Pagina
-                  </label>
-                  <div className="imm-seg-page border-border bg-surface-2 flex h-10 items-center gap-2 rounded-lg border px-3">
-                    <span className="text-foreground truncate font-mono text-xs">
-                      {PAGINA_RILEVATA}
-                    </span>
-                    <span className="bg-accent-soft text-accent-ink ml-auto shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold">
-                      Rilevata in automatico ✓
-                    </span>
-                  </div>
-                </div>
-
-                {/* Campo «Descrizione» — l'unica cosa che il cliente scrive */}
-                <div className="space-y-2">
-                  <label className="text-muted text-xs font-semibold tracking-widest uppercase">
-                    Descrizione
-                  </label>
-                  <div className="border-border bg-surface min-h-20 overflow-hidden rounded-lg border px-3 py-2.5 text-sm">
-                    <span className="imm-seg-desc text-foreground block font-medium whitespace-nowrap">
-                      L&apos;immagine della hero non si carica
-                    </span>
-                  </div>
-                </div>
-
-                {/* Invio */}
-                <button
-                  type="button"
-                  className="imm-seg-send bg-accent text-accent-contrast mt-auto self-start rounded-lg px-5 py-2 text-sm font-semibold"
-                  tabIndex={-1}
-                >
-                  Invia segnalazione
-                </button>
-              </div>
-            </div>
+              ))}
+            </nav>
           </aside>
+
+          {/* Area principale: topbar + pannello «Contenuti» + drawer segnalazione */}
+          <div className="relative flex-1 overflow-hidden">
+            {/* Topbar — con lo STESSO bottone «Segnala un problema» della Dashboard */}
+            <div className="imm-seg-bg border-border bg-background/80 flex h-12 items-center gap-3 border-b px-5 backdrop-blur">
+              <span className="h-2 w-2 rounded-full bg-emerald-400" />
+              <span className="text-muted text-xs font-semibold">3 siti connessi</span>
+              <div className="ml-auto flex items-center gap-1.5">
+                {/* Wrapper = target del punch di CAMERA (cameraTo, P11): pressButton
+                  anima la scale del solo bottone, la camera inquadra il wrapper */}
+                <span className="imm-report-wrap inline-flex">
+                  <button
+                    className="imm-report-btn bg-accent-soft text-accent-ink flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold"
+                    tabIndex={-1}
+                    aria-hidden
+                  >
+                    <MessageSquareWarning className="h-3.5 w-3.5" aria-hidden />
+                    Segnala un problema
+                  </button>
+                </span>
+              </div>
+            </div>
+
+            {/* Pannello «Contenuti» compatto: lista pagine + editor con il difetto */}
+            <div className="imm-seg-bg h-[calc(100%-3rem)] overflow-hidden p-5">
+              <div className="mx-auto max-w-4xl">
+                <div className="mb-3 flex items-center justify-between">
+                  <p className="text-foreground font-semibold">Contenuti del sito</p>
+                  {/* Breadcrumb = la stessa pagina che il modulo rileva in automatico */}
+                  <span className="text-muted font-mono text-xs">{PAGINA_RILEVATA}</span>
+                </div>
+
+                <div className="grid grid-cols-[220px_minmax(0,1fr)] items-start gap-4">
+                  {/* Colonna sinistra: pagine del sito (come nella Dashboard) */}
+                  <div className="border-border bg-surface rounded-xl border shadow-sm">
+                    <p className="text-muted border-border border-b px-3 py-2 text-[11px] font-semibold tracking-wider uppercase">
+                      Pagine del sito
+                    </p>
+                    <div className="space-y-1 p-2">
+                      {PAGINE.map(({ nome, hero }) => (
+                        <div
+                          key={nome}
+                          className={`flex items-center gap-2.5 rounded-lg px-2.5 py-2 ${
+                            hero ? "bg-accent-soft" : ""
+                          }`}
+                        >
+                          <span
+                            className="bg-surface-2 border-border h-8 w-11 shrink-0 rounded-md border"
+                            aria-hidden
+                          />
+                          <span className="min-w-0 flex-1">
+                            <span className="text-foreground block truncate text-xs font-semibold">
+                              {nome}
+                            </span>
+                            <span className="mt-0.5 inline-block rounded-full bg-emerald-100 px-1.5 py-px text-[11px] font-semibold text-emerald-700">
+                              Pubblicata
+                            </span>
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Colonna destra: editor «Hero homepage» — il DIFETTO è qui */}
+                  <div className="imm-seg-card border-border bg-surface relative rounded-xl border p-4 shadow-sm">
+                    <div className="mb-3 flex items-center justify-between">
+                      <p className="text-foreground text-sm font-semibold">Hero homepage</p>
+                      <span className="text-muted text-[11px]">Ultima modifica: oggi</span>
+                    </div>
+
+                    <div className="grid grid-cols-[260px_minmax(0,1fr)] gap-4">
+                      {/* Immagine ROTTA sotto: PLACEHOLDER puro (nessuna foto dietro →
+                        niente spoiler del fix). La foto nitida sopra è scoperta dal
+                        wipe (maskReveal) solo nel beat del fix. Aspect 16/9 esplicito
+                        (R3, regola 3): niente altezza fissa che schiaccia la colonna. */}
+                      <div className="relative aspect-video overflow-hidden rounded-lg">
+                        <div
+                          className="bg-surface-2 absolute inset-0 flex flex-col items-center justify-center gap-1.5"
+                          aria-hidden
+                        >
+                          <ImageOff className="text-muted h-6 w-6" aria-hidden />
+                          <span className="text-muted text-[11px] font-semibold">
+                            Immagine non disponibile
+                          </span>
+                        </div>
+                        <div className="imm-img-fix absolute inset-0" aria-hidden>
+                          <img
+                            src={FOTO_FIX}
+                            alt=""
+                            loading="lazy"
+                            decoding="async"
+                            className="h-full w-full object-cover"
+                          />
+                          <div className="absolute inset-0 flex items-center justify-center">
+                            <span className="bg-background/85 text-foreground rounded-lg px-3 py-1.5 text-xs font-semibold shadow-sm">
+                              impianto-2026.jpg
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Campi già compilati (stato post-Dashboard: titolo «azienda») */}
+                      <div className="space-y-3">
+                        <div>
+                          <label className="text-muted mb-1 block text-[11px] font-semibold tracking-wider uppercase">
+                            Titolo
+                          </label>
+                          <div className="border-border bg-surface-2 text-foreground rounded-lg border px-3 py-2 text-sm">
+                            Energia solare per la tua azienda
+                          </div>
+                        </div>
+                        <div>
+                          <label className="text-muted mb-1 block text-[11px] font-semibold tracking-wider uppercase">
+                            Descrizione
+                          </label>
+                          <div className="border-border bg-surface-2 text-muted min-h-[52px] rounded-lg border px-3 py-2 text-sm">
+                            Impianti fotovoltaici e ricarica EV chiavi in mano, dal sopralluogo
+                            all&apos;allaccio.
+                          </div>
+                        </div>
+                        <div className="pt-1">
+                          <span className="text-muted text-[11px]">
+                            Stato: <span className="font-semibold">Pubblicata</span>
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* ════ Drawer · modulo di segnalazione (entra da destra) ════ */}
+            <aside
+              className="imm-seg-drawer border-border bg-surface absolute inset-y-0 right-0 z-20 w-[400px] border-l shadow-2xl"
+              aria-hidden
+            >
+              <div className="imm-zoom-form flex h-full flex-col">
+                <div className="border-border border-b px-6 py-4">
+                  <h2 className="text-foreground font-semibold tracking-tight">
+                    Segnala un problema
+                  </h2>
+                  <p className="text-muted mt-0.5 text-sm">
+                    La pagina è già allegata: descrivi cosa non va
+                  </p>
+                </div>
+
+                <div className="flex flex-1 flex-col gap-5 p-6">
+                  {/* Campo «Pagina» — GIÀ COMPILATO: link rilevato in automatico */}
+                  <div className="space-y-2">
+                    <label className="text-muted text-xs font-semibold tracking-widest uppercase">
+                      Pagina
+                    </label>
+                    <div className="imm-seg-page border-border bg-surface-2 flex h-10 items-center gap-2 rounded-lg border px-3">
+                      <span className="text-foreground truncate font-mono text-xs">
+                        {PAGINA_RILEVATA}
+                      </span>
+                      <span className="bg-accent-soft text-accent-ink ml-auto shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold">
+                        Rilevata in automatico ✓
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Campo «Descrizione» — l'unica cosa che il cliente scrive */}
+                  <div className="space-y-2">
+                    <label className="text-muted text-xs font-semibold tracking-widest uppercase">
+                      Descrizione
+                    </label>
+                    <div className="border-border bg-surface min-h-20 overflow-hidden rounded-lg border px-3 py-2.5 text-sm">
+                      <span className="imm-seg-desc text-foreground block font-medium whitespace-nowrap">
+                        L&apos;immagine della hero non si carica
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Invio */}
+                  <button
+                    type="button"
+                    className="imm-seg-send bg-accent text-accent-contrast mt-auto self-start rounded-lg px-5 py-2 text-sm font-semibold"
+                    tabIndex={-1}
+                  >
+                    Invia segnalazione
+                  </button>
+                </div>
+              </div>
+            </aside>
+          </div>
         </div>
       </div>
 
@@ -501,7 +507,7 @@ export default function ImmersiveSegnalazioni() {
             </span>
           </span>
         </div>
-        <div className="text-muted mt-1 flex items-center justify-between pl-1 text-[9px] font-semibold tracking-wide uppercase">
+        <div className="text-muted mt-1 flex items-center justify-between pl-1 text-[11px] font-semibold tracking-wide uppercase">
           <span>Ricevuta</span>
           <span>In lavorazione</span>
           <span>Risolta</span>

@@ -24,7 +24,8 @@ export default function AnimatedButtonsCard({ mode = "stage" }: { mode?: "stage"
         }}
       />
 
-      <div className="relative flex h-full flex-col justify-center gap-3.5 p-[8%]">
+      {/* Padding e gap dalla scala 4/8 (regola R3 n.4): azioni distanziate 16px. */}
+      <div className="relative flex h-full flex-col justify-center gap-4 p-8">
         {/* ① Magnetico */}
         <button
           type="button"
@@ -92,7 +93,7 @@ export default function AnimatedButtonsCard({ mode = "stage" }: { mode?: "stage"
         </span>
       </div>
 
-      <span className="border-border bg-background/80 text-accent-ink absolute top-4 left-4 z-20 rounded-full border px-3 py-1 font-mono text-[10px] font-semibold tracking-[0.18em] uppercase">
+      <span className="border-border bg-background/80 text-accent-ink absolute top-4 left-4 z-20 rounded-full border px-3 py-1 font-mono text-[11px] font-semibold tracking-[0.18em] uppercase">
         Micro-interazioni
       </span>
     </div>
