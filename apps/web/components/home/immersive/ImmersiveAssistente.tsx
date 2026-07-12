@@ -319,13 +319,14 @@ export default function ImmersiveAssistente() {
                 key={p.id}
                 className="imm-prod border-border bg-surface relative flex flex-col overflow-hidden rounded-xl border"
               >
-                {/* Area visiva: foto prodotto placeholder (royalty-free, tema
-                  ricarica EV) — decorativa (alt="") con badge in overlay. */}
+                {/* Area visiva: foto prodotto placeholder (royalty-free) —
+                  assegnata ESPLICITAMENTE nel dato (`p.img`): ogni foto mostra
+                  il prodotto indicato, niente indici "a caso". */}
                 {/* R3 regola 3: aspect-ratio esplicito 4/3 (prodotto) al posto
                   dell'altezza fissa h-24 che schiacciava la foto. */}
                 <div className="relative aspect-[4/3] overflow-hidden">
                   <img
-                    src={`/assets/products/cavo-0${i + 1}.jpg`}
+                    src={p.img}
                     alt=""
                     aria-hidden
                     loading="lazy"
@@ -420,7 +421,7 @@ export default function ImmersiveAssistente() {
                     schiaccia); a ≥sm riempie la colonna (flex-1, object-cover). */}
                   <div className="aspect-[4/3] overflow-hidden rounded-xl sm:aspect-auto sm:min-h-0 sm:flex-1">
                     <img
-                      src="/assets/products/cavo-01.jpg"
+                      src={PRODUCTS[0].img}
                       alt=""
                       loading="lazy"
                       decoding="async"
@@ -438,7 +439,7 @@ export default function ImmersiveAssistente() {
                         )}
                       >
                         <img
-                          src={`/assets/products/cavo-0${i + 1}.jpg`}
+                          src={PRODUCTS[i].img}
                           alt=""
                           loading="lazy"
                           decoding="async"
@@ -561,7 +562,7 @@ export default function ImmersiveAssistente() {
             aria-hidden
           >
             <img
-              src="/assets/products/cavo-01.jpg"
+              src={PRODUCTS[0].img}
               alt=""
               loading="lazy"
               decoding="async"

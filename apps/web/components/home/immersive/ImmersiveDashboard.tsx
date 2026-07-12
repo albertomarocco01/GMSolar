@@ -100,13 +100,17 @@ const BARS = [32, 48, 41, 67, 58, 80, 72] as const;
 
 /** Prodotti già presenti nel catalogo (fotovoltaico + ricarica EV, coerenti).
  *  `img` = foto placeholder in /assets/products/ — le STESSE che l'AI consiglia
- *  nella scena Assistente → dashboard e vetrina combaciano. */
+ *  nella scena Assistente → dashboard e vetrina combaciano.
+ *  NB: ogni foto DEVE mostrare il prodotto indicato (richiesta 2026-07-12) —
+ *  niente foto "a caso". `inverter-01.jpg` ritrae in realtà un TETTO
+ *  fotovoltaico (nome file storico, vedi DEBITO-TECNICO #21): qui illustra il
+ *  kit tetto, coerente col CONTENUTO della foto. */
 const PRODOTTI_INIT: ReadonlyArray<{ nome: string; prezzo: string; img: string }> = [
-  { nome: "Cavo Type 2 · 5 m", prezzo: "149 €", img: "/assets/products/cavo-01.jpg" },
+  { nome: "Cavo Type 2 · 5 m", prezzo: "149 €", img: "/assets/products/cavo-03.jpg" },
   { nome: "Wallbox 22 kW", prezzo: "899 €", img: "/assets/products/wallbox-detail.jpg" },
   { nome: "Pannello 400 W", prezzo: "210 €", img: "/assets/products/pannello-01.jpg" },
-  { nome: "Inverter 6 kW", prezzo: "1.490 €", img: "/assets/products/inverter-01.jpg" },
-  { nome: "Kit staffe tetto", prezzo: "89 €", img: "/assets/products/cavo-04.jpg" },
+  { nome: "Kit fotovoltaico tetto", prezzo: "6.900 €", img: "/assets/products/inverter-01.jpg" },
+  { nome: "Colonnina di ricarica", prezzo: "1.190 €", img: "/assets/products/cavo-06.jpg" },
 ];
 
 /** Righe tabella ordini (Data/Canale mock deterministici; somma = 16.889 €). */
@@ -548,7 +552,7 @@ export default function ImmersiveDashboard() {
                               />
                             ) : (
                               <img
-                                src="/assets/products/cavo-02.jpg"
+                                src="/assets/products/pannello-01.jpg"
                                 alt=""
                                 loading="lazy"
                                 decoding="async"
@@ -714,7 +718,7 @@ export default function ImmersiveDashboard() {
                         decoding="async"
                         className="mb-2 aspect-[4/3] w-full rounded-lg object-cover"
                       />
-                      <p className="text-foreground text-sm font-semibold">Batteria 10 kWh</p>
+                      <p className="text-foreground text-sm font-semibold">Stazione DC 50 kW</p>
                       <p className="text-accent-ink text-xs font-bold">3.200 €</p>
                     </div>
                   </div>
@@ -737,7 +741,7 @@ export default function ImmersiveDashboard() {
                       </label>
                       <div className="border-border bg-surface-2 text-foreground min-h-[32px] overflow-hidden rounded-lg border px-3 py-1.5 text-sm">
                         <span className="imm-form-nome inline-block whitespace-nowrap">
-                          Batteria 10 kWh
+                          Stazione DC 50 kW
                         </span>
                       </div>
                     </div>
@@ -765,7 +769,7 @@ export default function ImmersiveDashboard() {
                             className="h-full w-full object-cover"
                           />
                         </span>
-                        <span className="text-muted text-xs">batteria-10kwh.jpg</span>
+                        <span className="text-muted text-xs">stazione-dc-50kw.jpg</span>
                       </div>
                     </div>
                   </div>

@@ -18,6 +18,9 @@ export type ImmProduct = {
   shape: "Liscio" | "Spiralato";
   /** Prezzo già formattato (la scena non fa calcoli). */
   price: string;
+  /** Foto in /assets/products/: DEVE mostrare il prodotto indicato (richiesta
+   *  2026-07-12) — l'assegnazione è esplicita, mai per indice "a caso". */
+  img: string;
   bestSeller?: boolean;
   /** true sul prodotto che l'assistente raccomanda per la richiesta della scena. */
   recommended?: boolean;
@@ -32,6 +35,8 @@ export const PRODUCTS: ImmProduct[] = [
     phase: "Monofase",
     shape: "Liscio",
     price: "189 €",
+    // Il cavo Mennekes in primo piano: LA foto-prodotto del consigliato.
+    img: "/assets/products/cavo-03.jpg",
     bestSeller: true,
     recommended: true,
   },
@@ -42,6 +47,7 @@ export const PRODUCTS: ImmProduct[] = [
     phase: "Monofase",
     shape: "Spiralato",
     price: "199 €",
+    img: "/assets/products/cavo-01.jpg",
   },
   {
     id: "modo3-t2-trifase-spiralato",
@@ -50,6 +56,7 @@ export const PRODUCTS: ImmProduct[] = [
     phase: "Trifase",
     shape: "Spiralato",
     price: "219 €",
+    img: "/assets/products/cavo-02.jpg",
     bestSeller: true,
   },
   {
@@ -59,6 +66,7 @@ export const PRODUCTS: ImmProduct[] = [
     phase: "Trifase",
     shape: "Liscio",
     price: "219 €",
+    img: "/assets/products/cavo-04.jpg",
   },
   {
     id: "modo3-t2-trifase-liscio-wallbox",
@@ -67,6 +75,8 @@ export const PRODUCTS: ImmProduct[] = [
     phase: "Trifase",
     shape: "Liscio",
     price: "239 €",
+    // Cavo per wallbox: la foto mostra la wallbox con il suo cavo innestato.
+    img: "/assets/products/wallbox-detail.jpg",
   },
   {
     id: "modo2-t2-schuko-liscio",
@@ -75,6 +85,9 @@ export const PRODUCTS: ImmProduct[] = [
     phase: "Monofase",
     shape: "Liscio",
     price: "389 €",
+    // ponytail: riuso di cavo-01 (nessuna foto Schuko negli asset; card al
+    // "fold", quasi fuori vista) — upgrade: aggiungere una foto dedicata.
+    img: "/assets/products/cavo-01.jpg",
   },
 ];
 
