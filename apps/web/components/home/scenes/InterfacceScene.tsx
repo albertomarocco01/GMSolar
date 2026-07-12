@@ -1,19 +1,25 @@
 "use client";
 
 /**
- * @descrizione  Scena «INTERFACCE GRAFICHE MODERNE» — capitolo 02, v6. NON una
+ * @descrizione  Scena «INTERFACCE GRAFICHE MODERNE» — capitolo 02, v7. NON una
  *   carrellata di card: 4 QUADRI = 4 ARCHETIPI DI LAYOUT DIVERSI dentro un unico
  *   "device", che MUTANO l'uno nell'altro. Contenuti nel mondo FOTOVOLTAICO.
- *     ① LANDING editoriale  (LIGHT) — installatore FV: tipografia display, split
- *        asimmetrico, numeri di fiducia, marquee certificazioni. NIENTE card.
- *     ② MONITORAGGIO impianto (DARK) — pannello di controllo con la card-eroe dal
- *        bordo percorso dal BEAM elettrico, kW a rullo, curva, tile a onda.
+ *     ① LANDING editoriale  (LIGHT) — installatore FV: INCASTRO MULTILAYER a
+ *        profondità z (ghost word dietro, headline, foto che sormonta, badge
+ *        davanti) con parallasse; numeri di fiducia, marquee certificazioni.
+ *     ② MONITORAGGIO impianto (DARK) — pannello di controllo; la card-eroe
+ *        «Produzione ora» ha l'EFFETTO PER-ELEMENTO <ElectricBorder/> (canvas che
+ *        frigge sul perimetro DELLA CARD), kW a rullo, curva, tile a onda.
  *     ③ PREVENTIVATORE a wizard (MID slate) — funnel: slider trascinato, toggle,
- *        radio-card taglia, prezzo a rullo, CTA label→spinner→check.
- *     ④ CATALOGO a MOSAICO (LIGHT) — bento asimmetrico di foto/prodotti; il beam
- *        gira sull'INTERO perimetro = chiusura del capitolo.
+ *        radio-card taglia; la CARD PREZZO ha <ElectricBorder/>; CTA label→spinner→check.
+ *     ④ CATALOGO a MOSAICO (LIGHT) — bento armonico di foto/card-prodotto PORTRAIT;
+ *        NIENTE beam sul perimetro (rimosso): profondità da una card che sormonta.
  *
- *   FILO CONDUTTORE — il beam è il match-cut: in ① una sottile linea accent
+ *   EFFETTI PER-ELEMENTO (non sul modulo intero): l'unico effetto "elettrico" è
+ *   <ElectricBorder/> attorno a 2 CARD-EROE (② e ③) — canvas per-card, non un
+ *   giro sul frame del device. È rimosso ogni beam perimetrale (ex-ElectricBeam).
+ *
+ *   FILO CONDUTTORE — la STREAK è il match-cut: in ① una sottile linea accent
  *   sottolinea la headline; ad ogni cambio una STREAK elettrica (`.shw-cut`)
  *   attraversa il device (flow orizzontale) e il quadro entrante si riempie a
  *   stagger. Il fondo del device vira LIGHT→DARK→MID→LIGHT via layer OPACHI
@@ -21,9 +27,10 @@
  *
  *   PERFORMANCE — un quadro dipinto per volta (gli altri autoAlpha:0); tween a
  *   valori FISSI (solo transform/opacity) → scrub avanti/indietro senza salti;
- *   loop decorativi (beam, marquee, shine, spinner) = keyframe CSS congelabili da
- *   `data-presentation-paused` e spenti sotto reduced-motion.
- *   Reduced-motion / progress(1): resta il MOSAICO ④ completo, col bordo acceso.
+ *   loop decorativi CSS (marquee, shine, spinner) = keyframe congelabili da
+ *   `data-presentation-paused` e spenti sotto reduced-motion. Il canvas di
+ *   <ElectricBorder/> ha il SUO gate (visibilità quadro + pausa + reduced).
+ *   Reduced-motion / progress(1): resta il MOSAICO ④ completo e armonico.
  */
 import { gsap } from "@gmgroup/lib/gsap";
 import QuadroLanding from "../showcase/QuadroLanding";
@@ -111,12 +118,30 @@ export default function InterfacceScene() {
     // ⓪ Title card di capitolo.
     chapterIntro(tl);
 
-    // ① LANDING — la headline si compone, la linea-beam si traccia, foto + numeri.
-    maskReveal(tl, ".shw-q1-line", { dir: "b", stagger: 0.12, duration: DUR.beat });
+    // ① LANDING — INCASTRO MULTILAYER: la parola-ghost entra DIETRO (L0), la
+    //    headline si compone (L10) con la linea accent che si traccia, la FOTO
+    //    (L20) sormonta la coda della ghost, il BADGE stat (L30) "pop" davanti.
+    tl.fromTo(
+      ".shw-q1-ghost",
+      { autoAlpha: 0, x: -40 },
+      { autoAlpha: 1, x: 0, duration: DUR.scene, ease: EASE_IN_SCENE },
+    );
+    maskReveal(tl, ".shw-q1-line", {
+      dir: "b",
+      stagger: 0.12,
+      duration: DUR.beat,
+      position: "<0.15",
+    });
     tl.to(".shw-q1-rule", { scaleX: 1, duration: DUR.beat, ease: EASE_IN_SCENE }, "<0.25");
     enter(tl, ".shw-q1-item", { y: 20, stagger: 0.08, position: "<0.1" });
-    countUp(tl, [{ el: ".shw-q1-count", to: 2400, format: intIt }], { position: "<0.2" });
     maskReveal(tl, ".shw-q1-photo", { dir: "r", duration: DUR.scene, position: "<" });
+    enter(tl, ".shw-q1-float", { y: 26, anticipate: true, position: "<0.2" });
+    countUp(tl, [{ el: ".shw-q1-count", to: 2400, format: intIt }], { position: "<0.1" });
+    // Parallasse di PROFONDITÀ: i layer derivano a velocità diverse (valori FISSI
+    // → scrub-safe): più il layer è avanti, più corre. Ghost lento, badge veloce.
+    tl.to(".shw-q1-ghost", { y: -10, duration: DUR.scene, ease: EASE_CAMERA }, ">-0.2");
+    tl.to(".shw-q1-photo", { y: -22, duration: DUR.scene, ease: EASE_CAMERA }, "<");
+    tl.to(".shw-q1-float", { y: -34, duration: DUR.scene, ease: EASE_CAMERA }, "<");
     hold(tl);
 
     // ② MORPH → MONITORAGGIO (light→dark): tile a onda, kW e curva prendono vita.
@@ -169,8 +194,8 @@ export default function InterfacceScene() {
     hideCursor(tl, { position: ">0.05" });
     hold(tl);
 
-    // ④ MORPH → MOSAICO (mid→light): celle a maschera in cascata; il beam del
-    //    mosaico gira (CSS) e il bordo acceso resta = chiusura leggibile.
+    // ④ MORPH → MOSAICO (mid→light): celle a maschera in cascata; nessun beam sul
+    //    perimetro — la card «featured» che sormonta la griglia resta = chiusura.
     morph(tl, 4);
     maskReveal(tl, ".shw-q4-cell", { dir: "b", stagger: 0.09, duration: DUR.beat });
     hold(tl, 1.6);
@@ -180,7 +205,7 @@ export default function InterfacceScene() {
     <ImmersiveStage ref={ref} heightVh={700} label={CHAPTERS[1].title} chapterIndex={1}>
       {/* Loop decorativi CSS (marquee, shine, spinner): congelabili da
           `data-presentation-paused` (regola `#top *`), spenti sotto reduced-motion.
-          Il beam ha i suoi keyframe in ElectricBeam. */}
+          Il bordo elettrico è canvas (ElectricBorder), col suo gate — niente CSS qui. */}
       <style>{`
         @keyframes shwMarquee { to { transform: translateX(-50%); } }
         .shw-q1-marquee { animation: shwMarquee 26s linear infinite; will-change: transform; }
