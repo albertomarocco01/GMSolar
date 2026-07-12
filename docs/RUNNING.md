@@ -5,20 +5,22 @@ Guida a prova di principiante per far girare la demo **GM Group** sul tuo comput
 (Solar, Mobility, Shop) più l'hub e le 3 demo AI.
 
 > 🟢 **Il comando che ti serve, in una riga** (dalla cartella del progetto):
+>
 > ```bash
 > pnpm install && pnpm dev
 > ```
+>
 > Poi apri **http://localhost:3000** nel browser. Fine.
 
 ---
 
 ## 1. Prerequisiti
 
-| Cosa | Versione | Come verificarla |
-|---|---|---|
-| **Node.js** | 20 o superiore (testato su 22 e 24) | `node -v` |
-| **pnpm** | 11+ (il progetto usa il packageManager `pnpm@11.6.0`) | `pnpm -v` |
-| **Git** | qualsiasi recente | `git --version` |
+| Cosa        | Versione                                              | Come verificarla |
+| ----------- | ----------------------------------------------------- | ---------------- |
+| **Node.js** | 20 o superiore (testato su 22 e 24)                   | `node -v`        |
+| **pnpm**    | 11+ (il progetto usa il packageManager `pnpm@11.6.0`) | `pnpm -v`        |
+| **Git**     | qualsiasi recente                                     | `git --version`  |
 
 ### Installare pnpm (se `pnpm -v` dà errore)
 
@@ -93,14 +95,14 @@ pnpm typecheck    # TypeScript (tsc --noEmit)
 
 Base: **http://localhost:3000**
 
-| Indirizzo | Cosa mostra |
-|---|---|
-| `/` | Home immersiva **chromeless**: scroll-narrativa cinematografica che racconta i servizi (dentro, i capitoli "Siti vetrina" e "App ricarica EV"). |
-| `/assistente` | Assistente AI di sito: chatbot demo che risponde dai contenuti e indirizza. |
-| `/dashboard` | Dashboard & telemetria: mock analytics (KPI, grafici recharts, gestione contenuti). |
-| `/gestionale` | Gestionale con assistente AI: query in linguaggio naturale su dati finti. |
-| `/integrazioni` | Integrazioni API: diagramma di flusso (WhatsApp, email, CRM, pagamenti). |
-| `/segnalazioni` | Pannello segnalazioni: invio bug/richieste con stato, priorità e storico. |
+| Indirizzo       | Cosa mostra                                                                                                                                     |
+| --------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| `/`             | Home immersiva **chromeless**: scroll-narrativa cinematografica che racconta i servizi (dentro, i capitoli "Siti vetrina" e "App ricarica EV"). |
+| `/assistente`   | Assistente AI di sito: chatbot demo che risponde dai contenuti e indirizza.                                                                     |
+| `/dashboard`    | Dashboard & telemetria: mock analytics (KPI, grafici recharts, gestione contenuti).                                                             |
+| `/gestionale`   | Gestionale con assistente AI: query in linguaggio naturale su dati finti.                                                                       |
+| `/integrazioni` | Integrazioni API: diagramma di flusso (WhatsApp, email, CRM, pagamenti).                                                                        |
+| `/segnalazioni` | Pannello segnalazioni: invio bug/richieste con stato, priorità e storico.                                                                       |
 
 Il sito è **de-brandizzato**: un solo accent (lime) su tutte le route.
 
@@ -149,6 +151,7 @@ curl http://localhost:3000/api/lead-qualifier      # {"aiEnabled":false}  → ne
 ```
 
 Altre chiavi facoltative (sempre solo server-side):
+
 - **`OCM_API_KEY`** — Open Charge Map per i punti di ricarica reali su `/mobility`. Senza,
   la mappa usa un set curato di punti del Piemonte (non resta mai vuota).
 
@@ -188,6 +191,7 @@ pnpm --filter @gmgroup/web exec next start -p 3001     # → http://localhost:30
 
 Le mappe (su `/solar` e `/mobility`) si caricano **pigramente**: scrolla fino alla sezione
 mappa e aspetta un paio di secondi. Sanity check:
+
 - Deve comparire un riquadro alto (~430px) con un `<canvas>` dentro.
 - Le tile della mappa arrivano da CARTO (`basemaps.cartocdn.com`) e **non** richiedono chiavi:
   servono solo connessione internet. Se sei offline, lo sfondo resta scuro ma i pin ci sono.

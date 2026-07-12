@@ -2,33 +2,33 @@
 
 > **Per l'umano / l'orchestratore.** 10 richieste utente raggruppate in **5 mini-roadmap
 > (A–E) per DIFFICOLTÀ**. Ognuna è un file **auto-contenuto**: la passi a un agente e lui
-> la esegue senza altro contesto. Questo file dice solo: *chi fa cosa, con quale modello,
-> in che ordine, e i permessi.*
+> la esegue senza altro contesto. Questo file dice solo: _chi fa cosa, con quale modello,
+> in che ordine, e i permessi._
 
 ## 0. Le 10 richieste → dove vivono
 
-| # | Richiesta utente | Roadmap |
-|---|---|---|
-| 1 | Titoli di capitolo NON verdi: sfondo bianco + scritte nere grosse (com'era prima) | **A** |
-| 2 | Prima «Siti vetrina» (scrollytelling forte), poi «Interfacce grafiche moderne» = componenti UI **senza video sotto** | **E** |
-| 3 | Video hero «figo e completo» come quello mandato (all-keyframe) | **E** |
-| 4 | Camera che, mentre zooma sulla scrittura, **trasla a destra col cursore** | **D** |
-| 5 | Auto-scroll con curva **gaussiana** (lento → accelera → lento), non a velocità costante | **C** |
-| 6 | Dashboard: **stesse foto** del sito vetrina (dove l'AI consiglia i prodotti), via emoji, foto prodotti veri | **B** |
-| 7 | Segnalazioni: l'«immagine non disponibile» è brutta | **B** |
-| 8 | Gestionale: non «colonnine» ma **«Gestionali su misura per le vostre attività»** | **A** |
-| 9 | App: titolo **«App con assistente AI integrato»** | **A** |
-| 10 | Chiusura: **solo** «Rivedi la presentazione» (via «GM Solar») + animazione loop di sfondo | **A** |
+| #   | Richiesta utente                                                                                                     | Roadmap |
+| --- | -------------------------------------------------------------------------------------------------------------------- | ------- |
+| 1   | Titoli di capitolo NON verdi: sfondo bianco + scritte nere grosse (com'era prima)                                    | **A**   |
+| 2   | Prima «Siti vetrina» (scrollytelling forte), poi «Interfacce grafiche moderne» = componenti UI **senza video sotto** | **E**   |
+| 3   | Video hero «figo e completo» come quello mandato (all-keyframe)                                                      | **E**   |
+| 4   | Camera che, mentre zooma sulla scrittura, **trasla a destra col cursore**                                            | **D**   |
+| 5   | Auto-scroll con curva **gaussiana** (lento → accelera → lento), non a velocità costante                              | **C**   |
+| 6   | Dashboard: **stesse foto** del sito vetrina (dove l'AI consiglia i prodotti), via emoji, foto prodotti veri          | **B**   |
+| 7   | Segnalazioni: l'«immagine non disponibile» è brutta                                                                  | **B**   |
+| 8   | Gestionale: non «colonnine» ma **«Gestionali su misura per le vostre attività»**                                     | **A**   |
+| 9   | App: titolo **«App con assistente AI integrato»**                                                                    | **A**   |
+| 10  | Chiusura: **solo** «Rivedi la presentazione» (via «GM Solar») + animazione loop di sfondo                            | **A**   |
 
 ## 1. Le 5 mini-roadmap → modello + effort consigliati
 
-| Roadmap | Contenuto | Difficoltà | **Modello consigliato** | **Effort** |
-|---|---|---|---|---|
-| **A** — `A-copy-brand.md` | Titoli capitolo bianco/nero (1) · Gestionale «su misura» (8) · titolo App (9) · Chiusura minimale + loop (10) | 🟢 Facile | **Fable 5** (`claude-fable-5`) | **medium** |
-| **B** — `B-immagini-reali.md` | Dashboard foto reali + via emoji (6) · Segnalazioni: stato «immagine rotta» pulito (7) | 🟡 Medio | **Sonnet 5** (`claude-sonnet-5`) | **medium** |
-| **C** — `C-autoscroll-gaussiano.md` | Curva di velocità gaussiana in `AutoScroll` (5) | 🟡 Medio | **Sonnet 5** (`claude-sonnet-5`) | **medium** |
-| **D** — `D-camera-scrittura.md` | Nuovo helper camera che segue il caret in scrittura + applicazione nelle scene (4) | 🔴 Difficile | **Opus 4.8** (`claude-opus-4-8`) | **high** |
-| **E** — `E-struttura-video.md` | Split «Siti vetrina» / «Interfacce moderne» senza video (2) · video hero completo all-keyframe (3) | 🔴 Difficile | **Opus 4.8** (`claude-opus-4-8`) | **high** (xhigh se rifà anche il video) |
+| Roadmap                             | Contenuto                                                                                                     | Difficoltà   | **Modello consigliato**          | **Effort**                              |
+| ----------------------------------- | ------------------------------------------------------------------------------------------------------------- | ------------ | -------------------------------- | --------------------------------------- |
+| **A** — `A-copy-brand.md`           | Titoli capitolo bianco/nero (1) · Gestionale «su misura» (8) · titolo App (9) · Chiusura minimale + loop (10) | 🟢 Facile    | **Fable 5** (`claude-fable-5`)   | **medium**                              |
+| **B** — `B-immagini-reali.md`       | Dashboard foto reali + via emoji (6) · Segnalazioni: stato «immagine rotta» pulito (7)                        | 🟡 Medio     | **Sonnet 5** (`claude-sonnet-5`) | **medium**                              |
+| **C** — `C-autoscroll-gaussiano.md` | Curva di velocità gaussiana in `AutoScroll` (5)                                                               | 🟡 Medio     | **Sonnet 5** (`claude-sonnet-5`) | **medium**                              |
+| **D** — `D-camera-scrittura.md`     | Nuovo helper camera che segue il caret in scrittura + applicazione nelle scene (4)                            | 🔴 Difficile | **Opus 4.8** (`claude-opus-4-8`) | **high**                                |
+| **E** — `E-struttura-video.md`      | Split «Siti vetrina» / «Interfacce moderne» senza video (2) · video hero completo all-keyframe (3)            | 🔴 Difficile | **Opus 4.8** (`claude-opus-4-8`) | **high** (xhigh se rifà anche il video) |
 
 > **Perché questi modelli.** A = copy + CSS leggero → un modello veloce basta. B/C = lavoro
 > deterministico e circoscritto (asset/layout, una funzione di easing) → Sonnet medium. D/E =
@@ -58,16 +58,16 @@ le scene immersive). **Non lanciarle in parallelo se condividono un file.** Graf
 
 ## 3. Ambiente (fatti verificati — non riscoprirli)
 
-| Cosa | Valore |
-|---|---|
-| OS / shell | Windows 11 · PowerShell (usa sintassi PowerShell) |
-| Repo | `c:\Users\sinog\Desktop\GMSolar` · git · branch **`migliorie-home`** |
-| Monorepo | pnpm + turbo · Next.js 16 App Router in `apps/web` · React 19 · TS strict · Tailwind v4 |
-| Comandi | `pnpm typecheck` · `pnpm build` · `pnpm lint` · `pnpm dev` (porta 3000) |
-| Animazioni | GSAP/ScrollTrigger **solo** da `@gmgroup/lib/gsap`; Lenis attivo a layout |
-| Video | **ffmpeg presente** (`ffmpeg` nel PATH, v8.1.1). Chrome di sistema decodifica H.264; il Chromium bundled no → verifica i video con `C:\Program Files\Google\Chrome\Application\chrome.exe` |
-| Ricerca testo | `rg` **non** nel PATH PowerShell: usa il tool Grep dell'harness o `bash -lc 'rg …'` |
-| Target | Demo **solo PC desktop** 1920×1080. **Niente QA mobile/touch** |
+| Cosa          | Valore                                                                                                                                                                                     |
+| ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| OS / shell    | Windows 11 · PowerShell (usa sintassi PowerShell)                                                                                                                                          |
+| Repo          | `c:\Users\sinog\Desktop\GMSolar` · git · branch **`migliorie-home`**                                                                                                                       |
+| Monorepo      | pnpm + turbo · Next.js 16 App Router in `apps/web` · React 19 · TS strict · Tailwind v4                                                                                                    |
+| Comandi       | `pnpm typecheck` · `pnpm build` · `pnpm lint` · `pnpm dev` (porta 3000)                                                                                                                    |
+| Animazioni    | GSAP/ScrollTrigger **solo** da `@gmgroup/lib/gsap`; Lenis attivo a layout                                                                                                                  |
+| Video         | **ffmpeg presente** (`ffmpeg` nel PATH, v8.1.1). Chrome di sistema decodifica H.264; il Chromium bundled no → verifica i video con `C:\Program Files\Google\Chrome\Application\chrome.exe` |
+| Ricerca testo | `rg` **non** nel PATH PowerShell: usa il tool Grep dell'harness o `bash -lc 'rg …'`                                                                                                        |
+| Target        | Demo **solo PC desktop** 1920×1080. **Niente QA mobile/touch**                                                                                                                             |
 
 ## 4. Regole NON NEGOZIABILI (valgono per OGNI roadmap)
 
@@ -88,13 +88,27 @@ Il repo ha già i permessi impostati:
 
 ```jsonc
 {
-  "defaultMode": "bypassPermissions",           // gli agenti NON ricevono prompt di conferma
+  "defaultMode": "bypassPermissions", // gli agenti NON ricevono prompt di conferma
   "permissions": {
-    "allow": ["Bash(*)","Read(*)","Write(*)","Edit(*)","PowerShell(*)",
-              "MultiEdit(*)","WebFetch(*)","WebSearch(*)","Glob(*)","Grep(*)",
-              "LS(*)","TodoWrite(*)","TodoRead(*)","Task(*)","mcp_*(*)"],
-    "additionalDirectories": ["\\tmp", "C:\\Users\\sinog\\.claude"]
-  }
+    "allow": [
+      "Bash(*)",
+      "Read(*)",
+      "Write(*)",
+      "Edit(*)",
+      "PowerShell(*)",
+      "MultiEdit(*)",
+      "WebFetch(*)",
+      "WebSearch(*)",
+      "Glob(*)",
+      "Grep(*)",
+      "LS(*)",
+      "TodoWrite(*)",
+      "TodoRead(*)",
+      "Task(*)",
+      "mcp_*(*)",
+    ],
+    "additionalDirectories": ["\\tmp", "C:\\Users\\sinog\\.claude"],
+  },
 }
 ```
 

@@ -13,22 +13,22 @@ Decisioni confermate (Specchio):
 
 1. **Identità:** è una presentazione di proposte da noi → cliente. **Nessun branding** (né uno
    studio nostro, né GM). I brand reali (GM Solar/GMobility/Cavo Perfetto) restano solo come
-   *esempio vivo* del servizio "sito vetrina", **senza loghi e senza nomi in evidenza**.
+   _esempio vivo_ del servizio "sito vetrina", **senza loghi e senza nomi in evidenza**.
 2. **Esperienza top-level:** **scroll-narrativa cinematica** — una landing unica che scorre i
    servizi in sequenza, ognuno con un momento "wow" e deep-link a una demo interattiva.
 3. **Font:** **Geist + Geist Mono** (sostituiscono Inter + Space Grotesk).
 
 I sette servizi da raccontare:
 
-| # | Servizio | Stato attuale nel codice |
-|---|----------|--------------------------|
-| 1 | Siti vetrina moderni (scrollytelling video) | ✅ scena Solare (hero video scrubbato) + `InterfacceScene` (componenti UI) |
-| 2 | Assistente AI di prodotto (risponde, genera l'interfaccia) | ✅ `ImmersiveAssistente` (mock) |
-| 3 | Dashboard centralizzata: gestione contenuti + telemetria multi-sito | ✅ `ImmersiveDashboard` (mock) |
-| 4 | Pannello segnalazioni (bug / richieste, con fix mostrato) | ✅ `ImmersiveSegnalazioni` (mock) |
-| 5 | Gestionali su misura con assistente AI (esempio vivo: colonnine di ricarica) | ✅ `ImmersiveGestionale` (mock) |
-| 6 | App di ricarica EV con assistente AI integrato | ✅ `ImmersiveRicarica` (mock) |
-| 7 | Integrazioni API (carrellata loghi + esempio WhatsApp) | ✅ `ImmersiveIntegrazioni` (mock) |
+| #   | Servizio                                                                     | Stato attuale nel codice                                                   |
+| --- | ---------------------------------------------------------------------------- | -------------------------------------------------------------------------- |
+| 1   | Siti vetrina moderni (scrollytelling video)                                  | ✅ scena Solare (hero video scrubbato) + `InterfacceScene` (componenti UI) |
+| 2   | Assistente AI di prodotto (risponde, genera l'interfaccia)                   | ✅ `ImmersiveAssistente` (mock)                                            |
+| 3   | Dashboard centralizzata: gestione contenuti + telemetria multi-sito          | ✅ `ImmersiveDashboard` (mock)                                             |
+| 4   | Pannello segnalazioni (bug / richieste, con fix mostrato)                    | ✅ `ImmersiveSegnalazioni` (mock)                                          |
+| 5   | Gestionali su misura con assistente AI (esempio vivo: colonnine di ricarica) | ✅ `ImmersiveGestionale` (mock)                                            |
+| 6   | App di ricarica EV con assistente AI integrato                               | ✅ `ImmersiveRicarica` (mock)                                              |
+| 7   | Integrazioni API (carrellata loghi + esempio WhatsApp)                       | ✅ `ImmersiveIntegrazioni` (mock)                                          |
 
 > **Nota:** la numerazione qui sopra è quella del brief; la narrativa della home è a
 > **8 capitoli** (01→08, vedi «Stato della home» qui sotto).
@@ -83,7 +83,7 @@ Sistemi trasversali:
 
 ## A cosa serve / per chi
 
-- **Scopo:** strumento commerciale. Convincere un cliente mostrando *capacità*, non consegnando
+- **Scopo:** strumento commerciale. Convincere un cliente mostrando _capacità_, non consegnando
   prodotti. Vince chi crea momenti "wow" + storia chiara + prova di tech moderna.
 - **Utenti:** chi presenta (noi, in demo dal vivo o link) e il cliente che la sfoglia.
 - **Obiettivo che conta davvero:** comunicare in pochi minuti la gamma di servizi e la qualità
@@ -125,17 +125,17 @@ Sistemi trasversali:
 
 ## Linguaggio di dominio (ubiquitous language)
 
-| Termine | Significato |
-|---|---|
-| Servizio | Una delle 7 proposte commerciali raccontate nella presentazione. |
-| Capitolo | Sezione della scroll-narrativa che presenta un servizio con un momento "wow". |
-| Demo / flusso | Esperienza interattiva collegata a un servizio (deep-link dal capitolo). |
-| Mock | UI con dati finti realistici, senza backend reale (regola di progetto). |
-| Mondo | Sito vetrina d'esempio (solar / mobility / shop), prova del servizio #1. |
-| Accent / tema | Colore runtime per "zona", impostato da `ThemeProvider` via `data-theme`. |
-| Token | Variabile del design system in `packages/tokens` — fonte unica di colore/tipografia/spacing. |
-| Registry servizi | Dato unico che elenca i 7 servizi (per nav + landing), creato in Fondazione. |
-| Degrado con grazia | Comportamento di fallback quando manca una chiave/asset: la demo resta usabile. |
+| Termine            | Significato                                                                                  |
+| ------------------ | -------------------------------------------------------------------------------------------- |
+| Servizio           | Una delle 7 proposte commerciali raccontate nella presentazione.                             |
+| Capitolo           | Sezione della scroll-narrativa che presenta un servizio con un momento "wow".                |
+| Demo / flusso      | Esperienza interattiva collegata a un servizio (deep-link dal capitolo).                     |
+| Mock               | UI con dati finti realistici, senza backend reale (regola di progetto).                      |
+| Mondo              | Sito vetrina d'esempio (solar / mobility / shop), prova del servizio #1.                     |
+| Accent / tema      | Colore runtime per "zona", impostato da `ThemeProvider` via `data-theme`.                    |
+| Token              | Variabile del design system in `packages/tokens` — fonte unica di colore/tipografia/spacing. |
+| Registry servizi   | Dato unico che elenca i 7 servizi (per nav + landing), creato in Fondazione.                 |
+| Degrado con grazia | Comportamento di fallback quando manca una chiave/asset: la demo resta usabile.              |
 
 ## Convenzioni
 

@@ -14,9 +14,9 @@
 
 /* ----------------------------- Tipi entità ----------------------------- */
 
-export type Regione = "Piemonte" | "Lombardia" | "Veneto" | "Emilia-Romagna" | "Liguria";
+type Regione = "Piemonte" | "Lombardia" | "Veneto" | "Emilia-Romagna" | "Liguria";
 
-export type ClienteSettore =
+type ClienteSettore =
   | "Industria"
   | "Logistica"
   | "Agricoltura"
@@ -51,7 +51,7 @@ export interface Ordine {
   data: string;
 }
 
-export type ProgettoTipo =
+type ProgettoTipo =
   | "Solar Farm"
   | "Industriale C&I"
   | "Residenziale"
@@ -59,7 +59,7 @@ export type ProgettoTipo =
   | "Wallbox"
   | "Storage";
 
-export type ProgettoStato = "in corso" | "completato" | "in ritardo" | "pianificato" | "sospeso";
+type ProgettoStato = "in corso" | "completato" | "in ritardo" | "pianificato" | "sospeso";
 
 export interface Progetto {
   id: string;
@@ -76,9 +76,9 @@ export interface Progetto {
   scadenza: string;
 }
 
-export type ScadenzaTipo = "Pagamento" | "Consegna" | "Manutenzione" | "Permesso" | "Collaudo";
+type ScadenzaTipo = "Pagamento" | "Consegna" | "Manutenzione" | "Permesso" | "Collaudo";
 
-export type ScadenzaStato = "in scadenza" | "scaduta" | "pianificata" | "completata";
+type ScadenzaStato = "in scadenza" | "scaduta" | "pianificata" | "completata";
 
 export interface Scadenza {
   id: string;

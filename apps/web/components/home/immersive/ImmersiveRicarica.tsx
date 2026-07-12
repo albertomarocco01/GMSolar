@@ -326,12 +326,7 @@ export default function ImmersiveRicarica() {
   });
 
   return (
-    <ImmersiveStage
-      ref={ref}
-      heightVh={520}
-      label={CHAPTERS[6].title}
-      chapterIndex={6}
-    >
+    <ImmersiveStage ref={ref} heightVh={520} label={CHAPTERS[6].title} chapterIndex={6}>
       {/* Reduced-motion: la ChapterCard animata finisce nascosta a progress(1)
           → heading statico del capitolo in cima, coerente con lo stato finale
           leggibile del mockup. */}

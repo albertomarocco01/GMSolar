@@ -73,6 +73,76 @@ const HANDOFF_DWELL_MS = 100;
  *  PARTE da questo anchor è un hand-off vuoto → profilo veloce, sosta ridotta). */
 type Anchor = { p: number; fast: boolean };
 
+// ── Fasi pure del tick (funzioni di modulo, senza stato: la macchina resta UNA,
+//    qui sotto solo i calcoli deterministici estratti per leggibilità e per
+//    tenere `tick` a bassa complessità) ───────────────────────────────────────
+
+/** Gate del tick: fermi quando l'intro non è ancora uscita, in modalità manuale,
+ *  a pagina non visibile o durante una sosta (holdUntil non ancora scaduto).
+ *  NB: `lenis` NON è qui (va controllato in `tick` per far restringere il tipo). */
+function tickShouldHold(introHold: boolean, auto: boolean, holdUntil: number): boolean {
+  return (
+    introHold || !auto || document.visibilityState !== "visible" || performance.now() < holdUntil
+  );
+}
+
+/** Primo anchor DAVANTI alla posizione corrente (l'auto va solo in avanti);
+ *  -1 se non ce ne sono più (fine demo). */
+function findNextAnchorIdx(anchors: Anchor[], scroll: number): number {
+  for (let i = 0; i < anchors.length; i++) {
+    if (anchors[i].p > scroll + ARRIVE_EPS) return i;
+  }
+  return -1;
+}
+
+/** Sosta sull'anchor: RIDOTTA se il tratto in arrivo O in partenza è un hand-off
+ *  vuoto (schermo bianco: i 300ms pieni allungherebbero solo il vuoto). */
+function dwellFor(fromFast: boolean, anchorFast: boolean): number {
+  return fromFast || anchorFast ? HANDOFF_DWELL_MS : DWELL_MS;
+}
+
+/** Profilo di velocità a CAMPANA sull'intero tratto from→target: sin(π·p) coi
+ *  bordi esattamente a 0 (frenata piena) → lento-veloce-lento ad ogni scena; il
+ *  pavimento (MIN) evita lo stallo ai bordi. Variante gaussiana (plateau più
+ *  largo, ~0.34 ai bordi), se preferisci il look di Gauss:
+ *    const bell = Math.exp(-((pc - 0.5) ** 2) / (2 * 0.34 * 0.34));
+ *  Tratto `fast` = stessa campana, picco e pavimento alti → il vuoto si
+ *  attraversa in ~0.4-0.5s (contenuto invisibile: nessun jank percepibile). */
+function bellSpeed(scroll: number, from: number, target: number, fast: boolean): number {
+  const seg = target - from;
+  const p = seg > 0 ? (scroll - from) / seg : 1; // 0 = appena partiti, 1 = all'anchor
+  const pc = Math.min(1, Math.max(0, p));
+  const bell = Math.sin(Math.PI * pc);
+  return fast ? Math.max(HANDOFF_MIN, HANDOFF_PEAK * bell) : Math.max(MIN_SPEED, PEAK_SPEED * bell);
+}
+
+/** Carry SUB-PIXEL: passo desiderato (px) + resto accumulato → avanziamo di
+ *  INTERI (sotto 1px Lenis riarrotonderebbe a zero: il resto matura nei frame
+ *  futuri). Mai overshoot dell'anchor (step clampato a `dist`, resto azzerato). */
+function stepFromSpeed(
+  v: number,
+  deltaMs: number,
+  dist: number,
+  carry: number,
+): { step: number; carry: number } {
+  const desired = v * (Math.min(deltaMs, 50) / 1000) + carry; // clamp anti-salto
+  let step = Math.floor(desired);
+  let nextCarry = desired - step; // frazione riportata al frame successivo
+  if (step > dist) {
+    step = dist; // niente overshoot dell'anchor
+    nextCarry = 0;
+  }
+  return { step, carry: nextCarry };
+}
+
+/** Intento "INDIETRO" da tasto: su/PageUp/Home ⇒ indietro; giù/PageDown/End ⇒
+ *  avanti; tasto non direzionale ⇒ null (intento invariato). Vedi `backward`. */
+function backwardKeyIntent(key: string): boolean | null {
+  if (["ArrowUp", "PageUp", "Home"].includes(key)) return true;
+  if (["ArrowDown", "PageDown", "End"].includes(key)) return false;
+  return null;
+}
+
 export default function AutoScroll() {
   const reduced = useReducedMotion();
   const [auto, setAuto] = useState(true);
@@ -175,14 +245,10 @@ export default function AutoScroll() {
     // interna di Lenis) → il raf successivo non la contraddice. Nessuna
     // dipendenza dall'ordine, ma non invertirlo assumendo il contrario.
     const tick = (_time: number, deltaMs: number) => {
+      // Gate: `!lenis` resta QUI (restringe il tipo per gli usi sotto); il resto
+      // delle condizioni di stop vive in `tickShouldHold`.
       const lenis = getLenis();
-      if (
-        introHold ||
-        !autoRef.current ||
-        !lenis ||
-        document.visibilityState !== "visible" ||
-        performance.now() < holdUntilRef.current
-      ) {
+      if (!lenis || tickShouldHold(introHold, autoRef.current, holdUntilRef.current)) {
         carryRef.current = 0; // fermi/in sosta: niente resto da trascinare alla ripresa
         return;
       }
@@ -195,14 +261,7 @@ export default function AutoScroll() {
       // limit SEMPRE riletto (ResizeObserver di Lenis lo aggiorna in modo async).
       const limit = lenis.limit || document.documentElement.scrollHeight - window.innerHeight;
 
-      // Primo anchor DAVANTI alla posizione corrente (l'auto va solo in avanti).
-      let idx = -1;
-      for (let i = 0; i < anchors.length; i++) {
-        if (anchors[i].p > scroll + ARRIVE_EPS) {
-          idx = i;
-          break;
-        }
-      }
+      const idx = findNextAnchorIdx(anchors, scroll);
       if (idx === -1) {
         // Niente più anchor davanti: fine demo, stop NEUTRO (niente lock).
         atBottomRef.current = true;
@@ -218,43 +277,19 @@ export default function AutoScroll() {
       const dist = target - scroll;
 
       if (dist <= ARRIVE_EPS) {
-        // Atterrato: allinea di precisione e SOSTA (max: non accorcia un hold
-        // esterno). Sosta RIDOTTA sugli anchor adiacenti a un tratto fast: lì lo
-        // schermo è vuoto (velo/hand-off), i 300ms pieni allungherebbero il bianco.
+        // Atterrato: allinea di precisione e SOSTA (max: non accorcia un hold esterno).
         lenis.scrollTo(target, { immediate: true });
-        const dwell = fast || anchors[idx].fast ? HANDOFF_DWELL_MS : DWELL_MS;
+        const dwell = dwellFor(fast, anchors[idx].fast);
         holdUntilRef.current = Math.max(holdUntilRef.current, performance.now() + dwell);
         carryRef.current = 0;
         return;
       }
 
-      // Profilo di velocità a CAMPANA sull'intero tratto from → target: lento in
-      // partenza, picco al centro, lento in arrivo (la "gaussiana" richiesta). Dopo
-      // la sosta su un anchor il tratto seguente riparte da p=0 → lento-veloce-lento
-      // ripetuto ad ogni scena, non a velocità costante.
-      const seg = target - from;
-      const p = seg > 0 ? (scroll - from) / seg : 1; // 0 = appena partiti, 1 = all'anchor
-      const pc = Math.min(1, Math.max(0, p));
-      // sin(π·p): campana morbida coi bordi esattamente a 0 (frenata piena) → il
-      // MIN_SPEED sotto evita lo stallo. Variante gaussiana (plateau più largo, code
-      // più lunghe, ~0.34 ai bordi anziché 0), se preferisci il look di Gauss:
-      //   const bell = Math.exp(-((pc - 0.5) ** 2) / (2 * 0.34 * 0.34));
-      const bell = Math.sin(Math.PI * pc);
-      // Tratto fast: stessa campana, picco e pavimento alti → il vuoto si
-      // attraversa in ~0.4-0.5s (contenuto invisibile: nessun jank percepibile).
-      const v = fast
-        ? Math.max(HANDOFF_MIN, HANDOFF_PEAK * bell)
-        : Math.max(MIN_SPEED, PEAK_SPEED * bell);
-      // Passo desiderato (px) + resto sub-pixel accumulato. Avanziamo di INTERI: sotto
-      // la soglia di 1px Lenis riarrotonderebbe a zero → il resto matura in frame futuri.
-      const desired = v * (Math.min(deltaMs, 50) / 1000) + carryRef.current; // clamp anti-salto
-      let step = Math.floor(desired);
-      carryRef.current = desired - step; // frazione riportata al frame successivo
-      if (step > dist) {
-        step = dist; // niente overshoot dell'anchor
-        carryRef.current = 0;
-      }
-      if (step > 0) lenis.scrollTo(scroll + step, { immediate: true });
+      // Velocità a campana (from→target) → passo intero con carry sub-pixel.
+      const v = bellSpeed(scroll, from, target, fast);
+      const stepped = stepFromSpeed(v, deltaMs, dist, carryRef.current);
+      carryRef.current = stepped.carry;
+      if (stepped.step > 0) lenis.scrollTo(scroll + stepped.step, { immediate: true });
     };
 
     // Setup: primo calcolo (deferito così il layout delle scene è pronto) +
@@ -406,8 +441,8 @@ export default function AutoScroll() {
         togglePause();
         return;
       }
-      if (["ArrowUp", "PageUp", "Home"].includes(e.key)) backward = true;
-      else if (["ArrowDown", "PageDown", "End"].includes(e.key)) backward = false;
+      const dir = backwardKeyIntent(e.key);
+      if (dir !== null) backward = dir; // tasto non direzionale → intento invariato
       yield_();
     };
     window.addEventListener("mousemove", onMouseMove, opts);

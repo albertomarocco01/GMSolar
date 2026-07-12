@@ -245,12 +245,7 @@ export default function ImmersiveAssistente() {
   });
 
   return (
-    <ImmersiveStage
-      ref={ref}
-      heightVh={640}
-      label={CHAPTERS[2].title}
-      chapterIndex={2}
-    >
+    <ImmersiveStage ref={ref} heightVh={640} label={CHAPTERS[2].title} chapterIndex={2}>
       <div className="relative flex h-full flex-col overflow-hidden">
         {/* ── Fallback reduced-motion: a progress(1) la ChapterCard è nascosta →
             heading statico del capitolo in cima alla scena (solo `reduced`,
@@ -284,7 +279,10 @@ export default function ImmersiveAssistente() {
             Carrello ·{" "}
             <span className="relative inline-block w-[1ch]">
               <span className="imm-cart-0">0</span>
-              <span className="imm-cart-1 text-accent-ink absolute top-0 left-0" style={{ opacity: 0 }}>
+              <span
+                className="imm-cart-1 text-accent-ink absolute top-0 left-0"
+                style={{ opacity: 0 }}
+              >
                 1
               </span>
             </span>

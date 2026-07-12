@@ -31,14 +31,7 @@
  *   sul «Fatto», punch (a) sui flip Offline→Online ✓ e sulla lista interventi.
  *   Ogni inquadratura si chiude con cameraReset → camera NEUTRA a progress(1).
  */
-import {
-  Activity,
-  BatteryCharging,
-  History,
-  LayoutDashboard,
-  Wrench,
-  Zap,
-} from "lucide-react";
+import { Activity, BatteryCharging, History, LayoutDashboard, Wrench, Zap } from "lucide-react";
 import { gsap } from "@gmgroup/lib/gsap";
 import { useReducedMotion } from "@gmgroup/lib/motion";
 import {
@@ -330,12 +323,7 @@ export default function ImmersiveGestionale() {
   });
 
   return (
-    <ImmersiveStage
-      ref={ref}
-      heightVh={700}
-      label={CHAPTERS[5].title}
-      chapterIndex={5}
-    >
+    <ImmersiveStage ref={ref} heightVh={700} label={CHAPTERS[5].title} chapterIndex={5}>
       {/* Reduced-motion: la ChapterCard a progress(1) finisce NASCOSTA → heading
           statico di capitolo in cima, sempre leggibile (coerente col fallback
           reduced della scena: carosello scrollabile + stato finale). */}
@@ -371,7 +359,7 @@ export default function ImmersiveGestionale() {
             ))}
           </nav>
           <div className="mt-6 border-t border-white/10 px-2 pt-4">
-            <p className="mb-2 text-[11px] font-semibold tracking-wider uppercase text-white/40">
+            <p className="mb-2 text-[11px] font-semibold tracking-wider text-white/40 uppercase">
               Rete
             </p>
             <div className="flex items-center gap-2 text-sm text-white/75">

@@ -93,41 +93,76 @@ function parseAmount(s: string): number | null {
   return Number.isFinite(n) ? n : null;
 }
 
+/**
+ * Tabella pattern→stato per entità: sostituisce la catena di if annidati con
+ * un lookup lineare (stessa priorità dell'originale, dall'alto in basso).
+ */
+const STATO_PATTERNS: { entity: EntityKey; test: RegExp; stato: string }[] = [
+  { entity: "ordini", test: /apert/, stato: "aperti" },
+  { entity: "ordini", test: /accettat|vint|chius[oi] positiv/, stato: "accettato" },
+  { entity: "ordini", test: /pers|rifiutat/, stato: "perso" },
+  { entity: "ordini", test: /inviat/, stato: "inviato" },
+  { entity: "ordini", test: /bozza/, stato: "bozza" },
+  { entity: "progetti", test: /ritard/, stato: "in ritardo" },
+  { entity: "progetti", test: /complet|conclus/, stato: "completato" },
+  { entity: "progetti", test: /in corso|attiv/, stato: "in corso" },
+  { entity: "progetti", test: /pianificat|pianificad/, stato: "pianificato" },
+  { entity: "progetti", test: /sospes/, stato: "sospeso" },
+  { entity: "scadenze", test: /scadut/, stato: "scaduta" },
+  { entity: "scadenze", test: /in scadenza|imminent|prossim/, stato: "in scadenza" },
+  { entity: "scadenze", test: /pianificat/, stato: "pianificata" },
+  { entity: "scadenze", test: /complet/, stato: "completata" },
+];
+
 function detectStato(s: string, entity: EntityKey): string | undefined {
-  if (entity === "ordini") {
-    if (/apert/.test(s)) return "aperti";
-    if (/accettat|vint|chius[oi] positiv/.test(s)) return "accettato";
-    if (/pers|rifiutat/.test(s)) return "perso";
-    if (/inviat/.test(s)) return "inviato";
-    if (/bozza/.test(s)) return "bozza";
+  return STATO_PATTERNS.find((p) => p.entity === entity && p.test.test(s))?.stato;
+}
+
+/** Trova il primo elemento della lista contenuto nella query normalizzata. */
+function firstMatch(s: string, list: string[]): string | undefined {
+  return list.find((item) => s.includes(item));
+}
+
+/**
+ * Tabella pattern→soglia importo: "test" apre il riconoscimento, "split"
+ * isola il testo dopo il trigger da cui `parseAmount` estrae il numero.
+ * (nota: per "minImporto" i due pattern differiscono di proposito — il test
+ * richiede una cifra dopo "da", lo split no — comportamento invariato).
+ */
+const AMOUNT_PATTERNS: { field: "minImporto" | "maxImporto"; test: RegExp; split: RegExp }[] = [
+  {
+    field: "minImporto",
+    test: /sopra|oltre|maggiore|più di|piu di|superior|da\s+\d/,
+    split: /sopra|oltre|maggiore|più di|piu di|superior|da/,
+  },
+  {
+    field: "maxImporto",
+    test: /sotto|meno|entro|inferior|fino a|max/,
+    split: /sotto|meno|entro|inferior|fino a|max/,
+  },
+];
+
+/** Applica le soglie di importo riconosciute al filtro, in-place. */
+function applyAmountThresholds(s: string, f: GestionaleFilter): void {
+  for (const { field, test, split } of AMOUNT_PATTERNS) {
+    if (!test.test(s)) continue;
+    const after = s.split(split).pop() ?? "";
+    const n = parseAmount(after);
+    if (n != null) f[field] = n;
   }
-  if (entity === "progetti") {
-    if (/ritard/.test(s)) return "in ritardo";
-    if (/complet|conclus/.test(s)) return "completato";
-    if (/in corso|attiv/.test(s)) return "in corso";
-    if (/pianificat|pianificad/.test(s)) return "pianificato";
-    if (/sospes/.test(s)) return "sospeso";
-  }
-  if (entity === "scadenze") {
-    if (/scadut/.test(s)) return "scaduta";
-    if (/in scadenza|imminent|prossim/.test(s)) return "in scadenza";
-    if (/pianificat/.test(s)) return "pianificata";
-    if (/complet/.test(s)) return "completata";
-  }
-  return undefined;
 }
 
 /** Costruisce un filtro a partire dalla richiesta grezza. */
-export function buildFilter(query: string): GestionaleFilter {
+function buildFilter(query: string): GestionaleFilter {
   const s = query.toLowerCase();
   const entity = detectEntity(s);
   const f: GestionaleFilter = { entity };
 
-  const citta = CITTA.find((c) => s.includes(c));
+  const citta = firstMatch(s, CITTA);
   if (citta) f.citta = citta;
-  const regione = REGIONI.find((r) => s.includes(r));
+  const regione = firstMatch(s, REGIONI);
   if (regione) f.regione = regione === "emilia" ? "Emilia-Romagna" : regione;
-  const settore = SETTORI.find((se) => s.includes(se));
+  const settore = firstMatch(s, SETTORI);
   if (settore) f.settore = settore;
 
   const stato = detectStato(s, entity);
@@ -136,17 +171,7 @@ export function buildFilter(query: string): GestionaleFilter {
     f.inRitardo = true;
   }
 
-  // Soglie di importo: "sopra/oltre/maggiore" → min, "sotto/meno/entro" → max.
-  if (/sopra|oltre|maggiore|più di|piu di|superior|da\s+\d/.test(s)) {
-    const after = s.split(/sopra|oltre|maggiore|più di|piu di|superior|da/).pop() ?? "";
-    const n = parseAmount(after);
-    if (n != null) f.minImporto = n;
-  }
-  if (/sotto|meno|entro|inferior|fino a|max/.test(s)) {
-    const after = s.split(/sotto|meno|entro|inferior|fino a|max/).pop() ?? "";
-    const n = parseAmount(after);
-    if (n != null) f.maxImporto = n;
-  }
+  applyAmountThresholds(s, f);
 
   return f;
 }

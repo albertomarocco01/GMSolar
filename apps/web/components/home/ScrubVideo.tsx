@@ -78,7 +78,10 @@ const ScrubVideo = forwardRef<ScrubVideoHandle, ScrubVideoProps>(function ScrubV
         if (v.readyState < 1) v.load();
         if (!primed) {
           primed = true;
-          void v.play().then(() => v.pause()).catch(() => {});
+          void v
+            .play()
+            .then(() => v.pause())
+            .catch(() => {});
         }
       },
       { rootMargin: "100% 0px", threshold: 0 },

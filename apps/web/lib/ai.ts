@@ -13,7 +13,7 @@
  * La chiave vive SOLO qui, lato server: questo file è importato esclusivamente
  * dai route handler. Nessun segreto attraversa il confine col client.
  */
-export type AiProvider = "anthropic" | "gemini" | "deepseek";
+type AiProvider = "anthropic" | "gemini" | "deepseek";
 
 export type ResolvedProvider = { name: AiProvider; apiKey: string; model: string };
 
@@ -114,7 +114,7 @@ async function completeDeepSeek(p: ResolvedProvider, o: CompleteOptions): Promis
 }
 
 /** Completamento single-shot col provider attivo. Ritorna il testo grezzo. */
-export async function complete(p: ResolvedProvider, o: CompleteOptions): Promise<string> {
+async function complete(p: ResolvedProvider, o: CompleteOptions): Promise<string> {
   switch (p.name) {
     case "gemini":
       return completeGemini(p, o);

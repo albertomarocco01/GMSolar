@@ -28,6 +28,7 @@ Due scene devono usare **foto vere** al posto di emoji e di placeholder grigi/gr
 ## Item 6 — Dashboard: foto prodotti vere, via le emoji
 
 **Cosa non va** (`ImmersiveDashboard.tsx`):
+
 - `PRODOTTI_INIT` usa **emoji** come `ico`: `🔌 ⚡ ☀️ 🔆 🛠️`; la card «Batteria 10 kWh» usa `🔋`
   (~riga 570). Renderizzate in un quadratino `h-8 w-8`.
 - Il beat «Contenuti» usa **gradient finti** come «foto» (`GRAD_FOTO_ATTUALE`, `GRAD_FOTO_NUOVA`,
@@ -71,11 +72,12 @@ capitolo Assistente), zero emoji; il wipe «sostituisci immagine» mostra due fo
 
 **Contesto (importante — è VOLUTO, non un bug):** in `ImmersiveSegnalazioni.tsx` la card «Hero
 homepage» mostra di proposito un'**immagine rotta** — riquadro grigio + icona `ImageOff` (lucide)
-+ badge rosso «Immagine non trovata» (~righe 305–315). È il **difetto** che la scena poi
-**risolve** (il fix finale sostituisce l'immagine rotta con quella giusta via `maskReveal`,
-`GRAD_FOTO_FIX`). L'utente dice che quel riquadro «immagine non disponibile» è **brutto**. Non va
-**rimosso** (spezzerebbe la storia difetto → fix): va reso **pulito e credibile**, coerente con le
-foto vere del resto della demo (item 6).
+
+- badge rosso «Immagine non trovata» (~righe 305–315). È il **difetto** che la scena poi
+  **risolve** (il fix finale sostituisce l'immagine rotta con quella giusta via `maskReveal`,
+  `GRAD_FOTO_FIX`). L'utente dice che quel riquadro «immagine non disponibile» è **brutto**. Non va
+  **rimosso** (spezzerebbe la storia difetto → fix): va reso **pulito e credibile**, coerente con le
+  foto vere del resto della demo (item 6).
 
 **Fai così:**
 

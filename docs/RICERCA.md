@@ -1,6 +1,6 @@
 # Registro Ricerche Web — Vetrina Servizi
 
-> Generato e mantenuto da Code Maniac · 2026-06-28. Fatti esterni verificati sul web, **con scadenza**. Peer di `DEBITO-TECNICO.md` ma con semantica di *recency*. Alimentato dal comando `research` e dagli anchor automatici (init, aggiunta dipendenze, scelte in domini veloci). Vedi `references/ricerca-web.md`.
+> Generato e mantenuto da Code Maniac · 2026-06-28. Fatti esterni verificati sul web, **con scadenza**. Peer di `DEBITO-TECNICO.md` ma con semantica di _recency_. Alimentato dal comando `research` e dagli anchor automatici (init, aggiunta dipendenze, scelte in domini veloci). Vedi `references/ricerca-web.md`.
 
 ## Come si legge
 
@@ -11,14 +11,14 @@
 
 ## Registro
 
-| # | Domanda | Verdetto | Fonti (URL) | Recency | Rischio / gap | Stato |
-|---|---|---|---|---|---|---|
-| 1 | Next.js 16.2.x è attuale (giu 2026)? | **Attuale** — Next 16 è il major stabile corrente | nextjs.org/blog/next-16 | 2026 | nessuno | confermato |
-| 2 | React 19.2.x attuale? | **Attuale** — release corrente, dep stabile di Next 16 | nextjs.org (Next 16 deps) | 2026 | nessuno | confermato |
-| 3 | Tailwind CSS v4 attuale? | **Attuale** — stabile, CSS-first (`@theme`, no config JS) | tailwindcss.com/docs/guides/nextjs | 2026 | nessuno | confermato |
-| 4 | Geist + Geist Mono: via consigliata in Next/React 2026? | **Sì** — pacchetto npm `geist` (`geist/font/sans`, `geist/font/mono`); integra con `next/font` | npmjs.com/package/geist · vercel.com/font · nextjs.org/docs/app/getting-started/fonts | 2026 | nessuno | confermato |
-| 5 | Palette d'identità di cavoperfetto.it (+ /shop) in HEX | **Non estraibile via web** — WordPress/WooCommerce con CSS in bundle esterni non fetchabili (HTML→markdown perde gli stylesheet) | cavoperfetto.it (fetch riuscito ma senza HEX) | 2026-06 | serve DevTools/CSS diretto; fallback = token attuali (già brand-derived) | da-verificare |
-| 6 | Palette d'identità di gmobility.it in HEX (viola+verde) | **Non estraibile via web** — il sito blocca il bot (`Socket is closed`, anti-bot CDN) | gmobility.it (3 fetch bloccati) | 2026-06 | manca il **viola** nei token attuali; serve HEX reale | da-verificare |
+| #   | Domanda                                                 | Verdetto                                                                                                                         | Fonti (URL)                                                                           | Recency | Rischio / gap                                                            | Stato         |
+| --- | ------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- | ------- | ------------------------------------------------------------------------ | ------------- |
+| 1   | Next.js 16.2.x è attuale (giu 2026)?                    | **Attuale** — Next 16 è il major stabile corrente                                                                                | nextjs.org/blog/next-16                                                               | 2026    | nessuno                                                                  | confermato    |
+| 2   | React 19.2.x attuale?                                   | **Attuale** — release corrente, dep stabile di Next 16                                                                           | nextjs.org (Next 16 deps)                                                             | 2026    | nessuno                                                                  | confermato    |
+| 3   | Tailwind CSS v4 attuale?                                | **Attuale** — stabile, CSS-first (`@theme`, no config JS)                                                                        | tailwindcss.com/docs/guides/nextjs                                                    | 2026    | nessuno                                                                  | confermato    |
+| 4   | Geist + Geist Mono: via consigliata in Next/React 2026? | **Sì** — pacchetto npm `geist` (`geist/font/sans`, `geist/font/mono`); integra con `next/font`                                   | npmjs.com/package/geist · vercel.com/font · nextjs.org/docs/app/getting-started/fonts | 2026    | nessuno                                                                  | confermato    |
+| 5   | Palette d'identità di cavoperfetto.it (+ /shop) in HEX  | **Non estraibile via web** — WordPress/WooCommerce con CSS in bundle esterni non fetchabili (HTML→markdown perde gli stylesheet) | cavoperfetto.it (fetch riuscito ma senza HEX)                                         | 2026-06 | serve DevTools/CSS diretto; fallback = token attuali (già brand-derived) | da-verificare |
+| 6   | Palette d'identità di gmobility.it in HEX (viola+verde) | **Non estraibile via web** — il sito blocca il bot (`Socket is closed`, anti-bot CDN)                                            | gmobility.it (3 fetch bloccati)                                                       | 2026-06 | manca il **viola** nei token attuali; serve HEX reale                    | da-verificare |
 
 ## Assunzioni da verificare (decise sul cutoff / fallback)
 

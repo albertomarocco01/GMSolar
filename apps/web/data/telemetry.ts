@@ -6,7 +6,7 @@
 
 // ── Types ───────────────────────────────────────────────────────────────────
 
-export type SiteKey = "solar" | "mobility" | "shop";
+type SiteKey = "solar" | "mobility" | "shop";
 export type SiteFilter = "all" | SiteKey;
 export type RangeKey = 7 | 30 | 90;
 
@@ -17,7 +17,7 @@ export type SiteMetrics = {
   conversioni: number;
 };
 
-export type DayRecord = {
+type DayRecord = {
   date: string; // 'YYYY-MM-DD'
   solar: SiteMetrics;
   mobility: SiteMetrics;
@@ -132,7 +132,7 @@ function buildAllDays(): DayRecord[] {
 }
 
 /** Array immutabile di 180 giorni (calcolato una sola volta). */
-export const ALL_DAYS: readonly DayRecord[] = buildAllDays();
+const ALL_DAYS: readonly DayRecord[] = buildAllDays();
 
 // ── Helper di aggregazione ───────────────────────────────────────────────────
 

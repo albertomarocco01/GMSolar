@@ -83,7 +83,7 @@ export const PRODUCTS: ImmProduct[] = [
  * `CableRecommendation`). Nome e prezzo sono duplicati dal prodotto consigliato
  * per evitare lookup a runtime; badge e motivazioni derivano dalle sue specs.
  */
-export type ImmReco = {
+type ImmReco = {
   productId: string;
   /** Frase introduttiva dell'assistente sopra la card. */
   lead: string;
@@ -95,7 +95,7 @@ export type ImmReco = {
   reasons: string[];
 };
 
-export const RECOMMENDATION: ImmReco = {
+const RECOMMENDATION: ImmReco = {
   productId: "modo3-t2-monofase-liscio",
   lead: "Per ricaricare a casa la tua auto ti consiglio questo:",
   name: "Cavo Modo 3 · Tipo 2 · Monofase Liscio · 5 m",

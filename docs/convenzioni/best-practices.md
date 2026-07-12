@@ -1,10 +1,10 @@
 # Best-practice — Codice pulito e rintracciabile
 
-Le regole **concrete** del codice pulito. La costituzione (`costituzione.md` della skill) dà le priorità; qui c'è il *come*. Dove possibile, ogni regola è verificata da un tool deterministico (`motore-deterministico.md`).
+Le regole **concrete** del codice pulito. La costituzione (`costituzione.md` della skill) dà le priorità; qui c'è il _come_. Dove possibile, ogni regola è verificata da un tool deterministico (`motore-deterministico.md`).
 
 ## 0. L'edit minimo vince
 
-In un edit puntuale su codice esistente prevale **l'edit minimo**: non splittare file "di passaggio", non spostare stringhe, non rinominare fuori scope. I limiti sotto valgono per **file nuovi** e **refactor dedicati**. Se incontri una violazione fuori scope, **segnalala** invece di sistemarla. *Un commit = un motivo.*
+In un edit puntuale su codice esistente prevale **l'edit minimo**: non splittare file "di passaggio", non spostare stringhe, non rinominare fuori scope. I limiti sotto valgono per **file nuovi** e **refactor dedicati**. Se incontri una violazione fuori scope, **segnalala** invece di sistemarla. _Un commit = un motivo._
 
 ## 1. Ogni file si presenta da solo
 
@@ -18,15 +18,15 @@ In testa, un'intestazione che dice cosa fa e cosa esporta:
  */
 ```
 
-Il codice è la fonte di verità; i commenti spiegano il *perché*, non il *cosa*.
+Il codice è la fonte di verità; i commenti spiegano il _perché_, non il _cosa_.
 
 ## 2. File corti, funzioni semplici, una responsabilità
 
 **File:** < 200 righe OK · 200–350 valuta · 350–500 split al prossimo refactor · > 500 refactor dedicato.
 
-**Funzione:** la complessità si **misura**, non si stima a occhio (`scan` §3.5, `motore-deterministico.md`). Soglie `issue`: cognitive complexity >15, CCN >10, nesting >4, lunghezza >60 righe, parametri >5; cognitive >25 → `block` (refactor dedicato). Sotto l'`issue` c'è un tier `warn` (cognitive >10, CCN >8, nesting >3, lunghezza >50, parametri >4) che segnala senza bloccare; la **lunghezza conta righe non vuote e non commento**. La tabella a tre livelli canonica e allineata al codice è in `motore-deterministico.md` §3.5 (= `scan-lib.gradeFunction`); `max-nested-callbacks` confluisce nella metrica `nesting`. Una funzione complessa *e* toccata spesso (hotspot churn×complessità) è il candidato n°1 alla semplificazione.
+**Funzione:** la complessità si **misura**, non si stima a occhio (`scan` §3.5, `motore-deterministico.md`). Soglie `issue`: cognitive complexity >15, CCN >10, nesting >4, lunghezza >60 righe, parametri >5; cognitive >25 → `block` (refactor dedicato). Sotto l'`issue` c'è un tier `warn` (cognitive >10, CCN >8, nesting >3, lunghezza >50, parametri >4) che segnala senza bloccare; la **lunghezza conta righe non vuote e non commento**. La tabella a tre livelli canonica e allineata al codice è in `motore-deterministico.md` §3.5 (= `scan-lib.gradeFunction`); `max-nested-callbacks` confluisce nella metrica `nesting`. Una funzione complessa _e_ toccata spesso (hotspot churn×complessità) è il candidato n°1 alla semplificazione.
 
-La soglia è un *segnale*: il criterio vero è la **singola responsabilità**.
+La soglia è un _segnale_: il criterio vero è la **singola responsabilità**.
 
 ## 3. Nessun valore hardcoded — cambialo in un punto solo
 
@@ -53,7 +53,7 @@ Componenti "stupidi" per quanto possibile: ricevono dati e callback via props, n
 
 ## 6. Naming coerente
 
-File componente PascalCase · file non-componente kebab-case · cartelle kebab-case · funzione/hook camelCase · costante globale SCREAMING_SNAKE_CASE · tipo PascalCase. Un nome dice *cosa*, non *come* (`calcolaPrezzo`, non `priceUtil`). Lingua del dominio coerente; inglese solo per i termini tecnici standard.
+File componente PascalCase · file non-componente kebab-case · cartelle kebab-case · funzione/hook camelCase · costante globale SCREAMING*SNAKE_CASE · tipo PascalCase. Un nome dice \_cosa*, non _come_ (`calcolaPrezzo`, non `priceUtil`). Lingua del dominio coerente; inglese solo per i termini tecnici standard.
 
 ## 7. Anti-pattern
 
@@ -73,7 +73,7 @@ Unit per la logica pura · componenti per l'UI riusabile (comportamento, non imp
 
 ## 11. Rintracciabilità delle rimozioni
 
-Cancellare in silenzio cancella anche il *perché*. Ogni rimozione/declassamento non banale lascia una traccia (la convenzione `ponytail:` — vedi `skill-esterne.md`), con cosa e perché. È grep-abile e rende la potatura del codice una scelta, non una svista.
+Cancellare in silenzio cancella anche il _perché_. Ogni rimozione/declassamento non banale lascia una traccia (la convenzione `ponytail:` — vedi `skill-esterne.md`), con cosa e perché. È grep-abile e rende la potatura del codice una scelta, non una svista.
 
 ## Checklist "fatto"
 

@@ -36,27 +36,27 @@ clamp anti-overshoot, arrivo `ARRIVE_EPS`).
 
 1. **Progresso normalizzato sul tratto corrente:**
    ```js
-   const seg = target - from;                 // lunghezza del tratto (px)
-   const p = seg > 0 ? (scroll - from) / seg : 1;   // 0 = appena partiti, 1 = all'anchor
+   const seg = target - from; // lunghezza del tratto (px)
+   const p = seg > 0 ? (scroll - from) / seg : 1; // 0 = appena partiti, 1 = all'anchor
    const pc = Math.min(1, Math.max(0, p));
    ```
 2. **Campana (lento → veloce → lento).** Default semplice e simmetrico, `bell(0)=0`, `bell(0.5)=1`,
    `bell(1)=0`:
    ```js
-   const bell = Math.sin(Math.PI * pc);       // campana morbida
+   const bell = Math.sin(Math.PI * pc); // campana morbida
    ```
    Variante «gaussiana» più marcata (plateau centrale più largo, code più lunghe), se preferisci
    il look della curva di Gauss:
    ```js
    const SIGMA = 0.34;
-   const bell = Math.exp(-((pc - 0.5) ** 2) / (2 * SIGMA * SIGMA));  // ~0.34 ai bordi, 1 al centro
+   const bell = Math.exp(-((pc - 0.5) ** 2) / (2 * SIGMA * SIGMA)); // ~0.34 ai bordi, 1 al centro
    ```
    > Con `sin(π·p)` i bordi vanno esattamente a 0 (frenata piena): il `MIN_SPEED` sotto evita lo
    > stallo. Con la gaussiana i bordi non toccano 0. Prova entrambe a runtime e scegli quella che
    > «sente» meglio; lascia la formula scelta come default e commenta l'altra.
 3. **Velocità dal profilo:**
    ```js
-   const PEAK_SPEED = 900;                     // nuovo knob: picco al centro del tratto
+   const PEAK_SPEED = 900; // nuovo knob: picco al centro del tratto
    const v = Math.max(MIN_SPEED, PEAK_SPEED * bell);
    ```
    → **Elimina** la logica a due marce: via `assistBand`/`base`/`FAST_SPEED`/`SPEED` dal calcolo

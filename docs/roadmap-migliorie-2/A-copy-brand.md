@@ -41,7 +41,7 @@ In `shared.tsx`, funzione `ChapterCard`:
    perché su chiaro spicca di più.
 2. Kicker numerico «01 / 08»: da `text-accent` → `text-accent-ink` (accent leggibile su chiaro).
 3. **Titolo**: da `text-accent` → **`text-foreground`** (nero), tenendo `font-display font-bold
-   tracking-tight` e la dimensione grossa (`text-5xl md:text-6xl`). Questa è la modifica chiave.
+tracking-tight` e la dimensione grossa (`text-5xl md:text-6xl`). Questa è la modifica chiave.
 4. Linea sotto il titolo: resta `bg-accent` (accento grafico, va bene su chiaro).
 5. Sottotitolo: da `text-white/70` → `text-muted`.
 

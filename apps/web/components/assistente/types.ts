@@ -7,7 +7,7 @@
  */
 
 /** Ruolo di un turno di conversazione. */
-export type ChatRole = "user" | "assistant";
+type ChatRole = "user" | "assistant";
 
 /** Link di approfondimento proposto con una risposta. */
 export interface Suggestion {

@@ -157,7 +157,11 @@ export default function ImmersiveSegnalazioni() {
     // (rackFocus/rackFocusOff bilanciati — regola 3).
     rackFocusOff(tl, ".imm-seg-bg", { position: "<" });
     // Il badge di stato flippa in 3D: «In lavorazione» gira via, «Risolta ✓» entra
-    tl.to(".imm-seg-old", { rotationY: 90, autoAlpha: 0, duration: 0.3, ease: "power2.in" }, ">0.1");
+    tl.to(
+      ".imm-seg-old",
+      { rotationY: 90, autoAlpha: 0, duration: 0.3, ease: "power2.in" },
+      ">0.1",
+    );
     tl.to(
       ".imm-seg-new",
       { rotationY: 0, autoAlpha: 1, duration: 0.45, ease: "back.out(1.4)" },
@@ -190,12 +194,7 @@ export default function ImmersiveSegnalazioni() {
   });
 
   return (
-    <ImmersiveStage
-      ref={ref}
-      heightVh={480}
-      label={CHAPTERS[4].title}
-      chapterIndex={4}
-    >
+    <ImmersiveStage ref={ref} heightVh={480} label={CHAPTERS[4].title} chapterIndex={4}>
       {/* Reduced-motion: heading statico di capitolo (la ChapterCard animata a
           progress(1) è nascosta) — nella fascia alta libera (pt-10 del frame). */}
       {reduced ? (
@@ -343,8 +342,8 @@ export default function ImmersiveSegnalazioni() {
                           Descrizione
                         </label>
                         <div className="border-border bg-surface-2 text-muted min-h-[52px] rounded-lg border px-3 py-2 text-sm">
-                          Impianti fotovoltaici e ricarica EV chiavi in mano, dal
-                          sopralluogo all&apos;allaccio.
+                          Impianti fotovoltaici e ricarica EV chiavi in mano, dal sopralluogo
+                          all&apos;allaccio.
                         </div>
                       </div>
                       <div className="pt-1">

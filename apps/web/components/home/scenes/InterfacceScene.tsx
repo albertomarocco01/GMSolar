@@ -87,12 +87,7 @@ export default function InterfacceScene() {
   });
 
   return (
-    <ImmersiveStage
-      ref={ref}
-      heightVh={440}
-      label={CHAPTERS[1].title}
-      chapterIndex={1}
-    >
+    <ImmersiveStage ref={ref} heightVh={440} label={CHAPTERS[1].title} chapterIndex={1}>
       <div className="relative flex h-full flex-col justify-center overflow-hidden px-[5vw] py-[6vh]">
         {/* Alone accent tenue + griglia di punti sfumata (solo decorativi). */}
         <div

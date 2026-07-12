@@ -13,9 +13,11 @@ che avanza, tenendolo in quadro.
 ## Contesto architetturale (leggi shared.tsx PRIMA di scrivere)
 
 `apps/web/components/home/immersive/shared.tsx` è il kit. Gerarchia layer di `ImmersiveStage`:
+
 ```
 .imm-stage  → .imm-camera → .imm-skew → {contenuto scena}   +  <Cursor/> (fuori da .imm-camera)
 ```
+
 - **`.imm-camera`** è il layer delle inquadrature. Helper esistenti: `cameraTo`, `cameraReset`,
   `cameraFollow`, `cameraWhip`, `rackFocus`. La matematica di centraggio è in **`cameraShot()`**
   (dato un target e una scala S, ritorna `{x,y,scale}` che porta il centro del target al centro
@@ -41,13 +43,14 @@ che avanza, tenendolo in quadro.
   - `ImmersiveDashboard.tsx` (typing del titolo hero «Energia solare per la tua azienda»)
   - `ImmersiveSegnalazioni.tsx` (typing della descrizione «L'immagine della hero non si carica»)
   - `ImmersiveGestionale.tsx` (typing della query NL, es. «colonnine offline»)
-  - *(opzionale)* `ImmersiveAssistente.tsx` (typing nella barra) — solo se il push-in attuale è già lì.
+  - _(opzionale)_ `ImmersiveAssistente.tsx` (typing nella barra) — solo se il push-in attuale è già lì.
 
 ## Cosa fare
 
 ### 1. Nuovo helper `cameraTrackType` in shared.tsx
 
 Firma nello stesso stile degli altri:
+
 ```ts
 cameraTrackType(
   tl,
@@ -55,6 +58,7 @@ cameraTrackType(
   opts?: { scale?: number; duration?: number; pan?: number; ease?: string; position?: number|string }
 ): gsap.core.Timeline
 ```
+
 Comportamento: sull'intervallo `duration` (da far coincidere col `typeInField` dello stesso campo),
 la camera parte inquadrando l'**inizio** del campo e trasla verso destra fino a inquadrarne la
 **fine**, a una scala `scale` (default ~1.2), tenendo il punto di scrittura (bordo destro del testo
@@ -69,9 +73,9 @@ proxy in `SolarTwinScene`), niente due tween function-based separati:
 2. Definisci due estremi di pan orizzontale della camera attorno a `shot.x`:
    - `startX = shot.x + panPx` → mostra l'**inizio** del campo (contenuto spostato a destra);
    - `endX   = shot.x - panPx` → mostra la **fine** del campo;
-   dove `panPx ≈ min( (w * S) / 2 , maxX )` e `maxX` è lo stesso clamp di bordo di `cameraShot`
-   (non scoprire il fondo). Se il campo è più stretto del viewport, `panPx` sarà piccolo: va bene
-   (pan lieve).
+     dove `panPx ≈ min( (w * S) / 2 , maxX )` e `maxX` è lo stesso clamp di bordo di `cameraShot`
+     (non scoprire il fondo). Se il campo è più stretto del viewport, `panPx` sarà piccolo: va bene
+     (pan lieve).
 3. Un tween su un proxy `{p: 0→1}` di durata `duration`, ease `opts.ease ?? "none"` (il typing è
    lineare; volendo `power1.inOut` per un respiro), `onUpdate`:
    `gsap.set(".imm-camera", { x: startX + (endX - startX) * proxy.p, y: shot.y, scale: S })`.
@@ -96,10 +100,12 @@ Documenta l'helper con lo stesso stile a blocco degli altri (cosa fa, vincoli, s
 
 Nei beat di typing sopra elencati, **sostituisci** il push-in fermo attuale (oggi tipicamente un
 `cameraTo(field, {scale:1.2, duration: ~typing})` o un `clickZoom`) con:
+
 ```
 cameraTrackType(tl, "<selettore-campo>", { scale: 1.2, duration: <stessa del typeInField> });
 typeInField(tl, "<selettore-campo>", { duration: <stessa>, position: "<" });   // in parallelo
 ```
+
 - **Regola 4 del kit:** dove metti il track di camera, **rimuovi** il `clickZoom`/`cameraTo` fermo
   corrispondente sullo stesso beat (non si sommano).
 - Mantieni le durate del track e del `typeInField` **uguali** (partono insieme, `position: "<"`).

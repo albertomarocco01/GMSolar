@@ -15,13 +15,7 @@ import { MessageCircle, X } from "lucide-react";
 import SiteAssistant from "./SiteAssistant";
 
 /** Prefissi su cui NON mostrare la FAB. */
-const HIDE_ON = [
-  "/assistente",
-  "/dashboard",
-  "/gestionale",
-  "/integrazioni",
-  "/segnalazioni",
-];
+const HIDE_ON = ["/assistente", "/dashboard", "/gestionale", "/integrazioni", "/segnalazioni"];
 
 export default function GlobalAssistant() {
   const pathname = usePathname() ?? "/";

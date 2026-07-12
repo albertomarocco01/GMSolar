@@ -31,9 +31,9 @@ Vercel rileva da solo:
 
 Nelle impostazioni del progetto imposta:
 
-| Campo              | Valore       |
-| ------------------ | ------------ |
-| **Root Directory** | `apps/web`   |
+| Campo              | Valore     |
+| ------------------ | ---------- |
+| **Root Directory** | `apps/web` |
 
 È l'unica configurazione davvero necessaria: dice a Vercel quale app del monorepo
 buildare. Con questo, install e build vengono rilevati in automatico:
@@ -56,11 +56,11 @@ in `package.json` radice sia in `apps/web/package.json`. Il default di Vercel
 
 **Nessuna è obbligatoria.** La demo funziona out-of-the-box. Tutte opzionali:
 
-| Variabile                       | A cosa serve                                                                 | Demo |
-| ------------------------------- | ---------------------------------------------------------------------------- | ---- |
-| `NEXT_PUBLIC_SITE_URL`          | URL canonico per `metadataBase`, OpenGraph, `sitemap.xml`, `robots.txt`.     | Opzionale |
-| `AI_API_KEY` / `AI_PROVIDER` / `AI_MODEL` | Provider AI reale.                                                 | **Non impostare** |
-| `OCM_API_KEY`, `NEXT_PUBLIC_MAP_*` | Open Charge Map / tiles mappe.                                            | Non usate |
+| Variabile                                 | A cosa serve                                                             | Demo              |
+| ----------------------------------------- | ------------------------------------------------------------------------ | ----------------- |
+| `NEXT_PUBLIC_SITE_URL`                    | URL canonico per `metadataBase`, OpenGraph, `sitemap.xml`, `robots.txt`. | Opzionale         |
+| `AI_API_KEY` / `AI_PROVIDER` / `AI_MODEL` | Provider AI reale.                                                       | **Non impostare** |
+| `OCM_API_KEY`, `NEXT_PUBLIC_MAP_*`        | Open Charge Map / tiles mappe.                                           | Non usate         |
 
 Note:
 

@@ -48,7 +48,7 @@ alle **interfacce moderne** con i componenti UI su **sfondo pulito, senza video*
    01 Siti vetrina · 02 Interfacce grafiche moderne · 03 Assistente AI · 04 Dashboard ·
    05 Segnalazioni · 06 Gestionali su misura* · 07 App con assistente AI integrato* · 08 Integrazioni
    ```
-   *(i titoli 06/07 sono già quelli aggiornati dalla roadmap A — non ritoccarli, solo rinumera `n`).*
+   _(i titoli 06/07 sono già quelli aggiornati dalla roadmap A — non ritoccarli, solo rinumera `n`)._
 2. **`SolarTwinScene.tsx`:** **rimuovi** le `SuspendedCards` e i beat `.vt-card` (lo stagger a 0.78,
    i `gsap.set(".vt-card", …)`, l'import). La scena resta: finto sito + **video hero scrubbato** +
    cue + micro-demo + velo d'uscita. Resta il **capitolo 01 «Siti vetrina»** (`data-chapter={0}`).
@@ -92,6 +92,7 @@ senza video). Reduced-motion leggibile in entrambe.
 ## Item 3 — Video hero «figo e completo» (all-keyframe)
 
 **Situazione accertata (non riscoprirla):**
+
 - `apps/web/public/assets/solar-twin.mp4` (17 MB) è **già** la versione **all-keyframe** di
   `SolarPanelsAnimation.mp4` (2.6 MB, sorgente H.264), **stessa durata ~10 s**. Il re-encode
   all-keyframe è **obbligatorio**: senza, lo `seek` scrubbato lagga (è la ragione dei 17 MB — ogni
@@ -109,15 +110,18 @@ esistenti. **Serve la sorgente giusta.** Due strade:
   il video oggi esaurisce la corsa a `VIDEO_END = 0.8` della timeline — vedi sotto).
 
 **Quando hai la sorgente, re-encode ALL-KEYFRAME** (ogni frame keyframe → seek istantaneo):
+
 ```powershell
 ffmpeg -i "apps\web\public\assets\solar-source.mp4" -an `
   -c:v libx264 -preset slow -crf 20 -pix_fmt yuv420p `
   -x264-params "keyint=1:min-keyint=1:scenecut=0" `
   -movflags +faststart "apps\web\public\assets\solar-twin.mp4"
 ```
+
 (`keyint=1` = tutti keyframe; `-an` = niente audio; regola `-crf` per qualità/peso; il nome resta
 `solar-twin.mp4` così `SolarTwinScene`/`InterfacceScene` non cambiano path). **Rigenera anche il
 poster** se la prima frame cambia:
+
 ```powershell
 ffmpeg -i "apps\web\public\assets\solar-twin.mp4" -frames:v 1 -q:v 2 `
   "apps\web\public\assets\solar-twin-poster.webp"

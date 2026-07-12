@@ -13,7 +13,7 @@ export type ConnectorDef = {
   description: string;
 };
 
-export type FlowStep = {
+type FlowStep = {
   id: string;
   icon: LucideIcon;
   label: string;

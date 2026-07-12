@@ -79,8 +79,7 @@ const SPARK_D = "M0,54 L28,42 L56,46 L84,28 L112,32 L140,15 L168,19 L200,8";
 
 /** Path SVG del grafico DETTAGLIO visite (viewBox 0 0 400 80) — compare al
  *  click sulla card KPI «Visite». */
-const DETAIL_D =
-  "M0,64 L44,58 L88,62 L132,44 L176,50 L220,34 L264,40 L308,22 L352,28 L400,10";
+const DETAIL_D = "M0,64 L44,58 L88,62 L132,44 L176,50 L220,34 L264,40 L308,22 L352,28 L400,10";
 
 /** Mini-KPI della vista Ordini (mock deterministici, coerenti con la tabella). */
 const ORD_STATS = [
@@ -112,11 +111,46 @@ const ORDINI: ReadonlyArray<{
   importo: string;
   stato: string;
 }> = [
-  { n: "#1042", cliente: "Rossi S.r.l.", data: "28/06", canale: "Online", importo: "2.340 €", stato: "Completato" },
-  { n: "#1041", cliente: "Bianchi S.p.A.", data: "27/06", canale: "Preventivo", importo: "899 €", stato: "Spedito" },
-  { n: "#1040", cliente: "Ferrari Group", data: "26/06", canale: "Preventivo", importo: "12.600 €", stato: "In attesa" },
-  { n: "#1039", cliente: "Conti S.r.l.", data: "24/06", canale: "Online", importo: "630 €", stato: "Completato" },
-  { n: "#1038", cliente: "Masi & Figli", data: "23/06", canale: "Telefono", importo: "420 €", stato: "Spedito" },
+  {
+    n: "#1042",
+    cliente: "Rossi S.r.l.",
+    data: "28/06",
+    canale: "Online",
+    importo: "2.340 €",
+    stato: "Completato",
+  },
+  {
+    n: "#1041",
+    cliente: "Bianchi S.p.A.",
+    data: "27/06",
+    canale: "Preventivo",
+    importo: "899 €",
+    stato: "Spedito",
+  },
+  {
+    n: "#1040",
+    cliente: "Ferrari Group",
+    data: "26/06",
+    canale: "Preventivo",
+    importo: "12.600 €",
+    stato: "In attesa",
+  },
+  {
+    n: "#1039",
+    cliente: "Conti S.r.l.",
+    data: "24/06",
+    canale: "Online",
+    importo: "630 €",
+    stato: "Completato",
+  },
+  {
+    n: "#1038",
+    cliente: "Masi & Figli",
+    data: "23/06",
+    canale: "Telefono",
+    importo: "420 €",
+    stato: "Spedito",
+  },
 ];
 
 /** Classi badge colore per stato ordine (sky / amber / emerald — minimi token). */
@@ -251,7 +285,13 @@ export default function ImmersiveDashboard() {
     cursorTo(tl, ".imm-form-save", { mode: "hand", duration: 0.5 });
     pressButton(tl, ".imm-form-save", { down: 0.93, downDur: 0.1, upDur: 0.18, back: 2.5 });
     // Il form si chiude, la camera si riapre e la nuova card ENTRA nel catalogo
-    tl.to(".imm-add-form", { autoAlpha: 0, y: -10, scale: 0.97, duration: 0.35, ease: "power2.in" });
+    tl.to(".imm-add-form", {
+      autoAlpha: 0,
+      y: -10,
+      scale: 0.97,
+      duration: 0.35,
+      ease: "power2.in",
+    });
     cameraReset(tl, { duration: 0.7, position: "<" });
     hideCursor(tl, { position: "<" });
     tl.to(
@@ -582,8 +622,8 @@ export default function ImmersiveDashboard() {
                             Descrizione
                           </label>
                           <div className="border-border bg-surface-2 text-muted min-h-[52px] rounded-lg border px-3 py-2 text-sm">
-                            Impianti fotovoltaici e ricarica EV chiavi in mano, dal
-                            sopralluogo all&apos;allaccio.
+                            Impianti fotovoltaici e ricarica EV chiavi in mano, dal sopralluogo
+                            all&apos;allaccio.
                           </div>
                         </div>
 
@@ -687,7 +727,9 @@ export default function ImmersiveDashboard() {
                       Prezzo
                     </label>
                     <div className="border-border bg-surface-2 text-foreground min-h-[32px] overflow-hidden rounded-lg border px-3 py-1.5 text-sm">
-                      <span className="imm-form-prezzo inline-block whitespace-nowrap">3.200 €</span>
+                      <span className="imm-form-prezzo inline-block whitespace-nowrap">
+                        3.200 €
+                      </span>
                     </div>
                   </div>
                   <div>
@@ -847,7 +889,11 @@ export default function ImmersiveDashboard() {
                     <defs>
                       <linearGradient id="imm-db2-detail-grad" x1="0" y1="0" x2="0" y2="1">
                         {/* var() non è valido negli attributi SVG di presentazione → style */}
-                        <stop offset="0%" style={{ stopColor: "var(--accent)" }} stopOpacity="0.2" />
+                        <stop
+                          offset="0%"
+                          style={{ stopColor: "var(--accent)" }}
+                          stopOpacity="0.2"
+                        />
                         <stop
                           offset="100%"
                           style={{ stopColor: "var(--accent)" }}
@@ -986,7 +1032,8 @@ export default function ImmersiveDashboard() {
                   </div>
                   <div className="border-border mt-1 flex items-center justify-between border-t pt-2">
                     <span className="text-muted text-xs">
-                      Consegna: <span className="text-foreground font-semibold">30/06 · Torino</span>
+                      Consegna:{" "}
+                      <span className="text-foreground font-semibold">30/06 · Torino</span>
                     </span>
                     <span className="text-foreground font-mono text-sm font-bold">2.340 €</span>
                   </div>

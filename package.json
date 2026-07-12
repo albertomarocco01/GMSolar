@@ -15,9 +15,15 @@
     "format:check": "prettier --check ."
   },
   "devDependencies": {
+    "dependency-cruiser": "^18.0.0",
+    "eslint": "^9",
+    "eslint-plugin-sonarjs": "^4.1.0",
+    "jscpd": "^5.0.12",
+    "knip": "^6.26.0",
     "prettier": "^3.8.4",
     "prettier-plugin-tailwindcss": "^0.8.0",
     "puppeteer-core": "^25.2.1",
-    "turbo": "^2.10.2"
+    "turbo": "^2.10.2",
+    "typescript": "^5"
   }
 }

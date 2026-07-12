@@ -211,6 +211,29 @@ export function clickZoom(
   return tl;
 }
 
+type PressButtonOpts = {
+  down?: number;
+  downDur?: number;
+  upDur?: number;
+  back?: number;
+  position?: number | string;
+};
+
+/** Normalizza le opzioni di pressButton coi default documentati (unico posto per
+ *  i fallback ??) e COSTRUISCE i due tween (giù/su) + la posizione del primo:
+ *  il corpo pubblico li applica soltanto → stessi valori, stesse posizioni. */
+function pressButtonTweens(opts?: PressButtonOpts): {
+  down: gsap.TweenVars;
+  downPos: number | string;
+  up: gsap.TweenVars;
+} {
+  return {
+    down: { scale: opts?.down ?? 0.94, duration: opts?.downDur ?? 0.1, ease: "power2.in" },
+    downPos: opts?.position ?? ">",
+    up: { scale: 1, duration: opts?.upDur ?? 0.4, ease: `back.out(${opts?.back ?? 3})` },
+  };
+}
+
 /**
  * "Pressione" di un bottone/elemento cliccabile: scala giù di scatto (power2.in)
  * e rimbalza a 1 (back.out). Formalizza il pattern down→up ripetuto nelle scene.
@@ -219,24 +242,11 @@ export function clickZoom(
 export function pressButton(
   tl: gsap.core.Timeline,
   target: string | Element,
-  opts?: {
-    down?: number;
-    downDur?: number;
-    upDur?: number;
-    back?: number;
-    position?: number | string;
-  },
+  opts?: PressButtonOpts,
 ): gsap.core.Timeline {
-  tl.to(
-    target,
-    { scale: opts?.down ?? 0.94, duration: opts?.downDur ?? 0.1, ease: "power2.in" },
-    opts?.position ?? ">",
-  );
-  tl.to(
-    target,
-    { scale: 1, duration: opts?.upDur ?? 0.4, ease: `back.out(${opts?.back ?? 3})` },
-    ">",
-  );
+  const { down, downPos, up } = pressButtonTweens(opts);
+  tl.to(target, down, downPos); // giù di scatto, alla posizione richiesta (default ">")
+  tl.to(target, up, ">"); // rimbalzo a 1, subito in coda
   return tl;
 }
 
@@ -1064,7 +1074,9 @@ export function chapterIntro(tl: gsap.core.Timeline) {
  * centrate sul punto (left,top) che la timeline anima; un alone bianco le rende
  * leggibili su qualunque superficie chiara.
  */
-export function Cursor() {
+// Interno al kit: reso solo da <ImmersiveStage> (nessun consumer esterno →
+// knip segnalava l'export inutilizzato). Resta citato in HOME-KIT-API come util.
+function Cursor() {
   const base =
     "absolute top-0 left-0 h-5 w-5 -translate-x-1/2 -translate-y-1/2 text-foreground drop-shadow-[0_1px_2px_rgba(255,255,255,0.95)] transition-opacity duration-150";
   return (
