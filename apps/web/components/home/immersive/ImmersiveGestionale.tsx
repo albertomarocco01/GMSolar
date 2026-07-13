@@ -347,13 +347,13 @@ export default function ImmersiveGestionale() {
   });
 
   return (
-    <ImmersiveStage ref={ref} heightVh={700} label={CHAPTERS[5].title} chapterIndex={5}>
+    <ImmersiveStage ref={ref} heightVh={700} label={CHAPTERS[4].title} chapterIndex={4}>
       {/* Reduced-motion: la ChapterCard a progress(1) finisce NASCOSTA → heading
           statico di capitolo in cima, sempre leggibile (coerente col fallback
           reduced della scena: carosello scrollabile + stato finale). */}
       {reduced && (
         <h2 className="text-accent-ink absolute top-4 left-6 z-20 font-mono text-xs font-bold tracking-[0.35em] uppercase">
-          {CHAPTERS[5].title}
+          {CHAPTERS[4].title}
         </h2>
       )}
       {/* Device frame (R3, regola 1): l'app vive in una cornice da laptop ~16:10
@@ -692,7 +692,7 @@ export default function ImmersiveGestionale() {
       {/* Title card di capitolo (P12): apre la scena; animata da chapterIntro(tl).
           Le frasi successive restano caption lower-third DESCRITTIVE. */}
       <ChapterCard
-        chapter={CHAPTERS[5]}
+        chapter={CHAPTERS[4]}
         subtitle="Un gestionale su misura per la tua attività. Per esempio: le tue colonnine di ricarica."
       />
       <Say i={1} variant="caption">

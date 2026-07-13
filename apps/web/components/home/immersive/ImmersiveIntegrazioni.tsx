@@ -318,14 +318,14 @@ export default function ImmersiveIntegrazioni() {
   return (
     // `label` (→ aria-label della section) e HUD leggono entrambi da CHAPTERS:
     // fonte unica per nome e numero del capitolo (P12).
-    <ImmersiveStage ref={ref} heightVh={520} label={CHAPTERS[7].title} chapterIndex={7}>
+    <ImmersiveStage ref={ref} heightVh={520} label={CHAPTERS[6].title} chapterIndex={6}>
       <div className="relative flex h-full flex-col items-center justify-center px-6 py-16 sm:px-10">
         {/* Reduced-motion: a progress(1) la ChapterCard è nascosta → heading
             statico del capitolo in cima, coerente col fallback "chat aperta e
             tile piene" (nulla di animato, solo contesto leggibile). */}
         {reducedStatic && (
           <p className="text-muted absolute top-6 left-1/2 -translate-x-1/2 font-mono text-xs tracking-[0.35em] uppercase">
-            {CHAPTERS[7].title}
+            {CHAPTERS[6].title}
           </p>
         )}
         {/* CARRELLATA DI LOGHI — 3 righe orizzontali da 6 tile, pan alternato */}
@@ -444,7 +444,7 @@ export default function ImmersiveIntegrazioni() {
           La ChapterCard sostituisce la vecchia Say-veil di apertura (la frase
           del velo è il suo sottotitolo); la caption resta invariata. */}
       <ChapterCard
-        chapter={CHAPTERS[7]}
+        chapter={CHAPTERS[6]}
         subtitle="Ci integriamo con i sistemi di tutti i giorni."
       />
       <Say i={1} variant="caption">

@@ -330,13 +330,13 @@ export default function ImmersiveRicarica() {
   });
 
   return (
-    <ImmersiveStage ref={ref} heightVh={520} label={CHAPTERS[6].title} chapterIndex={6}>
+    <ImmersiveStage ref={ref} heightVh={520} label={CHAPTERS[5].title} chapterIndex={5}>
       {/* Reduced-motion: la ChapterCard animata finisce nascosta a progress(1)
           → heading statico del capitolo in cima, coerente con lo stato finale
           leggibile del mockup. */}
       {reduced ? (
         <p className="text-foreground absolute top-6 left-1/2 z-20 -translate-x-1/2 font-mono text-xs font-bold tracking-[0.35em] uppercase">
-          {CHAPTERS[6].title}
+          {CHAPTERS[5].title}
         </p>
       ) : null}
 
@@ -683,7 +683,7 @@ export default function ImmersiveRicarica() {
       </div>
 
       {/* Title card di capitolo (P12) — apre la scena, animata da chapterIntro */}
-      <ChapterCard chapter={CHAPTERS[6]} subtitle="Un'app con assistente AI integrato." />
+      <ChapterCard chapter={CHAPTERS[5]} subtitle="Un'app con assistente AI integrato." />
 
       {/* Frasi-intermezzo DESCRITTIVE — tono neutro, spiegano, non vendono */}
       <Say i={1} variant="caption">

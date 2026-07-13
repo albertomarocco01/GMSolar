@@ -48,7 +48,7 @@
  * │   caption = pill lower-third senza velo (frasi successive). say() rileva la   │
  * │   variante dal DOM. <ImmersiveStage>, <Cursor> → util.                        │
  * │                                                                               │
- * │ CAPITOLI (P12) — CHAPTERS (01→08) + <ChapterCard chapter={CHAPTERS[i]}        │
+ * │ CAPITOLI (P12) — CHAPTERS (01→07) + <ChapterCard chapter={CHAPTERS[i]}        │
  * │   subtitle="…"/> + chapterIntro(tl): title card CHIARA che apre ogni scena.   │
  * │   chapterIntro va chiamata PRIMA di ogni altro beat e sostituisce il vecchio  │
  * │   say(tl, 0) col velo (la <Say i={0}> veil → <ChapterCard/>). Le caption      │
@@ -1064,7 +1064,6 @@ export function Say({
  */
 export const CHAPTERS = [
   { title: "Siti vetrina" },
-  { title: "Interfacce grafiche moderne" },
   { title: "Assistente AI" },
   { title: "Dashboard" },
   { title: "Segnalazioni" },
@@ -1099,7 +1098,7 @@ export function ChapterCard({
     <div
       // Velo OPACO (non bg-background/90 + blur): la regia è «prima il bianco,
       // poi la scritta, POI il contenuto» — a 90% la scena dietro traspare, e
-      // dove è scura (il sipario ink di InterfacceScene) si vede un rettangolo
+      // dove è scura (es. l'hero video di apertura) si vedrebbe un rettangolo
       // grigio salire insieme al velo. Opaco = bianco pulito, e via il
       // backdrop-filter full-screen durante l'hand-off.
       className="imm-chapter bg-background pointer-events-none absolute inset-0 z-50 flex items-center justify-center"

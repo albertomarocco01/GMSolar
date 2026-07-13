@@ -7,19 +7,22 @@
  *   video solare ALL-KEYFRAME (`/assets/solar-twin.mp4`) scrubbato dallo scroll.
  *   Regia: TITLE CARD di capitolo 01 (P12, ChapterCard del kit immersive — la
  *   scena NON usa ImmersiveStage ma importa il kit capitoli) sui primissimi px
- *   di scroll → scrub del video avanti/indietro per TUTTA la corsa (le card 3D
- *   premium vivono ora nel capitolo dedicato «Interfacce grafiche moderne»,
- *   vedi InterfacceScene — qui resta SOLO il video). Il cue "Scorri" grande in
- *   basso a sinistra parte con una MICRO-DEMO in loop (proxy → seek del video +
- *   dot del mousino in sync) che si uccide al primo scroll reale e rispetta la
- *   pausa globale della presentazione (`presentation:pausechange`).
+ *   di scroll → scrub del video fino a VIDEO_END → SPLIT FINALE: il video "si
+ *   apre in due" (due metà-canvas con l'ULTIMO frame, catturato a runtime,
+ *   traslano a sinistra e a destra — transform-only) scoprendo un pannello
+ *   scuro con TRE card 3D di servizio; quella centrale (wallbox) ha il bordo
+ *   elettrico (ElectricBorder). Il cue "Scorri" grande in basso a sinistra
+ *   parte con una MICRO-DEMO in loop (proxy → seek del video + dot del mousino
+ *   in sync) che si uccide al primo scroll reale e rispetta la pausa globale
+ *   della presentazione (`presentation:pausechange`).
  *   Porta l'ancora `id="vetrina"` (target dei link /#vetrina, es. kb assistente).
  *   Poiché la scena successiva è CHIARA, alza un velo chiaro sul finale →
  *   ingresso pulito, senza flash scuro.
  *   reduced-motion → variante statica impilata e leggibile: heading di capitolo
- *   «01 · Siti vetrina» + header finto + poster + frase statica.
+ *   «01 · Siti vetrina» + header finto + poster + frase statica + card statiche.
  * @indice
  * - SolarTwinScene → scena autonoma (sticky + ScrollTrigger scrub + micro-demo)
+ * - ServiceCard → card verticale di servizio (immagine quadrata + testo)
  * - FakeBrowserBar → barra browser mock (traffic dots + URL) sopra il finto sito
  * - FakeSiteHeader → header mock del finto sito (decorativo, nessun link reale)
  */
@@ -28,6 +31,7 @@ import { gsap, ScrollTrigger } from "@gmgroup/lib/gsap";
 import { useReducedMotion, useIsoLayoutEffect } from "@gmgroup/lib/motion";
 import ScrubVideo, { type ScrubVideoHandle } from "../ScrubVideo";
 import ScrollCue from "../ScrollCue";
+import ElectricBorder from "../showcase/ElectricBorder";
 import {
   CHAPTERS,
   ChapterCard,
@@ -47,15 +51,44 @@ const ARIA_LABEL = "Siti vetrina — anteprima di un sito con hero video scrolly
 /** Sottotitolo della title card di capitolo 01 — ex frase popup d'apertura. */
 const FRASE = "Con una forte narrativa, costruita tramite scrollytelling video.";
 
-/** Il video esaurisce la sua durata a questo progress di scroll. Quasi a fine
- *  corsa: NIENTE coda morta — il velo chiaro d'uscita (0.95→1) sale SOPRA gli
- *  ultimi frame, e l'anchor "fast" di AutoScroll (data-fast-handoff) rallenta
- *  comunque il finale → il video "si posa" e si passa SUBITO a Interfacce. */
-const VIDEO_END = 0.97;
+/** Il video esaurisce la sua durata a questo progress di scroll: da qui in poi
+ *  l'ultimo frame resta fermo e parte la sequenza di SPLIT (vedi sotto). */
+const VIDEO_END = 0.52;
+/** Da questo progress i due canvas-metà catturano l'ultimo frame del video
+ *  (finestra "live" fino a SPLIT_AT: il lerp di ScrubVideo sta ancora
+ *  arrivando all'ultimo frame, l'ultima cattura vince). */
+const SNAP_FROM = 0.53;
+/** Le due metà diventano visibili e iniziano a traslare fuori. */
+const SPLIT_AT = 0.56;
+/** Colore del riempimento di sicurezza delle metà (se il frame non è pronto). */
+const HALF_FALLBACK = "#0b1020";
 /** Escursione (in frazione di video) della micro-demo del cue: avanti/indietro. */
 const DEMO_SPAN = 0.06;
 /** Corsa verticale (px) del dot dentro il mousino, in sync con la micro-demo. */
 const DEMO_DOT_TRAVEL = 20;
+
+/** Contenuto delle tre card di servizio del pannello finale (in-world: sono la
+ *  sezione "servizi" del finto sito GM Solar). Foto = prodotto REALE indicato. */
+const SERVIZI = [
+  {
+    kind: "Fotovoltaico",
+    title: "Impianti chiavi in mano",
+    desc: "Progettazione, posa e collaudo.",
+    img: "/assets/products/pannello-01.jpg",
+  },
+  {
+    kind: "Ricarica EV",
+    title: "Wallbox & carico dinamico",
+    desc: "L'energia del tetto, fino all'auto.",
+    img: "/assets/products/wallbox-detail.jpg",
+  },
+  {
+    kind: "Accessori",
+    title: "Cavi e ricarica smart",
+    desc: "Modo 3, monofase e trifase.",
+    img: "/assets/products/cavo-03.jpg",
+  },
+] as const;
 
 export default function SolarTwinScene() {
   const reduced = useReducedMotion();
@@ -72,9 +105,15 @@ export default function SolarTwinScene() {
     let disposeDemo: () => void = () => {};
 
     const ctx = gsap.context(() => {
-      // Stato iniziale: velo d'uscita nascosto; cue visibile.
+      // Stato iniziale: velo d'uscita, metà-sipario e pannello card nascosti.
       gsap.set(".st-cue", { autoAlpha: 1 });
       gsap.set(".st-exit-veil", { autoAlpha: 0 });
+      gsap.set(".st-half, .st-cards", { autoAlpha: 0 });
+      // Card 3D: prospettiva per-card + tilt PERSISTENTE "a galleria" delle due
+      // laterali (rotationY non è mai toccata dai tween d'entrata → resta).
+      gsap.set(".st-card", { transformPerspective: 1100, transformOrigin: "50% 60%" });
+      gsap.set(".st-card-l", { rotationY: 10 });
+      gsap.set(".st-card-r", { rotationY: -10 });
 
       // ── TITLE CARD DI CAPITOLO 01 — INTRO ONE-SHOT (NON scrubbata) ─────────
       // La card NON dipende dallo scroll: è mostrata e TENUTA FERMA PRIMA che la
@@ -111,16 +150,99 @@ export default function SolarTwinScene() {
           "+=2.4",
         );
 
+      // ── SNAPSHOT dell'ultimo frame nelle due metà-canvas ────────────────────
+      // Niente ffmpeg/asset dedicato: quando lo scrub arriva a fine video, il
+      // frame corrente del <video> viene disegnato UNA volta (per canvas) con la
+      // stessa mappatura di object-cover → le metà sono pixel-identiche all'hero.
+      // Riempimento scuro di sicurezza prima del drawImage: nel caso peggiore
+      // (frame non decodificato) si aprono due pannelli scuri, mai un buco.
+      const hero = stage.querySelector<HTMLElement>(".st-hero");
+      const heroVideo = stage.querySelector<HTMLVideoElement>(".st-hero video");
+      const halfCanvases = Array.from(stage.querySelectorAll<HTMLCanvasElement>(".st-half canvas"));
+      let snappedW = 0; // larghezza hero all'ultima cattura (0 = mai catturato)
+      const snapshot = (live: boolean) => {
+        if (!hero) return;
+        const cw = hero.clientWidth;
+        const ch = hero.clientHeight;
+        if (!cw || !ch) return;
+        // Fuori dalla finestra live si ridisegna solo se mai catturato o resize.
+        if (!live && snappedW === cw) return;
+        const dpr = Math.min(window.devicePixelRatio || 1, 2);
+        for (const c of halfCanvases) {
+          if (c.width !== Math.round(cw * dpr)) {
+            c.width = Math.round(cw * dpr);
+            c.height = Math.round(ch * dpr);
+            c.style.width = `${cw}px`;
+            c.style.height = `${ch}px`;
+          }
+          const cx = c.getContext("2d");
+          if (!cx) continue;
+          cx.setTransform(dpr, 0, 0, dpr, 0, 0);
+          cx.fillStyle = HALF_FALLBACK;
+          cx.fillRect(0, 0, cw, ch);
+          if (heroVideo && heroVideo.videoWidth) {
+            // Mappatura object-cover: scala max, centrato (come il <video>).
+            const s = Math.max(cw / heroVideo.videoWidth, ch / heroVideo.videoHeight);
+            const dw = heroVideo.videoWidth * s;
+            const dh = heroVideo.videoHeight * s;
+            try {
+              cx.drawImage(heroVideo, (cw - dw) / 2, (ch - dh) / 2, dw, dh);
+            } catch {
+              /* frame non pronto: resta il riempimento scuro */
+            }
+          }
+        }
+        snappedW = cw;
+      };
+
       // Timeline SCRUBBATA (normalizzata a durata 1 = progress): guida video, cue,
-      // card 3D e velo d'uscita. La title card d'apertura NON è qui dentro.
+      // split finale e velo d'uscita. La title card d'apertura NON è qui dentro.
       const tl = gsap.timeline({ defaults: { ease: "none" } });
       tl.to({}, { duration: DUR.scene }, 0);
 
       // Cue "Scorri": sfuma appena parte lo scroll.
       tl.to(".st-cue", { autoAlpha: 0, duration: 0.04, ease: EASE_OUT_SCENE }, 0.05); // motion: dissolve lampo al primo scroll (unità scrub, non secondi)
 
-      // Velo chiaro d'uscita → la scena successiva è chiara. Sale SOPRA gli
-      // ultimi frame del video (VIDEO_END 0.97 > 0.95): fine video ≈ fine scrub.
+      // ── SPLIT FINALE: il video "si apre in due" sulle card 3D ──────────────
+      // Le metà appaiono INSIEME al pannello (stesso istante: mostrano lo stesso
+      // frame del video, il passaggio è invisibile) e traslano fuori — solo
+      // transform, scrub-safe e reversibile: tornando indietro si richiudono.
+      tl.set(".st-half", { autoAlpha: 1 }, SPLIT_AT);
+      tl.set(".st-cards", { autoAlpha: 1 }, SPLIT_AT);
+      tl.to(".st-half-l", { xPercent: -101, duration: 0.14, ease: EASE_CAMERA }, SPLIT_AT);
+      tl.to(".st-half-r", { xPercent: 101, duration: 0.14, ease: EASE_CAMERA }, SPLIT_AT);
+      // Heading del pannello: kicker in rise + titolo con wipe a maschera.
+      tl.fromTo(
+        ".st-cards-kicker",
+        { autoAlpha: 0, y: 16 },
+        { autoAlpha: 1, y: 0, duration: 0.05, ease: EASE_IN_SCENE },
+        0.6,
+      );
+      maskReveal(tl, ".st-cards-title", { dir: "l", duration: 0.07, position: 0.62 });
+      // Card 3D in cascata: salgono da sotto con push di profondità (z) e si
+      // assestano; le laterali conservano il tilt impostato al mount. Valori
+      // FISSI (fromTo) → scrub-safe in entrambe le direzioni.
+      tl.fromTo(
+        ".st-card-l",
+        { autoAlpha: 0, y: 90, z: -180, scale: 0.92 },
+        { autoAlpha: 1, y: 0, z: -26, scale: 1, duration: 0.1, ease: EASE_IN_SCENE },
+        0.64,
+      );
+      tl.fromTo(
+        ".st-card-c",
+        { autoAlpha: 0, y: 90, z: -180, scale: 0.92 },
+        { autoAlpha: 1, y: 0, z: 0, scale: 1, duration: 0.1, ease: EASE_IN_SCENE },
+        0.68,
+      );
+      tl.fromTo(
+        ".st-card-r",
+        { autoAlpha: 0, y: 90, z: -180, scale: 0.92 },
+        { autoAlpha: 1, y: 0, z: -26, scale: 1, duration: 0.1, ease: EASE_IN_SCENE },
+        0.72,
+      );
+
+      // Velo chiaro d'uscita → la scena successiva è chiara. Sale sul finale,
+      // dopo un hold leggibile del pannello card (0.82 → 0.95).
       tl.to(".st-exit-veil", { autoAlpha: 1, duration: 0.05, ease: EASE_OUT_SCENE }, 0.95); // motion: 0.95+0.05=1 — il velo chiude ESATTAMENTE a fine scrub
 
       // Guardia di sviluppo: un tween oltre lo spacer allunga la timeline e
@@ -213,8 +335,13 @@ export default function SolarTwinScene() {
         animation: tl,
         onUpdate: (self) => {
           if (self.progress > 0.01) killDemo();
-          // Il video esaurisce la corsa a VIDEO_END → ultimo frame fermo sotto le card.
+          // Il video esaurisce la corsa a VIDEO_END → ultimo frame fermo, poi split.
           videoRef.current?.seek(Math.min(1, self.progress / VIDEO_END));
+          // Cattura dell'ultimo frame: finestra "live" prima dello split (il lerp
+          // di ScrubVideo sta ancora convergendo, l'ultima cattura vince), poi
+          // una-tantum se si atterra direttamente oltre (salto/anchor/resize).
+          if (self.progress > SNAP_FROM && self.progress < SPLIT_AT) snapshot(true);
+          else if (self.progress >= SPLIT_AT) snapshot(false);
           if (progressRef.current) {
             progressRef.current.style.transform = `scaleX(${self.progress})`;
           }
@@ -258,12 +385,18 @@ export default function SolarTwinScene() {
           <p className="font-display mt-10 text-center text-3xl font-bold tracking-tight text-balance sm:text-4xl">
             {FRASE}
           </p>
+          {/* Card di servizio del finale, statiche (senza split né 3D). */}
+          <div className="mt-10 grid grid-cols-1 justify-items-center gap-6 sm:grid-cols-3">
+            {SERVIZI.map((s) => (
+              <ServiceCard key={s.title} {...s} className="w-60" />
+            ))}
+          </div>
         </div>
       </section>
     );
   }
 
-  /* ---- regia: finto sito sticky con hero video scrubbato ---- */
+  /* ---- regia: finto sito sticky con hero video scrubbato + split finale ---- */
   return (
     <section
       ref={stageRef}
@@ -273,9 +406,9 @@ export default function SolarTwinScene() {
       // a mano perché la scena non passa da ImmersiveStage (prop chapterIndex).
       data-chapter={0}
       // AutoScroll: anchor extra a FINE SCRUB → il tratto vuoto (velo chiaro +
-      // hand-off) verso Interfacce si attraversa veloce invece che a passo bell.
+      // hand-off) verso l'Assistente si attraversa veloce invece che a passo bell.
       data-fast-handoff="true"
-      className="relative isolate h-[250svh]"
+      className="relative isolate h-[340svh]"
     >
       <div className="bg-background sticky top-0 flex h-svh items-center justify-center overflow-hidden">
         {/* FINTO SITO in DEVICE FRAME (R3 regola 1): browser mock centrato,
@@ -291,7 +424,7 @@ export default function SolarTwinScene() {
               `isolate` è OBBLIGATORIO: video (-z-10) e fallback (-z-20) hanno z
               negativo — senza uno stacking context locale finirebbero DIETRO il
               `bg-background` del device frame (schermo grigio, fix post-R3). */}
-          <div className="relative isolate flex-1 overflow-hidden text-white">
+          <div className="st-hero relative isolate flex-1 overflow-hidden text-white">
             {/* Fallback branded scuro (contrasto garantito se il video non parte) */}
             <div
               aria-hidden
@@ -311,6 +444,58 @@ export default function SolarTwinScene() {
               aria-hidden
               className="absolute inset-x-0 bottom-0 h-1/3 bg-linear-to-t from-black/45 to-transparent"
             />
+
+            {/* PANNELLO CARD 3D — sotto le metà-sipario: rivelato quando il video
+                si apre in due. Sfondo OPACO scuro (copre video e scrim), continua
+                il mood dell'hero e fa friggere il lime del bordo elettrico.
+                `data-quadro` = gate di visibilità di ElectricBorder: il suo rAF
+                gira SOLO quando questo pannello è visibile (autoAlpha 0→1). */}
+            <div
+              data-quadro
+              className="st-cards absolute inset-0 z-10 flex flex-col items-center justify-center gap-7 bg-linear-to-br from-[#0b1020] via-[#111b0e] to-[#0b1020] px-8"
+              style={{ opacity: 0, visibility: "hidden" }}
+            >
+              <div className="text-center">
+                <p className="st-cards-kicker text-accent text-xs font-semibold tracking-[0.22em] uppercase">
+                  I nostri servizi
+                </p>
+                <p className="st-cards-title font-display mt-2 text-3xl font-bold tracking-tight text-white md:text-4xl">
+                  Dal tetto alla ricarica.
+                </p>
+              </div>
+              {/* Galleria 3D: prospettiva sul contenitore, tilt persistente sulle
+                  laterali (gsap.set al mount). SOLO la card centrale ha il bordo
+                  elettrico — effetto per-elemento, mai sul contenitore. */}
+              <div
+                className="flex items-center justify-center gap-6"
+                style={{ perspective: "1100px" }}
+              >
+                <ServiceCard {...SERVIZI[0]} className="st-card st-card-l w-60" />
+                <ElectricBorder radius={16} className="st-card st-card-c w-60">
+                  <ServiceCard {...SERVIZI[1]} className="h-full w-full" />
+                </ElectricBorder>
+                <ServiceCard {...SERVIZI[2]} className="st-card st-card-r w-60" />
+              </div>
+            </div>
+
+            {/* METÀ-SIPARIO: due canvas con l'ULTIMO frame del video (cattura a
+                runtime, vedi snapshot() — niente asset dedicato). Insieme coprono
+                l'hero al 100%; allo split traslano fuori (solo transform) e
+                scoprono il pannello card dal centro verso i bordi. */}
+            <div
+              aria-hidden
+              className="st-half st-half-l absolute inset-y-0 left-0 z-20 w-1/2 overflow-hidden will-change-transform"
+              style={{ opacity: 0, visibility: "hidden" }}
+            >
+              <canvas className="absolute top-0 left-0" />
+            </div>
+            <div
+              aria-hidden
+              className="st-half st-half-r absolute inset-y-0 right-0 z-20 w-1/2 overflow-hidden will-change-transform"
+              style={{ opacity: 0, visibility: "hidden" }}
+            >
+              <canvas className="absolute top-0 right-0" />
+            </div>
 
             {/* Cue "Scorri" in basso a sinistra DENTRO l'hero (sfondo video scuro
                 → testo bianco leggibile): il dot del mousino è pilotato dalla
@@ -353,6 +538,39 @@ export default function SolarTwinScene() {
         />
       </div>
     </section>
+  );
+}
+
+/**
+ * Card verticale di servizio del pannello finale: immagine QUADRATA sopra
+ * (regola: mai strisce orizzontali), testo sotto — kicker accent, titolo, riga
+ * descrittiva. Contenitore PULITO (niente effetti/badge sopra l'immagine):
+ * l'unico effetto per-elemento è l'ElectricBorder che avvolge la card centrale.
+ */
+function ServiceCard({
+  kind,
+  title,
+  desc,
+  img,
+  className = "",
+}: {
+  kind: string;
+  title: string;
+  desc: string;
+  img: string;
+  className?: string;
+}) {
+  return (
+    <div
+      className={`overflow-hidden rounded-2xl border border-white/10 bg-[#0e1524] shadow-2xl ${className}`}
+    >
+      <img src={img} alt="" aria-hidden className="aspect-square w-full object-cover" />
+      <div className="px-5 pt-4 pb-5 text-left">
+        <p className="text-accent text-[10px] font-semibold tracking-[0.18em] uppercase">{kind}</p>
+        <p className="font-display mt-1 text-base font-bold text-white">{title}</p>
+        <p className="mt-1 text-xs leading-relaxed text-white/60">{desc}</p>
+      </div>
+    </div>
   );
 }
 

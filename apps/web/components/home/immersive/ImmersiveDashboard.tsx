@@ -423,8 +423,8 @@ export default function ImmersiveDashboard() {
       // di più corsa di scroll → scrub più dolce, tutto resta leggibile anche
       // per un utente non tecnico che scrolla veloce.
       heightVh={1200}
-      label={CHAPTERS[3].title}
-      chapterIndex={3}
+      label={CHAPTERS[2].title}
+      chapterIndex={2}
     >
       {/* Reduced-motion: la ChapterCard animata finisce NASCOSTA a progress(1)
           → heading statico col numero/nome capitolo in cima alla scena (il
@@ -432,7 +432,7 @@ export default function ImmersiveDashboard() {
           binario = carosello). Ancorato al contenitore sticky del kit. */}
       {reduced && (
         <h2 className="text-muted absolute top-3 left-5 z-20 font-mono text-xs font-semibold tracking-[0.35em] uppercase">
-          {CHAPTERS[3].title}
+          {CHAPTERS[2].title}
         </h2>
       )}
       {/* R3 regola 1: la dashboard non è più full-bleed ma vive in un DEVICE
@@ -1072,7 +1072,7 @@ export default function ImmersiveDashboard() {
       {/* Title card di capitolo (P12): apre la scena al posto del vecchio veil
           <Say i={0}>; la frase del veil diventa il sottotitolo della card. */}
       <ChapterCard
-        chapter={CHAPTERS[3]}
+        chapter={CHAPTERS[2]}
         subtitle="La dashboard: il tuo business, in tempo reale."
       />
 

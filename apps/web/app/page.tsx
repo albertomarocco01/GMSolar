@@ -3,7 +3,6 @@ import AutoScroll from "@/components/home/AutoScroll";
 import CinematicGrain from "@/components/home/CinematicGrain";
 import VelocitySkew from "@/components/home/VelocitySkew";
 import SolarTwinScene from "@/components/home/scenes/SolarTwinScene";
-import InterfacceScene from "@/components/home/scenes/InterfacceScene";
 import ClosingScene from "@/components/home/scenes/ClosingScene";
 
 // Scene-prodotto IMMERSIVE (full-screen, scrub, cursore + intermezzi descrittivi).
@@ -25,10 +24,10 @@ import ImmersiveGestionale from "@/components/home/immersive/ImmersiveGestionale
  *   parte dal bottone «Segnala un problema» della dashboard) → Gestionale.
  *   Poi il capitolo ricarica: Ricarica EV → Integrazioni → chiusura minimale
  *   (solo «Rivedi la presentazione» su loop di sfondo).
- *   CAPITOLI (P12): la presentazione è scandita in 8 capitoli (CHAPTERS, 01→08:
- *   Siti vetrina → Interfacce grafiche moderne → Assistente AI → Dashboard →
- *   Segnalazioni → Gestionali su misura → App con assistente AI integrato →
- *   Integrazioni). Ogni scena apre con una title card numerata (ChapterCard).
+ *   CAPITOLI (P12): la presentazione è scandita in 7 capitoli (CHAPTERS, 01→07:
+ *   Siti vetrina → Assistente AI → Dashboard → Segnalazioni → Gestionali su
+ *   misura → App con assistente AI integrato → Integrazioni). Ogni scena apre
+ *   con una title card numerata (ChapterCard).
  */
 export default function HomePage() {
   return (
@@ -38,12 +37,9 @@ export default function HomePage() {
       <CinematicGrain />
       <VelocitySkew />
 
-      {/* APERTURA — video solare scuro (impianto, gemello digitale). SOLO video:
-          i componenti UI sono ora il capitolo dedicato qui sotto. */}
+      {/* APERTURA — video solare scuro (impianto, gemello digitale); a fine
+          video lo split rivela le card 3D di servizio (bordo elettrico incluso). */}
       <SolarTwinScene />
-
-      {/* INTERFACCE — i componenti UI premium su sfondo pulito, senza video */}
-      <InterfacceScene />
 
       {/* INTERAZIONE — come le persone usano il sito */}
       <ImmersiveAssistente />

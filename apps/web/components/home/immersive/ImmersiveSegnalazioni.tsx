@@ -217,12 +217,12 @@ export default function ImmersiveSegnalazioni() {
   });
 
   return (
-    <ImmersiveStage ref={ref} heightVh={530} label={CHAPTERS[4].title} chapterIndex={4}>
+    <ImmersiveStage ref={ref} heightVh={530} label={CHAPTERS[3].title} chapterIndex={3}>
       {/* Reduced-motion: heading statico di capitolo (la ChapterCard animata a
           progress(1) è nascosta) — nella fascia alta libera sopra il device frame. */}
       {reduced ? (
         <h2 className="text-muted absolute top-3 left-1/2 z-40 -translate-x-1/2 font-mono text-xs font-semibold tracking-[0.35em] uppercase">
-          {CHAPTERS[4].title}
+          {CHAPTERS[3].title}
         </h2>
       ) : null}
 
@@ -511,7 +511,7 @@ export default function ImmersiveSegnalazioni() {
       </div>
 
       {/* Title card di capitolo (P12) — apre la scena al posto della vecchia veil */}
-      <ChapterCard chapter={CHAPTERS[4]} subtitle="Qualcosa non va? Lo segnali da dove sei." />
+      <ChapterCard chapter={CHAPTERS[3]} subtitle="Qualcosa non va? Lo segnali da dove sei." />
 
       {/* Frasi-intermezzo DESCRITTIVE (spiegano, non vendono) */}
       <Say i={1} variant="caption">

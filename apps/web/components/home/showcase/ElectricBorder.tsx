@@ -7,22 +7,23 @@
  *   (fBm/value-noise) che scorre nel tempo → un bordo "elettrico" organico che
  *   FRIGGE. Ridisegnato in requestAnimationFrame. Sotto il canvas, DUE layer di
  *   GLOW pre-cotti (box-shadow STATICO, MAI filtri animati) danno l'alone; il
- *   contenuto della card sta dentro. È l'EFFETTO PER-ELEMENTO: si mette su 2-3
- *   card-eroe, NON sul perimetro del device.
+ *   contenuto della card sta dentro. È l'EFFETTO PER-ELEMENTO: vive su UNA sola
+ *   card-eroe (la wallbox del pannello finale di SolarTwinScene), MAI sul
+ *   perimetro del device.
  *
  *   PERFORMANCE — «zero lag» (vincolo di progetto):
  *     · il canvas è grande SOLO quanto la card (+ `margin` per l'alone), non il
  *       device; devicePixelRatio clampato a 2; ResizeObserver ri-misura la card.
- *     · GATE DI VISIBILITÀ: se il QUADRO che contiene la card è nascosto
- *       (autoAlpha:0 → `visibility:hidden`), il loop si FERMA (le istanze nei
- *       quadri non a fuoco non disegnano). Si osserva l'antenato `[data-quadro]`.
+ *     · GATE DI VISIBILITÀ: si osserva l'antenato `[data-quadro]` (in SolarTwin
+ *       è il pannello `.st-cards`, che la timeline porta a autoAlpha 0/1 allo
+ *       split): quando è nascosto (`visibility:hidden` o opacity ~0) il loop si
+ *       FERMA — il canvas disegna SOLO nel suo momento.
  *     · GATE DI PAUSA: al mount legge `data-presentation-paused` su <html> e
  *       ascolta `presentation:pausechange`; in pausa il rAF si ferma (ultimo
  *       frame congelato).
  *     · REDUCED-MOTION: nessun loop — il bordo è disegnato UNA volta (stato
  *       statico "acceso", leggibile a progress(1)).
- *   Al più 2-3 istanze montate e, poiché un solo quadro è visibile per volta, al
- *   più UNA che disegna davvero in ogni istante.
+ *   UNA sola istanza montata, che disegna solo quando il suo pannello è visibile.
  *
  * @param radius     raggio del bordo in px (DEVE combaciare col rounded della card)
  * @param color      colore del filamento (default: var(--accent) risolta a runtime)
@@ -30,7 +31,7 @@
  * @param chaos      moltiplicatore d'ampiezza dello spostamento dei vertici (default 1)
  * @param thickness  spessore del filamento crisp in px (default 1.4)
  * @param margin     overscan del canvas per non tagliare alone/jitter (default 12)
- * @param className  classi extra sul wrapper (es. h-full, shw-*-item)
+ * @param className  classi extra sul wrapper (es. w-60, st-card)
  */
 import { useRef } from "react";
 import { prefersReducedMotion, useIsoLayoutEffect } from "@gmgroup/lib/motion";

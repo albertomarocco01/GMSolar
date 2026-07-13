@@ -254,12 +254,12 @@ export default function ImmersiveAssistente() {
   });
 
   return (
-    <ImmersiveStage ref={ref} heightVh={640} label={CHAPTERS[2].title} chapterIndex={2}>
+    <ImmersiveStage ref={ref} heightVh={640} label={CHAPTERS[1].title} chapterIndex={1}>
       {/* Fallback reduced-motion: a progress(1) la ChapterCard è nascosta → heading
           statico del capitolo sullo stage, FUORI dal device frame. */}
       {reduced && (
         <p className="text-accent-ink absolute top-4 left-6 z-20 font-mono text-xs font-semibold tracking-[0.3em] uppercase">
-          {CHAPTERS[2].title}
+          {CHAPTERS[1].title}
         </p>
       )}
       {/* Device frame (R3, regola 1): il sito mock vive in una cornice ~16:10
@@ -579,7 +579,7 @@ export default function ImmersiveAssistente() {
       </div>
 
       {/* ── Title card di capitolo (apre la scena) + caption descrittive ──────── */}
-      <ChapterCard chapter={CHAPTERS[2]} subtitle="Un assistente AI dentro il sito vetrina." />
+      <ChapterCard chapter={CHAPTERS[1]} subtitle="Un assistente AI dentro il sito vetrina." />
       <Say i={1} variant="caption">
         Una richiesta con tre sfumature: nessun filtro le coglie.
       </Say>
