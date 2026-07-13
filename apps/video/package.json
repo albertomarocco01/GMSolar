@@ -1,0 +1,24 @@
+{
+  "name": "@gmgroup/video",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "remotion studio --no-open",
+    "render": "remotion render GmSolarPresentation out/presentation.mp4",
+    "still": "remotion still GmSolarPresentation",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@remotion/cli": "^4.0.0",
+    "@remotion/google-fonts": "^4.0.0",
+    "@remotion/media": "^4.0.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "remotion": "^4.0.0"
+  },
+  "devDependencies": {
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "typescript": "^5"
+  }
+}
