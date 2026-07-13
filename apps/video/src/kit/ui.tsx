@@ -515,11 +515,14 @@ export const Cursor: React.FC<{
   moves: CursorMove[];
   shots?: CameraShot[];
   clicks?: Beat[];
+  /** finestre di quiete camera (le STESSE passate a cameraAt): la proiezione del
+   *  cursore deve smorzare il respiro come il layer visivo, o si de-sincronizza. */
+  calms?: Beat[];
   hideAfter?: Beat;
   /** parcheggio iniziale (default 92%, 60%) */
   parkX?: number;
   parkY?: number;
-}> = ({ moves, shots, clicks, hideAfter, parkX = 1920 * 0.92, parkY = 1080 * 0.6 }) => {
+}> = ({ moves, shots, clicks, calms, hideAfter, parkX = 1920 * 0.92, parkY = 1080 * 0.6 }) => {
   const frame = useCurrentFrame();
   if (moves.length === 0) return null;
 
@@ -567,7 +570,7 @@ export const Cursor: React.FC<{
 
   // Proiezione allo schermo con la matrice camera → esatto sul bottone. I click
   // passano anche come kick: contenuto e cursore si scuotono insieme, mira intatta.
-  const cam = shots ? cameraValues(frame, shots, clicks ?? []) : { x: 0, y: 0, scale: 1 };
+  const cam = shots ? cameraValues(frame, shots, clicks ?? [], calms ?? []) : { x: 0, y: 0, scale: 1 };
   const sp = screenPoint(x, y, cam);
 
   const first = moves[0].beat;

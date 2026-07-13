@@ -6,28 +6,37 @@
  * notturno, costi, CTA).
  */
 import React from "react";
-import { AbsoluteFill, Img, staticFile, useCurrentFrame } from "remotion";
+import { AbsoluteFill, Easing, Img, staticFile, useCurrentFrame } from "remotion";
 import { C, SHADOW } from "../kit/tokens";
 import {
   cameraAt,
   countUp,
   drawPath,
   DUR,
+  EASE_CAMERA_IN,
+  EASE_CAMERA_OUT,
   EASE_IN_SCENE,
   EASE_OUT_SCENE,
   EASE_SNAP,
   enter,
+  FPS,
+  hoverBloom,
   maskReveal,
   pressButton,
   prog,
   s2f,
   seq,
   shotOn,
-  typeInset,
   val,
 } from "../kit/motion";
-import { Caption, captionBeats, ChapterCard, chapterIntroBeats, Cursor, DeviceFrame, FRAME, TypingDots } from "../kit/ui";
+import { Caption, captionBeats, ChapterCard, chapterIntroBeats, Cursor, DeviceFrame, FRAME, StageBackdrop, TypeOn, TypingDots } from "../kit/ui";
 import { fontFamily } from "../kit/fonts";
+
+/** Atterraggio gentile per-parola della risposta AI (D3.4): back(1.15), MAI EASE_SNAP
+ *  1.6 — l'overshoot vive SOLO sulla posizione (grammatica D0.1). */
+const EASE_CHAR = Easing.out(Easing.back(1.15));
+/** Stagger per-parola della composizione AI (~0.03s → un modello che scrive). */
+const AI_WSTAG = 0.03 * FPS;
 
 // ── Dati (da _assistente-data.ts, verbatim) ──────────────────────────────────
 const NAV = ["Fotovoltaico", "Ricarica EV", "Catalogo", "Contatti"];
@@ -114,10 +123,31 @@ t.hold(0.3);
 const CAM_CTA = t.add(DUR.beat);
 const CUR_CTA = t.add(DUR.beat);
 const PRESS3 = t.add(0.45, -0.05);
-const CTA_SWAP = t.add(DUR.micro, -0.05);
+// D5.7: il confirm è un PAYOFF, non un crossfade — la finestra si allarga (0.3→1.1s)
+// così flourish (label-lift → check → flash → ring bloom → testo) sta TUTTO qui e la
+// camera si sposa a resettare solo DOPO (frame fermo sulla conferma, vedi CALM_CONFIRM).
+const CTA_SWAP = t.add(1.1, -0.05);
 const CAM_RESET4 = t.add(1.0);
 t.hold(1.0);
 export const ASSISTENTE_DURATION = t.total;
+
+// ── D5.7 · Sub-beat del confirm flourish (dentro CTA_SWAP: NON estendono il totale) ─
+// Battute che si SOVRAPPONGONO: l'etichetta si stacca → la spunta si disegna → un
+// flash accentStrong (≤4f) → l'anello lime BLOOMA (scale-expand) → il testo si posa.
+const S0 = CTA_SWAP.start;
+const CTA_LABEL_OUT = { start: S0, dur: s2f(0.26), end: S0 + s2f(0.26) };
+const CTA_CHECK = { start: S0 + s2f(0.17), dur: s2f(0.46), end: S0 + s2f(0.17) + s2f(0.46) };
+const CTA_FLASH = { start: S0 + s2f(0.55), dur: 4, end: S0 + s2f(0.55) + 4 };
+const CTA_RING = { start: S0 + s2f(0.58), dur: s2f(0.52), end: S0 + s2f(0.58) + s2f(0.52) };
+const CTA_TEXT = { start: S0 + s2f(0.62), dur: s2f(0.44), end: S0 + s2f(0.62) + s2f(0.44) };
+
+// ── D2.7 · Finestre di QUIETE camera (il frame si ferma mentre l'AI compone / conferma) ─
+// La risposta REASONING compone parola-per-parola: la calma copre l'intera finestra di
+// reveal (stagger × parole + durata). Il confirm payoff = tutta la finestra CTA_SWAP.
+const REASON_REVEAL = (REASONING.split(" ").length - 1) * AI_WSTAG + REASON_TEXT.dur;
+const CALM_REASON = { start: REASON_TEXT.start, dur: REASON_REVEAL, end: REASON_TEXT.start + REASON_REVEAL };
+const CALM_CONFIRM = CTA_SWAP;
+const CALMS = [CALM_REASON, CALM_CONFIRM];
 
 // ── Coordinate design-time (px 1920×1080) per cursore e camera ───────────────
 const P = {
@@ -130,16 +160,18 @@ const P = {
   cta: { x: 1180, y: FRAME.y + FRAME.h - 150 },
 };
 
+// D2.2: push-in con EASE_CAMERA_IN (attacco deciso + settle pesante), reset con
+// EASE_CAMERA_OUT (rilascio deciso + decelerazione morbida).
 const SHOTS = [
-  { at: CAM_NAV.end, from: CAM_NAV.start, ...shotOn(960, FRAME.y + 34, 1.16) },
-  { at: CAM_RESET1.end, from: CAM_RESET1.start, x: 0, y: 0, scale: 1 },
-  { at: CAM_BAR.end, from: CAM_BAR.start, ...shotOn(P.bar.x, P.bar.y, 1.12) },
-  { at: CAM_SEND.end, from: CAM_SEND.start, ...shotOn(P.send.x, P.send.y, 1.24) },
-  { at: CAM_RESET2.end, from: CAM_RESET2.start, x: 0, y: 0, scale: 1 },
-  { at: CAM_GEN.end, from: CAM_GEN.start, ...shotOn(P.gen.x, P.gen.y, 1.14) },
-  { at: CAM_RESET3.end, from: CAM_RESET3.start, x: 0, y: 0, scale: 1 },
-  { at: CAM_CTA.end, from: CAM_CTA.start, ...shotOn(P.cta.x, P.cta.y, 1.24) },
-  { at: CAM_RESET4.end, from: CAM_RESET4.start, x: 0, y: 0, scale: 1 },
+  { at: CAM_NAV.end, from: CAM_NAV.start, ...shotOn(960, FRAME.y + 34, 1.16), ease: EASE_CAMERA_IN },
+  { at: CAM_RESET1.end, from: CAM_RESET1.start, x: 0, y: 0, scale: 1, ease: EASE_CAMERA_OUT },
+  { at: CAM_BAR.end, from: CAM_BAR.start, ...shotOn(P.bar.x, P.bar.y, 1.12), ease: EASE_CAMERA_IN },
+  { at: CAM_SEND.end, from: CAM_SEND.start, ...shotOn(P.send.x, P.send.y, 1.24), ease: EASE_CAMERA_IN },
+  { at: CAM_RESET2.end, from: CAM_RESET2.start, x: 0, y: 0, scale: 1, ease: EASE_CAMERA_OUT },
+  { at: CAM_GEN.end, from: CAM_GEN.start, ...shotOn(P.gen.x, P.gen.y, 1.14), ease: EASE_CAMERA_IN },
+  { at: CAM_RESET3.end, from: CAM_RESET3.start, x: 0, y: 0, scale: 1, ease: EASE_CAMERA_OUT },
+  { at: CAM_CTA.end, from: CAM_CTA.start, ...shotOn(P.cta.x, P.cta.y, 1.24), ease: EASE_CAMERA_IN },
+  { at: CAM_RESET4.end, from: CAM_RESET4.start, x: 0, y: 0, scale: 1, ease: EASE_CAMERA_OUT },
 ];
 
 const label = (fs = 12): React.CSSProperties => ({
@@ -163,7 +195,45 @@ export const Assistente: React.FC = () => {
   const ring2 = prog(frame, RING2, EASE_IN_SCENE) * (1 - prog(frame, PRESS2, EASE_OUT_SCENE));
   const typed1Active = frame >= TYPE1.start && frame < PRESS1.end;
   const typed2Active = frame >= TYPE2.start && frame < PRESS2.end;
-  const ctaSwap = prog(frame, CTA_SWAP, EASE_IN_SCENE);
+
+  // D5.7 · progressioni del confirm flourish (battute sovrapposte, deterministiche).
+  const ctaLabelOut = prog(frame, CTA_LABEL_OUT, EASE_OUT_SCENE); // l'etichetta si stacca
+  const ctaCheck = drawPath(frame, CTA_CHECK); // la spunta si disegna
+  const ctaFlash =
+    frame >= CTA_FLASH.start && frame <= CTA_FLASH.end
+      ? Math.sin(((frame - CTA_FLASH.start) / CTA_FLASH.dur) * Math.PI) * 0.5 // ≤4f, picco 0.5
+      : 0;
+  const ctaRing = prog(frame, CTA_RING, EASE_OUT_SCENE); // anello lime che blooma
+  const ctaText = prog(frame, CTA_TEXT, EASE_IN_SCENE); // "Sopralluogo richiesto" si posa
+
+  // D3.4 · La risposta AI COMPONE parola-per-parola: ogni parola su inline-block
+  // (rise back(1.15) + blur ≤3px su track monotono), spazi come text-node espliciti,
+  // niente caret (multi-riga). Come un modello linguistico che scrive.
+  const composeWords = (text: string, beat: { start: number; dur: number; end: number }) => (
+    <>
+      {text.split(" ").map((w, i) => {
+        const b = { start: beat.start + i * AI_WSTAG, dur: beat.dur, end: beat.end + i * AI_WSTAG };
+        const a = prog(frame, b, EASE_IN_SCENE);
+        const posP = prog(frame, b, EASE_CHAR);
+        return (
+          <React.Fragment key={i}>
+            <span
+              style={{
+                display: "inline-block",
+                opacity: a,
+                transform: `translateY(${6 * (1 - posP)}px)`,
+                filter: a < 0.999 ? `blur(${(3 * (1 - a)).toFixed(2)}px)` : undefined,
+                willChange: "transform, filter, opacity",
+              }}
+            >
+              {w}
+            </span>
+            {i < text.split(" ").length - 1 ? " " : null}
+          </React.Fragment>
+        );
+      })}
+    </>
+  );
 
   const bubble = (align: "l" | "r", visible: React.CSSProperties, children: React.ReactNode, extra?: React.CSSProperties) => (
     <div
@@ -187,8 +257,10 @@ export const Assistente: React.FC = () => {
 
   return (
     <AbsoluteFill style={{ backgroundColor: C.background }}>
-      <AbsoluteFill style={cameraAt(frame, SHOTS, [PRESS1, PRESS2, PRESS3])}>
-        <DeviceFrame>
+      {/* D1.1 · fondale del set illuminato: PRIMO figlio, FUORI dalla camera. */}
+      <StageBackdrop />
+      <AbsoluteFill style={cameraAt(frame, SHOTS, [PRESS1, PRESS2, PRESS3], CALMS)}>
+        <DeviceFrame lift={0.5}>
           {/* HOME */}
           <div style={{ position: "absolute", inset: 0, opacity: homeDim, transform: `scale(${1 - 0.015 * chatP})` }}>
             {/* nav */}
@@ -278,15 +350,15 @@ export const Assistente: React.FC = () => {
                 <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "flex-end", gap: 12, padding: "16px 22px" }}>
                   {bubble("r", enter(frame, MSG_Q), REQUEST)}
                   {frame >= MSG_CLARIFY.start
-                    ? bubble("l", enter(frame, MSG_CLARIFY), frame < CLARIFY_TEXT.start ? <TypingDots /> : <span style={{ opacity: prog(frame, CLARIFY_TEXT, EASE_IN_SCENE) }}>{CLARIFY}</span>)
+                    ? bubble("l", enter(frame, MSG_CLARIFY), frame < CLARIFY_TEXT.start ? <TypingDots /> : composeWords(CLARIFY, CLARIFY_TEXT))
                     : null}
                   {frame >= MSG_A.start ? bubble("r", enter(frame, MSG_A), ANSWER) : null}
                   {frame >= MSG_REASON.start
-                    ? bubble("l", enter(frame, MSG_REASON), frame < REASON_TEXT.start ? <TypingDots /> : <span style={{ opacity: prog(frame, REASON_TEXT, EASE_IN_SCENE) }}>{REASONING}</span>, { maxWidth: "86%" })
+                    ? bubble("l", enter(frame, MSG_REASON), frame < REASON_TEXT.start ? <TypingDots /> : composeWords(REASONING, REASON_TEXT), { maxWidth: "86%" })
                     : null}
-                  {/* Pannello GENERATO */}
+                  {/* Pannello GENERATO — D2.8 resolve-into-focus (blur+scale, anticipate). */}
                   {frame >= GEN_IN.start ? (
-                    <div style={{ ...enter(frame, GEN_IN, { y: 16 }), borderRadius: 12, border: `1px solid ${C.border}`, backgroundColor: C.background, boxShadow: SHADOW.card, padding: 16 }}>
+                    <div style={{ ...enter(frame, GEN_IN, { y: 16, blur: 3, scaleFrom: 0.97, anticipate: true }), borderRadius: 12, border: `1px solid ${C.border}`, backgroundColor: C.background, boxShadow: SHADOW.card, padding: 16 }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 8, color: C.accentInk, fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.12em" }}>
                         ✦ Costruito sulla tua richiesta
                       </div>
@@ -338,12 +410,65 @@ export const Assistente: React.FC = () => {
                       {/* footer */}
                       <div style={{ ...enter(frame, FOOT_IN, { y: 12 }), display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 12 }}>
                         <span style={{ color: C.muted, fontSize: 14 }}>☀ Di giorno il tuo fotovoltaico ricarica gratis</span>
+                        {/* Booking CTA — D5.7 confirm flourish. hoverBloom telegrafa il click
+                            (solo boxShadow: il transform resta a pressButton). */}
                         <div style={{ position: "relative", ...pressButton(frame, PRESS3, 0.9) }}>
-                          <div style={{ backgroundColor: C.accent, color: C.accentContrast, borderRadius: 999, padding: "10px 20px", fontSize: 15, fontWeight: 600, opacity: 1 - ctaSwap }}>
-                            Prenota un sopralluogo →
-                          </div>
-                          <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", backgroundColor: C.accent, color: C.accentContrast, borderRadius: 999, fontSize: 15, fontWeight: 600, opacity: ctaSwap }}>
-                            ✓ Sopralluogo richiesto
+                          {/* Anello lime che BLOOMA: radiale morbido + anello netto, scale-expand. */}
+                          {ctaRing > 0 && ctaRing < 1 ? (
+                            <>
+                              <div
+                                aria-hidden
+                                style={{
+                                  position: "absolute", left: "50%", top: "50%",
+                                  width: 240, height: 78, marginLeft: -120, marginTop: -39,
+                                  borderRadius: 999,
+                                  background: "radial-gradient(ellipse at center, rgba(132,204,22,0.5) 0%, rgba(132,204,22,0) 70%)",
+                                  transform: `scale(${(0.85 + 1.25 * ctaRing).toFixed(3)})`,
+                                  opacity: (1 - ctaRing) * 0.6,
+                                  zIndex: 0, pointerEvents: "none",
+                                }}
+                              />
+                              <div
+                                aria-hidden
+                                style={{
+                                  position: "absolute", left: "50%", top: "50%",
+                                  width: 190, height: 54, marginLeft: -95, marginTop: -27,
+                                  borderRadius: 999,
+                                  border: `2px solid ${C.accent}`,
+                                  transform: `scale(${(0.92 + 0.9 * ctaRing).toFixed(3)})`,
+                                  opacity: (1 - ctaRing) * 0.7,
+                                  zIndex: 0, pointerEvents: "none",
+                                }}
+                              />
+                            </>
+                          ) : null}
+                          {/* PILL (lime persistente). overflow:hidden → l'etichetta si stacca
+                              MASCHERATA dal bordo; il flash resta dentro l'arrotondamento. */}
+                          <div
+                            style={{
+                              position: "relative", overflow: "hidden",
+                              backgroundColor: C.accent, color: C.accentContrast,
+                              borderRadius: 999, padding: "10px 20px", fontSize: 15, fontWeight: 600,
+                              boxShadow: hoverBloom(frame, PRESS3).boxShadow, zIndex: 1,
+                            }}
+                          >
+                            {/* Flash accentStrong (≤4 frame) — la scintilla della conferma. */}
+                            {ctaFlash > 0.001 ? (
+                              <div aria-hidden style={{ position: "absolute", inset: 0, borderRadius: 999, backgroundColor: C.accentStrong, opacity: ctaFlash, pointerEvents: "none" }} />
+                            ) : null}
+                            {/* Etichetta: in-flow (definisce la larghezza) → si stacca (rise + fade). */}
+                            <span style={{ display: "inline-block", opacity: 1 - ctaLabelOut, transform: `translateY(${-12 * ctaLabelOut}px)` }}>
+                              Prenota un sopralluogo →
+                            </span>
+                            {/* Conferma: la spunta si DISEGNA (drawPath), poi il testo si posa dietro. */}
+                            {frame >= CTA_CHECK.start ? (
+                              <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, pointerEvents: "none" }}>
+                                <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden>
+                                  <path d="M5 13l4 5L19 7" fill="none" stroke={C.accentContrast} strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" pathLength={1} style={ctaCheck} />
+                                </svg>
+                                <span style={{ opacity: ctaText, transform: `translateY(${8 * (1 - ctaText)}px)` }}>Sopralluogo richiesto</span>
+                              </div>
+                            ) : null}
                           </div>
                         </div>
                       </div>
@@ -363,14 +488,20 @@ export const Assistente: React.FC = () => {
                 {!typed1Active && !typed2Active ? (
                   <span style={{ position: "absolute", left: 0, color: C.muted, fontSize: 16, whiteSpace: "nowrap" }}>Chiedi all'assistente, in parole tue…</span>
                 ) : null}
+                {/* D3.3 · type-on con caret lime (input UTENTE). */}
                 {typed1Active ? (
-                  <span style={{ position: "absolute", left: 0, color: C.foreground, fontSize: 14, whiteSpace: "nowrap", ...typeInset(frame, TYPE1, 44) }}>{REQUEST}</span>
+                  <span style={{ position: "absolute", left: 0, whiteSpace: "nowrap" }}>
+                    <TypeOn text={REQUEST} beat={TYPE1} size={14} color={C.foreground} idle={1.4} />
+                  </span>
                 ) : null}
                 {typed2Active ? (
-                  <span style={{ position: "absolute", left: 0, color: C.foreground, fontSize: 16, whiteSpace: "nowrap", ...typeInset(frame, TYPE2, 20) }}>{ANSWER}</span>
+                  <span style={{ position: "absolute", left: 0, whiteSpace: "nowrap" }}>
+                    <TypeOn text={ANSWER} beat={TYPE2} size={16} color={C.foreground} idle={1.4} />
+                  </span>
                 ) : null}
               </div>
-              <div style={{ width: 44, height: 44, borderRadius: 999, backgroundColor: C.accent, color: C.accentContrast, display: "flex", alignItems: "center", justifyContent: "center", ...pressButton(frame, frame < CAM_RESET2.start ? PRESS1 : PRESS2, 0.88) }}>
+              {/* Send — hoverBloom telegrafa il click (solo boxShadow: transform a pressButton). */}
+              <div style={{ width: 44, height: 44, borderRadius: 999, backgroundColor: C.accent, color: C.accentContrast, display: "flex", alignItems: "center", justifyContent: "center", boxShadow: hoverBloom(frame, frame < CAM_RESET2.start ? PRESS1 : PRESS2).boxShadow, ...pressButton(frame, frame < CAM_RESET2.start ? PRESS1 : PRESS2, 0.88) }}>
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
                   <path d="M3 11l18-8-8 18-2.5-7.5L3 11z" />
                 </svg>
@@ -384,6 +515,7 @@ export const Assistente: React.FC = () => {
       <Cursor
         shots={SHOTS}
         clicks={[PRESS1, PRESS2, PRESS3]}
+        calms={CALMS}
         moves={[
           { beat: CUR_CAT, ...P.catalogo, mode: "hand" },
           { beat: CUR_HI0, ...P.hi0, mode: "hand" },
@@ -401,7 +533,7 @@ export const Assistente: React.FC = () => {
       <Caption beats={SAY1}>Una richiesta con tre sfumature: nessun filtro le coglie.</Caption>
       <Caption beats={SAY2}>L'assistente chiede solo quello che serve…</Caption>
       <Caption beats={SAY3}>…e costruisce l'interfaccia della risposta, su misura.</Caption>
-      <ChapterCard title="Assistente AI" subtitle="Un assistente AI dentro il sito vetrina." beats={CARD} />
+      <ChapterCard title="Assistente AI" subtitle="Un assistente AI dentro il sito vetrina." beats={CARD} index={2} />
     </AbsoluteFill>
   );
 };

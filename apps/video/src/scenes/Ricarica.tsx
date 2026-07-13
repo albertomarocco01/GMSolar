@@ -8,23 +8,28 @@ import React from "react";
 import { AbsoluteFill, useCurrentFrame } from "remotion";
 import { C, SHADOW } from "../kit/tokens";
 import {
+  Beat,
   cameraAt,
   drawPath,
   DUR,
   EASE_CAMERA,
+  EASE_CAMERA_IN,
+  EASE_CAMERA_OUT,
   EASE_IN_SCENE,
   EASE_OUT_SCENE,
   EASE_SNAP,
   enter,
+  hoverBloom,
   maskReveal,
+  parallax,
   pressButton,
   prog,
   s2f,
   seq,
   shotOn,
 } from "../kit/motion";
-import { Caption, captionBeats, ChapterCard, chapterIntroBeats, Cursor, TypingDots } from "../kit/ui";
-import { fontFamily } from "../kit/fonts";
+import { Caption, captionBeats, ChapterCard, chapterIntroBeats, Cursor, StageBackdrop, TypeOn, TypingDots } from "../kit/ui";
+import { fontFamily, monoFamily } from "../kit/fonts";
 
 const USER1 = "Devo ricaricare lungo la A1 verso Milano";
 const WORDS = USER1.split(" ");
@@ -68,6 +73,15 @@ const CAM_RESET2 = t.add(0.8, "<");
 t.hold(0.6);
 export const RICARICA_DURATION = t.total;
 
+// Finestra di digitazione del campo input (D3.3): dall'avvio delle parole alla loro fine.
+const TYPE_INPUT: Beat = { start: WORDS_IN.start, dur: WORDS_END - WORDS_IN.start, end: WORDS_END };
+// Finestre di QUIETE camera (D2.7): il frame si ferma sui due payoff — la card stazione
+// (reveal generativo) e la card ricarica. Passate a cameraAt E al Cursor (o si desincronizza).
+const CALMS: Beat[] = [
+  { start: STATION.start, dur: STATS.end - STATION.start, end: STATS.end },
+  { start: CHARGE.start, dur: BATT.end - CHARGE.start, end: BATT.end },
+];
+
 // ── Geometria del telefono ───────────────────────────────────────────────────
 const PHONE = { w: 380, h: 823, x: (1920 - 380) / 2, y: (1080 - 823) / 2 + 10 };
 const P = {
@@ -75,12 +89,14 @@ const P = {
   book: { x: 960, y: PHONE.y + 640 },
 };
 const SHOTS = [
-  { at: CAM_INPUT.end, from: CAM_INPUT.start, ...shotOn(960, PHONE.y + PHONE.h - 40, 1.3) },
-  { at: CAM_SEND.end, from: CAM_SEND.start, ...shotOn(P.send.x, P.send.y, 1.24) },
-  { at: CAM_RESET1.end, from: CAM_RESET1.start, x: 0, y: 0, scale: 1 },
-  { at: CAM_BOOK.end, from: CAM_BOOK.start, ...shotOn(P.book.x, P.book.y, 1.08) },
-  { at: CAM_CHARGE.end, from: CAM_CHARGE.start, ...shotOn(960, PHONE.y + 500, 1.14) },
-  { at: CAM_RESET2.end, from: CAM_RESET2.start, x: 0, y: 0, scale: 1 },
+  // Push-in / reframe verso un soggetto → EASE_CAMERA_IN (attacco+settle, D2.2).
+  { at: CAM_INPUT.end, from: CAM_INPUT.start, ...shotOn(960, PHONE.y + PHONE.h - 40, 1.3), ease: EASE_CAMERA_IN },
+  { at: CAM_SEND.end, from: CAM_SEND.start, ...shotOn(P.send.x, P.send.y, 1.24), ease: EASE_CAMERA_IN },
+  // Reset a neutro → EASE_CAMERA_OUT (rilascio + decelerazione morbida).
+  { at: CAM_RESET1.end, from: CAM_RESET1.start, x: 0, y: 0, scale: 1, ease: EASE_CAMERA_OUT },
+  { at: CAM_BOOK.end, from: CAM_BOOK.start, ...shotOn(P.book.x, P.book.y, 1.08), ease: EASE_CAMERA_IN },
+  { at: CAM_CHARGE.end, from: CAM_CHARGE.start, ...shotOn(960, PHONE.y + 500, 1.14), ease: EASE_CAMERA_IN },
+  { at: CAM_RESET2.end, from: CAM_RESET2.start, x: 0, y: 0, scale: 1, ease: EASE_CAMERA_OUT },
 ];
 
 const STATION_STATS = [
@@ -95,6 +111,7 @@ const fmtEur = new Intl.NumberFormat("it-IT", { minimumFractionDigits: 2, maximu
 export const Ricarica: React.FC = () => {
   const frame = useCurrentFrame();
   const bgDim = 1 - 0.55 * prog(frame, STATION, EASE_IN_SCENE) + 0.55 * prog(frame, CAM_RESET2, EASE_CAMERA); // rackFocus griglia
+  const gridDim = Math.max(0.45, Math.min(1, bgDim)); // rack-focus applicato ai due piani-griglia
   const threadY = -262 * prog(frame, SCROLL2, EASE_CAMERA) - 62 * prog(frame, SCROLL3, EASE_CAMERA);
   const wordsVisible = frame >= WORDS_IN.start && frame < WORDS_OUT.end;
   const wordsOutP = prog(frame, WORDS_OUT, EASE_OUT_SCENE);
@@ -118,16 +135,36 @@ export const Ricarica: React.FC = () => {
 
   return (
     <AbsoluteFill style={{ backgroundColor: C.background, fontFamily }}>
-      {/* griglia mappa di sfondo (rack-focus target) */}
-      <AbsoluteFill
+      {/* Set illuminato: fondale ambientale (D1.1), primo figlio NON trasformato. */}
+      <StageBackdrop />
+      {/* Griglia-mappa come PLATE materica sdoppiata in profondità (D2.4): il piano
+          LONTANO si muove meno (parallax 0.62, cella fine, alpha ~.05), il VICINO di più
+          (0.28, cella larga, alpha ~.08). Montati FUORI dalla camera → parallax legge la
+          sola posa: nessun drift da fermi. Il rack-focus (gridDim) li smorza quando la card
+          stazione prende il fuoco. */}
+      <div
         style={{
-          opacity: Math.max(0.45, Math.min(1, bgDim)),
+          position: "absolute",
+          inset: "-14%",
+          ...parallax(frame, SHOTS, 0.62),
+          opacity: gridDim,
           backgroundImage:
-            "linear-gradient(rgba(132,204,22,0.07) 1px, transparent 1px), linear-gradient(90deg, rgba(132,204,22,0.07) 1px, transparent 1px)",
-          backgroundSize: "32px 32px",
+            "linear-gradient(rgba(132,204,22,0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(132,204,22,0.05) 1px, transparent 1px)",
+          backgroundSize: "40px 40px",
         }}
       />
-      <AbsoluteFill style={cameraAt(frame, SHOTS, [PRESS_SEND, PRESS_BOOK])}>
+      <div
+        style={{
+          position: "absolute",
+          inset: "-14%",
+          ...parallax(frame, SHOTS, 0.28),
+          opacity: gridDim,
+          backgroundImage:
+            "linear-gradient(rgba(132,204,22,0.08) 1px, transparent 1px), linear-gradient(90deg, rgba(132,204,22,0.08) 1px, transparent 1px)",
+          backgroundSize: "80px 80px",
+        }}
+      />
+      <AbsoluteFill style={cameraAt(frame, SHOTS, [PRESS_SEND, PRESS_BOOK], CALMS)}>
         {/* PHONE */}
         <div style={{ position: "absolute", left: PHONE.x, top: PHONE.y, width: PHONE.w, height: PHONE.h, borderRadius: 42, border: `5px solid ${C.border}`, backgroundColor: C.surface2, boxShadow: "0 24px 60px rgba(2,6,23,0.18)" }}>
           <div style={{ position: "absolute", top: 0, left: "50%", transform: "translateX(-50%)", width: 80, height: 20, borderBottomLeftRadius: 16, borderBottomRightRadius: 16, backgroundColor: C.surface2, zIndex: 20 }} />
@@ -157,7 +194,7 @@ export const Ricarica: React.FC = () => {
                 )}
                 {/* CARD STAZIONE generativa */}
                 {frame >= STATION.start ? (
-                  <div style={{ ...enter(frame, STATION, { y: 18, anticipate: true }), border: `1px solid ${C.border}`, backgroundColor: C.surface, borderRadius: 16, overflow: "hidden" }}>
+                  <div style={{ ...enter(frame, STATION, { y: 18, anticipate: true, blur: 3, scaleFrom: 0.97 }), border: `1px solid ${C.border}`, backgroundColor: C.surface, borderRadius: 16, overflow: "hidden" }}>
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 12px" }}>
                       <span>
                         <span style={{ display: "block", fontSize: 13, fontWeight: 600 }}>Hub Ultra-Rapido · A1</span>
@@ -205,8 +242,12 @@ export const Ricarica: React.FC = () => {
                       })}
                     </div>
                     <div style={{ padding: 10 }}>
-                      <div style={{ ...pressButton(frame, PRESS_BOOK, 0.94), backgroundColor: C.accent, color: C.accentContrast, borderRadius: 12, padding: "9px 0", textAlign: "center", fontSize: 13, fontWeight: 700 }}>
-                        Prenota lo stallo
+                      {/* hoverBloom sul WRAPPER (anello+lift), pressButton sul bottone interno:
+                          i transform si compongono senza conflitto (D5.6). */}
+                      <div style={{ borderRadius: 12, ...hoverBloom(frame, PRESS_BOOK) }}>
+                        <div style={{ ...pressButton(frame, PRESS_BOOK, 0.94), backgroundColor: C.accent, color: C.accentContrast, borderRadius: 12, padding: "9px 0", textAlign: "center", fontSize: 13, fontWeight: 700 }}>
+                          Prenota lo stallo
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -222,7 +263,7 @@ export const Ricarica: React.FC = () => {
                         150 kW
                       </span>
                     </div>
-                    <div style={{ color: C.accentInk, fontFamily: "monospace", fontSize: 26, fontWeight: 700, marginTop: 6, transform: `scale(${pctPulse})`, transformOrigin: "left center", display: "inline-block" }}>
+                    <div style={{ color: C.accentInk, fontFamily: monoFamily, fontSize: 26, fontWeight: 700, marginTop: 6, transform: `scale(${pctPulse})`, transformOrigin: "left center", display: "inline-block" }}>
                       {Math.round(20 + 60 * battP)}%
                     </div>
                     <div style={{ height: 16, borderRadius: 999, backgroundColor: C.surface2, marginTop: 6, overflow: "hidden" }}>
@@ -237,7 +278,7 @@ export const Ricarica: React.FC = () => {
                         [`${Math.round(18 * prog(frame, BATT, EASE_CAMERA))} min`, "Durata"],
                       ].map(([valx, lab]) => (
                         <div key={lab} style={{ flex: 1, backgroundColor: C.surface2, borderRadius: 12, padding: "8px 0", textAlign: "center" }}>
-                          <div style={{ fontFamily: "monospace", fontSize: 15, fontWeight: 700 }}>{valx}</div>
+                          <div style={{ fontFamily: monoFamily, fontSize: 15, fontWeight: 700 }}>{valx}</div>
                           <div style={{ fontSize: 10.5, color: C.muted }}>{lab}</div>
                         </div>
                       ))}
@@ -252,20 +293,17 @@ export const Ricarica: React.FC = () => {
               <div style={{ flex: 1, minHeight: 34, backgroundColor: C.surface2, borderRadius: 16, padding: "7px 12px", position: "relative", overflow: "hidden" }}>
                 <span style={{ position: "absolute", color: C.muted, fontSize: 13, opacity: wordsVisible ? 0 : 1 }}>Scrivi all'assistente…</span>
                 {wordsVisible ? (
-                  <span style={{ fontSize: 12, color: C.foreground, opacity: 1 - wordsOutP }}>
-                    {WORDS.map((w, i) => {
-                      const b = { start: WORDS_IN.start + s2f(0.19) * i, dur: WORDS_IN.dur, end: WORDS_IN.end + s2f(0.19) * i };
-                      return (
-                        <span key={i} style={{ display: "inline-block", opacity: prog(frame, b, EASE_IN_SCENE), transform: `translateY(${4 * (1 - prog(frame, b, EASE_IN_SCENE))}px)`, marginRight: 3 }}>
-                          {w}
-                        </span>
-                      );
-                    })}
+                  <span style={{ display: "inline-block", opacity: 1 - wordsOutP }}>
+                    {/* Type-on con CARET lime (D3.3): scatti per carattere, poi caret idle. */}
+                    <TypeOn text={USER1} beat={TYPE_INPUT} size={12} color={C.foreground} idle={0.9} />
                   </span>
                 ) : null}
               </div>
-              <div style={{ width: 34, height: 34, borderRadius: 999, backgroundColor: C.accent, color: C.accentContrast, display: "flex", alignItems: "center", justifyContent: "center", ...pressButton(frame, PRESS_SEND, 0.86) }}>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M3 11l18-8-8 18-2.5-7.5L3 11z" /></svg>
+              {/* hoverBloom sul WRAPPER (anello lime + lift), pressButton sul bottone interno. */}
+              <div style={{ display: "flex", borderRadius: 999, ...hoverBloom(frame, PRESS_SEND) }}>
+                <div style={{ width: 34, height: 34, borderRadius: 999, backgroundColor: C.accent, color: C.accentContrast, display: "flex", alignItems: "center", justifyContent: "center", ...pressButton(frame, PRESS_SEND, 0.86) }}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M3 11l18-8-8 18-2.5-7.5L3 11z" /></svg>
+                </div>
               </div>
             </div>
           </div>
@@ -275,6 +313,7 @@ export const Ricarica: React.FC = () => {
       <Cursor
         shots={SHOTS}
         clicks={[PRESS_SEND, PRESS_BOOK]}
+        calms={CALMS}
         moves={[
           { beat: CUR_SEND, ...P.send, mode: "hand" },
           { beat: CUR_BOOK, ...P.book, mode: "hand" },
@@ -284,7 +323,7 @@ export const Ricarica: React.FC = () => {
 
       <Caption beats={SAY1}>Trova la colonnina giusta sul tuo percorso.</Caption>
       <Caption beats={SAY2}>Prenota lo stallo e segue tempi e costi in tempo reale.</Caption>
-      <ChapterCard title="App con assistente AI integrato" subtitle="Un'app con assistente AI integrato." beats={CARD} />
+      <ChapterCard title="App con assistente AI integrato" subtitle="Un'app con assistente AI integrato." beats={CARD} index={6} />
     </AbsoluteFill>
   );
 };

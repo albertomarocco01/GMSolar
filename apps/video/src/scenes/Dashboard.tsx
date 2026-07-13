@@ -9,15 +9,19 @@ import React from "react";
 import { AbsoluteFill, Img, staticFile, useCurrentFrame } from "remotion";
 import { C, SHADOW } from "../kit/tokens";
 import {
+  Beat,
   cameraAt,
   countUp,
   drawPath,
   DUR,
   EASE_CAMERA,
+  EASE_CAMERA_IN,
+  EASE_CAMERA_OUT,
   EASE_IN_SCENE,
   EASE_OUT_SCENE,
   EASE_SNAP,
   enter,
+  hoverBloom,
   maskReveal,
   pressButton,
   prog,
@@ -27,7 +31,7 @@ import {
   typeInset,
   whip,
 } from "../kit/motion";
-import { Caption, captionBeats, ChapterCard, chapterIntroBeats, Cursor, DeviceFrame, FRAME, Odometer } from "../kit/ui";
+import { Caption, captionBeats, ChapterCard, chapterIntroBeats, Cursor, DeviceFrame, FRAME, Odometer, StageBackdrop } from "../kit/ui";
 import { fontFamily } from "../kit/fonts";
 
 const fmtInt = new Intl.NumberFormat("it-IT", { maximumFractionDigits: 0 });
@@ -64,7 +68,7 @@ const TRACK1 = t.add(1.0, -0.6);
 const SAY2 = captionBeats(t);
 t.hold(0.4);
 const CUR_ADD = t.add(1.0);
-const PRESS_ADD = t.add(0.28, 0.1);
+const PRESS_ADD = t.add(0.28, 0.2); // gap ~6f: telegrafo hoverBloom pulito (cursore già sul bottone)
 const MODAL_IN = t.add(DUR.beat, -0.05);
 const CAM_MODAL = t.add(DUR.beat);
 t.hold(0.7);
@@ -73,7 +77,7 @@ const TYPE_PREZZO = t.add(1.0, 0.3);
 const FOTO_IN = t.add(DUR.beat, 0.2);
 t.hold(0.7);
 const CUR_SAVE = t.add(DUR.beat);
-const PRESS_SAVE = t.add(0.28, 0.1);
+const PRESS_SAVE = t.add(0.28, 0.2); // gap ~6f: telegrafo hoverBloom pulito (cursore già sul bottone)
 const MODAL_OUT = t.add(DUR.micro);
 const CAM_RESET2 = t.add(DUR.beat, "<");
 const NEWCARD = t.add(DUR.beat, -0.1);
@@ -133,8 +137,15 @@ const SHOTS = [
   { at: CAM_PUB.end, from: CAM_PUB.start, ...shotOn(P.publish.x, P.publish.y, 1.4) },
   { at: CAM_RESET1.end, from: CAM_RESET1.start, x: 0, y: 0, scale: 1 },
   { at: CAM_MODAL.end, from: CAM_MODAL.start, ...shotOn(960, 540, 1.18) },
-  { at: CAM_RESET2.end, from: CAM_RESET2.start, x: 0, y: 0, scale: 1 },
-  { at: CAM_KPI.end, from: CAM_KPI.start, ...shotOn(FRAME.x + SIDE_W + 560, FRAME.y + 220, 1.15) },
+  // D2.6 — CAM_RESET2 ritargettato: inquadra brevemente la griglia catalogo Prodotti,
+  // poi un micro-push (attacco EASE_CAMERA_IN) sulla NEWCARD che spunta, infine rilascio a
+  // neutro (EASE_CAMERA_OUT) prima che il track scorra verso Visite.
+  { at: NEWCARD.start - s2f(0.1), from: CAM_RESET2.start, ...shotOn(FRAME.x + SIDE_W + 520, FRAME.y + 300, 1.14) },
+  { at: NEWCARD.end + s2f(0.1), from: NEWCARD.start, ease: EASE_CAMERA_IN, ...shotOn(FRAME.x + SIDE_W + 400, FRAME.y + 380, 1.22) },
+  { at: NEWCARD.end + s2f(1.0), from: NEWCARD.end + s2f(0.3), ease: EASE_CAMERA_OUT, x: 0, y: 0, scale: 1 },
+  // D2.6 — CAM_KPI: push ANTICIPATO (arriva a ~0.8s) e HOLD fermo a 1.4 mentre gli odometri
+  // rotolano — è il payoff, il frame deve sentirsi bloccato. Attacco EASE_CAMERA_IN.
+  { at: CAM_KPI.start + s2f(0.8), from: CAM_KPI.start, ease: EASE_CAMERA_IN, ...shotOn(FRAME.x + SIDE_W + 560, FRAME.y + 220, 1.4) },
   { at: CAM_RESET3.end, from: CAM_RESET3.start, x: 0, y: 0, scale: 1 },
 ];
 
@@ -188,6 +199,22 @@ const chip = (s: string): React.CSSProperties => ({
   fontWeight: 600,
 });
 
+/**
+ * D1.3 — underglow ONE-SHOT: la card BIANCA "si accende" mentre il numero rotola e
+ * raggiunge il picco quando atterra, poi si spegne. glow = rise*(1-fall) keyato al beat
+ * di conteggio (COUNT_KPI / ORD_COUNT); picco alpha ≤0.30; luce lime SOLO via boxShadow
+ * (SHADOW.glow-style su accentStrong) → NON tocca il backgroundColor (nessun override del bg).
+ */
+const cardGlow = (frame: number, countBeat: Beat): React.CSSProperties => {
+  const rise = prog(frame, countBeat, EASE_IN_SCENE);
+  const fall = prog(frame, { start: countBeat.end, dur: s2f(0.8), end: countBeat.end + s2f(0.8) }, EASE_OUT_SCENE);
+  const glow = rise * (1 - fall);
+  if (glow <= 0.01) return {};
+  const a = (0.3 * glow).toFixed(3);
+  // base card-shadow + glow lime sotto (accentStrong #65a30d, come SHADOW.glow)
+  return { boxShadow: `0 1px 2px rgba(2,6,23,0.05), 0 10px 24px -6px rgba(101,163,13,${a})` };
+};
+
 export const Dashboard: React.FC = () => {
   const frame = useCurrentFrame();
 
@@ -206,7 +233,9 @@ export const Dashboard: React.FC = () => {
 
   return (
     <AbsoluteFill style={{ backgroundColor: C.surface }}>
-      <AbsoluteFill style={cameraAt(frame, SHOTS, [PRESS_HERO, PRESS_REPL, PRESS_PUB, PRESS_ADD, PRESS_SAVE, PRESS_ORD])}>
+      {/* D1.1 — fondale del set illuminato: PRIMO figlio, FUORI dal layer camera (match-cut standard). */}
+      <StageBackdrop />
+      <AbsoluteFill style={cameraAt(frame, SHOTS, [PRESS_HERO, PRESS_REPL, PRESS_PUB, PRESS_ADD, PRESS_SAVE, PRESS_ORD], [COUNT_KPI])}>
         <AbsoluteFill style={whipStyle}>
           <DeviceFrame>
             {/* SIDEBAR */}
@@ -310,8 +339,11 @@ export const Dashboard: React.FC = () => {
                         </div>
                         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "auto" }}>
                           <span style={{ fontSize: 12, color: C.muted }}>Stato: <b>Pubblicata</b></span>
-                          <div style={pressButton(frame, PRESS_PUB, 0.93)}>
-                            <span style={{ backgroundColor: C.accent, color: C.accentContrast, borderRadius: 8, padding: "8px 18px", fontSize: 14, fontWeight: 600 }}>Pubblica</span>
+                          {/* D5.6 — hoverBloom (anello+lift) sul WRAPPER, pressButton (scale) sull'INTERNO. */}
+                          <div style={{ borderRadius: 8, ...hoverBloom(frame, PRESS_PUB) }}>
+                            <div style={pressButton(frame, PRESS_PUB, 0.93)}>
+                              <span style={{ backgroundColor: C.accent, color: C.accentContrast, borderRadius: 8, padding: "8px 18px", fontSize: 14, fontWeight: 600 }}>Pubblica</span>
+                            </div>
                           </div>
                         </div>
                         {toastP > 0.01 && frame < TRACK1.start ? (
@@ -326,8 +358,11 @@ export const Dashboard: React.FC = () => {
                   <div style={{ width: "25%", padding: 24, display: "flex", flexDirection: "column", gap: 18 }}>
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                       <span style={{ fontWeight: 600, fontSize: 18 }}>Catalogo prodotti</span>
-                      <div style={pressButton(frame, PRESS_ADD, 0.93)}>
-                        <span style={{ backgroundColor: C.accent, color: C.accentContrast, borderRadius: 8, padding: "8px 16px", fontSize: 14, fontWeight: 600 }}>+ Aggiungi prodotto</span>
+                      {/* D5.6 — hoverBloom sul wrapper, pressButton sull'interno. */}
+                      <div style={{ borderRadius: 8, ...hoverBloom(frame, PRESS_ADD) }}>
+                        <div style={pressButton(frame, PRESS_ADD, 0.93)}>
+                          <span style={{ backgroundColor: C.accent, color: C.accentContrast, borderRadius: 8, padding: "8px 16px", fontSize: 14, fontWeight: 600 }}>+ Aggiungi prodotto</span>
+                        </div>
                       </div>
                     </div>
                     <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 14 }}>
@@ -356,7 +391,7 @@ export const Dashboard: React.FC = () => {
                       {KPI.map(([lab, target, trend], i) => {
                         const b = { start: KPI_IN.start + s2f(0.1) * i, dur: KPI_IN.dur, end: KPI_IN.end + s2f(0.1) * i };
                         return (
-                          <div key={lab} style={{ ...cardBox, backgroundColor: C.background, padding: 14, ...enter(frame, b, { y: 20, anticipate: true }) }}>
+                          <div key={lab} style={{ ...cardBox, backgroundColor: C.background, padding: 14, ...enter(frame, b, { y: 20, blur: 4, scaleFrom: 0.965, anticipate: true }), ...cardGlow(frame, COUNT_KPI) }}>
                             <div style={label(11)}>{lab}</div>
                             <div style={{ marginTop: 4 }}>
                               <Odometer
@@ -425,7 +460,7 @@ export const Dashboard: React.FC = () => {
                       {([["Ordini del mese", 24, (n: number) => fmtInt.format(Math.round(n))], ["In lavorazione", 3, (n: number) => fmtInt.format(Math.round(n))], ["Incasso periodo", 16889, (n: number) => `${fmtInt.format(Math.round(n))} €`]] as const).map(([lab, target, fmt], i) => {
                         const b = { start: ORD_STATS.start + s2f(0.08) * i, dur: ORD_STATS.dur, end: ORD_STATS.end + s2f(0.08) * i };
                         return (
-                          <div key={lab} style={{ ...cardBox, backgroundColor: C.background, padding: 14, ...enter(frame, b, { y: 14, anticipate: true }) }}>
+                          <div key={lab} style={{ ...cardBox, backgroundColor: C.background, padding: 14, ...enter(frame, b, { y: 14, blur: 4, scaleFrom: 0.965, anticipate: true }), ...cardGlow(frame, ORD_COUNT) }}>
                             <div style={label(11)}>{lab}</div>
                             <div style={{ color: C.accentInk, fontFamily, fontWeight: 700, fontSize: 24, fontVariantNumeric: "tabular-nums", marginTop: 4 }}>{countUp(frame, ORD_COUNT, target, fmt)}</div>
                           </div>
@@ -485,8 +520,11 @@ export const Dashboard: React.FC = () => {
                     <Img src={staticFile("assets/products/cavo-spiralato.jpg")} style={{ width: 44, height: 44, borderRadius: 8, objectFit: "cover", border: `1px solid ${C.border}` }} />
                     <span style={{ fontSize: 13, color: C.muted }}>cavo-spiralato.jpg</span>
                   </div>
-                  <div style={{ marginTop: 18, ...pressButton(frame, PRESS_SAVE, 0.93) }}>
-                    <div style={{ backgroundColor: C.accent, color: C.accentContrast, borderRadius: 8, padding: "10px 0", textAlign: "center", fontSize: 15, fontWeight: 600 }}>Salva prodotto</div>
+                  {/* D5.6 — hoverBloom sul wrapper, pressButton sull'interno. */}
+                  <div style={{ marginTop: 18, borderRadius: 8, ...hoverBloom(frame, PRESS_SAVE) }}>
+                    <div style={pressButton(frame, PRESS_SAVE, 0.93)}>
+                      <div style={{ backgroundColor: C.accent, color: C.accentContrast, borderRadius: 8, padding: "10px 0", textAlign: "center", fontSize: 15, fontWeight: 600 }}>Salva prodotto</div>
+                    </div>
                   </div>
                 </div>
               </AbsoluteFill>
@@ -498,6 +536,7 @@ export const Dashboard: React.FC = () => {
       <Cursor
         shots={SHOTS}
         clicks={[PRESS_HERO, PRESS_REPL, PRESS_PUB, PRESS_ADD, PRESS_SAVE, PRESS_ORD]}
+        calms={[COUNT_KPI]}
         moves={[
           { beat: CUR_HERO, ...P.heroRow, mode: "hand" },
           { beat: CUR_REPL, ...P.replace, mode: "hand" },
@@ -518,7 +557,7 @@ export const Dashboard: React.FC = () => {
       <Caption beats={SAY2}>Il catalogo prodotti: aggiungi e aggiorni in un click.</Caption>
       <Caption beats={SAY3}>Visite, utenti e conversioni, sempre aggiornati.</Caption>
       <Caption beats={SAY4}>Gli ordini, con data e canale, in un'unica vista.</Caption>
-      <ChapterCard title="Dashboard" subtitle="La dashboard: il tuo business, in tempo reale." beats={CARD} />
+      <ChapterCard title="Dashboard" subtitle="La dashboard: il tuo business, in tempo reale." beats={CARD} index={3} />
     </AbsoluteFill>
   );
 };

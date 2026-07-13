@@ -8,8 +8,8 @@
 import React from "react";
 import { AbsoluteFill, interpolate, useCurrentFrame } from "remotion";
 import { C, SHADOW } from "../kit/tokens";
-import { cameraAt, DUR, EASE_IN_SCENE, EASE_SNAP, enter, prog, s2f, seq, shotOn } from "../kit/motion";
-import { Caption, captionBeats, ChapterCard, chapterIntroBeats, Cursor } from "../kit/ui";
+import { cameraAt, DUR, EASE_CAMERA_IN, EASE_CAMERA_OUT, EASE_IN_SCENE, EASE_SNAP, enter, hoverBloom, prog, s2f, seq, shotOn } from "../kit/motion";
+import { Caption, captionBeats, ChapterCard, chapterIntroBeats, Cursor, StageBackdrop } from "../kit/ui";
 import { fontFamily } from "../kit/fonts";
 import {
   Airtable,
@@ -77,10 +77,10 @@ const ROWS: BrandIcon[][] = [
 ];
 
 const SHOTS = [
-  { at: PAN.end, from: PAN.start, x: -16, y: 0, scale: 1 }, // contro-pan lieve
-  { at: PUNCH.end, from: PUNCH.start, ...shotOn(WA_POS.x, WA_POS.y, 1.45) }, // punch WhatsApp
-  { at: PUSH.end, from: PUSH.start, ...shotOn(960, 540, 1.5) }, // push-in sulla chat (centrata)
-  { at: RESET.end, from: RESET.start, x: 0, y: 0, scale: 1 }, // pull-back
+  { at: PAN.end, from: PAN.start, x: -16, y: 0, scale: 1 }, // contro-pan lieve (traversata continua → EASE_CAMERA)
+  { at: PUNCH.end, from: PUNCH.start, ...shotOn(WA_POS.x, WA_POS.y, 1.45), ease: EASE_CAMERA_IN }, // punch WhatsApp (D2.2: peso in ingresso)
+  { at: PUSH.end, from: PUSH.start, ...shotOn(960, 540, 1.5), ease: EASE_CAMERA_IN }, // push-in lento sulla chat (D2.2)
+  { at: RESET.end, from: RESET.start, x: 0, y: 0, scale: 1, ease: EASE_CAMERA_OUT }, // pull-back/reset (D2.2: rilascio deciso)
 ];
 
 const CHAT = {
@@ -103,15 +103,51 @@ export const Integrazioni: React.FC = () => {
   const frame = useCurrentFrame();
   const panP = interpolate(frame, [PAN.start, PAN.end], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
   const dimP = prog(frame, DIM, EASE_IN_SCENE);
-  const rackP = prog(frame, CHAT_IN, EASE_IN_SCENE); // il wall dietro perde fuoco all'apertura chat
+  // D2.1 — rack-focus SIMMETRICO: sale all'apertura chat (CHAT_IN) e RITORNA a 0 alla
+  // chiusura (CHAT_OUT). Fix del bug latente per cui il wall restava dimmato/soft dopo
+  // la chiusura della chat (prima rackP non decadeva mai).
+  const rackP = prog(frame, CHAT_IN, EASE_IN_SCENE) * (1 - prog(frame, CHAT_OUT, EASE_IN_SCENE));
+  // D5.8 — bloom lime dietro la tile WhatsApp al punch camera; DECADE all'apertura chat.
+  const bloomP = prog(frame, PUNCH, EASE_IN_SCENE) * (1 - prog(frame, CHAT_IN, EASE_IN_SCENE));
   const chatP = prog(frame, CHAT_IN, EASE_SNAP) * (1 - prog(frame, CHAT_OUT, EASE_IN_SCENE));
   const typingP = prog(frame, TYPING_IN, EASE_IN_SCENE) * (1 - prog(frame, TYPING_OUT, EASE_IN_SCENE));
 
+  // D2.1 — stile del WALL con DOF REALE: opacity soft + blur ≤10px HARD-GATED sotto
+  // rackP<0.01 (niente layer blur(0): il blur è rasterizzato nei 10 sample del motion-blur).
+  const wallStyle: React.CSSProperties = {
+    opacity: 1 - 0.22 * rackP,
+    transform: `scale(${1 - 0.015 * rackP})`,
+    transformOrigin: "50% 50%",
+  };
+  if (rackP > 0.01) wallStyle.filter = `blur(${Math.min(10, 10 * rackP).toFixed(2)}px)`;
+
   return (
     <AbsoluteFill style={{ backgroundColor: C.background, fontFamily }}>
-      <AbsoluteFill style={cameraAt(frame, SHOTS, [PRESS_WA])}>
-        {/* WALL loghi (rack-focus dietro la chat) */}
-        <AbsoluteFill style={{ opacity: 1 - 0.45 * rackP, transform: `scale(${1 - 0.015 * rackP})`, transformOrigin: "50% 50%" }}>
+      {/* Set illuminato (D1.1): PRIMO figlio NON trasformato, FUORI dalla camera. */}
+      <StageBackdrop />
+      <AbsoluteFill style={cameraAt(frame, SHOTS, [PRESS_WA], [CHAT_IN])}>
+        {/* D5.8 — bloom lime dietro la tile WhatsApp: LUCE (non pannello frosted) dietro un
+            oggetto quasi bianco. Sibling DIETRO il wall, dentro la camera → scala col punch. */}
+        {bloomP > 0.01 ? (
+          <div
+            aria-hidden
+            style={{
+              position: "absolute",
+              left: WA_POS.x,
+              top: WA_POS.y,
+              width: 420,
+              height: 420,
+              marginLeft: -210,
+              marginTop: -210,
+              borderRadius: "50%",
+              background: "radial-gradient(circle, rgba(132,204,22,0.42) 0%, rgba(132,204,22,0) 68%)",
+              opacity: bloomP,
+              pointerEvents: "none",
+            }}
+          />
+        ) : null}
+        {/* WALL loghi (rack-focus DOF reale dietro la chat) */}
+        <AbsoluteFill style={wallStyle}>
           {ROWS.map((row, r) => {
             const rowX = (8 * rowDir(r) - 16 * rowDir(r) * panP) / 100; // frazione della larghezza riga
             return (
@@ -124,8 +160,31 @@ export const Integrazioni: React.FC = () => {
                   // float continuo (solo tile non-protagoniste), così il cursore resta esatto su WhatsApp
                   const bob = isWA ? 0 : 6 * Math.sin((frame / 96) * Math.PI * 2 + c * 0.5 + r * 0.3);
                   const op = (0.35 + 0.65 * p) * (isWA ? 1 : 1 - 0.55 * dimP);
+                  // D5.6 — hoverBloom SOLO come boxShadow (anello lime telegrafo) sulla tile WA al
+                  // press: NON tocca il transform → il cursore resta ESATTO sulla tile al click.
+                  const hb = isWA ? hoverBloom(frame, PRESS_WA) : null;
+                  const hbShadow = hb?.boxShadow;
+                  const baseShadow = "0 1px 3px rgba(2,6,23,0.06)";
                   return (
-                    <div key={icon.title} style={{ width: TILE, height: TILE, flexShrink: 0, borderRadius: 22, border: `1px solid ${C.border}`, backgroundColor: C.surface, boxShadow: "0 1px 3px rgba(2,6,23,0.06)", display: "flex", alignItems: "center", justifyContent: "center", opacity: Math.min(1, op), transform: `translateY(${bob}px) scale(${0.6 + 0.4 * p})` }}>
+                    <div
+                      key={icon.title}
+                      style={{
+                        width: TILE,
+                        height: TILE,
+                        flexShrink: 0,
+                        borderRadius: 22,
+                        border: `1px solid ${C.border}`,
+                        backgroundColor: C.surface,
+                        boxShadow: hbShadow ? `${baseShadow}, ${hbShadow}` : baseShadow,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        opacity: Math.min(1, op),
+                        transform: `translateY(${bob}px) scale(${0.6 + 0.4 * p})`,
+                        // D5.8 — desatura il campo non-WA sulla stessa dim progress (WA resta a colori).
+                        ...(!isWA && dimP > 0.01 ? { filter: `grayscale(${dimP.toFixed(3)})` } : {}),
+                      }}
+                    >
                       <Logo icon={icon} size={52} />
                     </div>
                   );
@@ -186,12 +245,13 @@ export const Integrazioni: React.FC = () => {
       <Cursor
         shots={SHOTS}
         clicks={[PRESS_WA]}
+        calms={[CHAT_IN]}
         moves={[{ beat: CUR_WA, ...WA_POS, mode: "hand" }]}
         hideAfter={{ start: CHAT_IN.start, dur: s2f(0.3), end: CHAT_IN.start + s2f(0.3) }}
       />
 
       <Caption beats={SAY1}>Per esempio: le notifiche ti arrivano su WhatsApp.</Caption>
-      <ChapterCard title="Integrazioni" subtitle="Ci integriamo con i sistemi di tutti i giorni." beats={CARD} />
+      <ChapterCard title="Integrazioni" subtitle="Ci integriamo con i sistemi di tutti i giorni." beats={CARD} index={7} />
     </AbsoluteFill>
   );
 };

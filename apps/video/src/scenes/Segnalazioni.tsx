@@ -15,21 +15,23 @@ import {
   cameraAt,
   DUR,
   EASE_CAMERA,
+  EASE_CAMERA_IN,
+  EASE_CAMERA_OUT,
   EASE_IN_SCENE,
   EASE_OUT_SCENE,
   EASE_SNAP,
   enter,
+  hoverBloom,
   maskReveal,
   pressButton,
   prog,
   s2f,
   seq,
   shotOn,
-  typeInset,
   whip,
 } from "../kit/motion";
-import { Caption, captionBeats, Cursor, DeviceFrame, FRAME } from "../kit/ui";
-import { fontFamily } from "../kit/fonts";
+import { Caption, captionBeats, Cursor, DeviceFrame, FRAME, StageBackdrop, TypeOn } from "../kit/ui";
+import { fontFamily, monoFamily } from "../kit/fonts";
 
 // ── Timeline ─────────────────────────────────────────────────────────────────
 const t = seq();
@@ -39,7 +41,9 @@ const OPEN = t.add(0.7);
 // ① punch camera + click «Segnala un problema»
 const CAM_BTN = t.add(DUR.beat);
 const CUR_BTN = t.add(1.0);
-const PRESS_BTN = t.add(0.45, 0.15);
+// gap 6f prima del press = LEAD di hoverBloom (D5.6): il telegrafo entra tutto nel
+// finestrino pre-click col cursore già posato sul bottone.
+const PRESS_BTN = t.add(0.45, 0.2);
 // ② drawer entra, pagina auto, descrizione digitata, invia
 const DRAWER_IN = t.add(1.0, -0.05);
 const CAM_RESET1 = t.add(0.8, "<");
@@ -80,12 +84,13 @@ const P = {
   ticket: { x: FRAME.x + SIDE_W + 420, y: FRAME.y + 235 },
 };
 const SHOTS = [
-  { at: CAM_BTN.end, from: CAM_BTN.start, ...shotOn(P.btn.x, P.btn.y, 1.4) },
-  { at: CAM_RESET1.end, from: CAM_RESET1.start, x: 0, y: 0, scale: 1 },
-  { at: CAM_TYPE.start + s2f(0.3), from: CAM_TYPE.start, ...shotOn(P.desc.x, P.desc.y, 1.22) },
-  { at: CAM_RESET2.end, from: CAM_RESET2.start, x: 0, y: 0, scale: 1 },
-  { at: CAM_FIX.end, from: CAM_FIX.start, ...shotOn(P.ticket.x, P.ticket.y, 1.3) },
-  { at: CAM_RESET3.end, from: CAM_RESET3.start, x: 0, y: 0, scale: 1 },
+  // push-IN (peso, attacco lento + settle) vs reset (rilascio deciso, ease-out) — D2.2
+  { at: CAM_BTN.end, from: CAM_BTN.start, ...shotOn(P.btn.x, P.btn.y, 1.4), ease: EASE_CAMERA_IN },
+  { at: CAM_RESET1.end, from: CAM_RESET1.start, x: 0, y: 0, scale: 1, ease: EASE_CAMERA_OUT },
+  { at: CAM_TYPE.start + s2f(0.3), from: CAM_TYPE.start, ...shotOn(P.desc.x, P.desc.y, 1.22), ease: EASE_CAMERA_IN },
+  { at: CAM_RESET2.end, from: CAM_RESET2.start, x: 0, y: 0, scale: 1, ease: EASE_CAMERA_OUT },
+  { at: CAM_FIX.end, from: CAM_FIX.start, ...shotOn(P.ticket.x, P.ticket.y, 1.3), ease: EASE_CAMERA_IN },
+  { at: CAM_RESET3.end, from: CAM_RESET3.start, x: 0, y: 0, scale: 1, ease: EASE_CAMERA_OUT },
 ];
 
 // ── Dati ─────────────────────────────────────────────────────────────────────
@@ -129,7 +134,10 @@ export const Segnalazioni: React.FC = () => {
 
   return (
     <AbsoluteFill style={{ backgroundColor: C.surface }}>
-      <AbsoluteFill style={cameraAt(frame, SHOTS, [PRESS_BTN, PRESS_SEND])}>
+      {/* Set illuminato: primo figlio NON trasformato (fuori dal layer camera), come Dashboard. */}
+      <StageBackdrop />
+      {/* calms={[NEW_FLIP]} (D2.7): il frame si acquieta sul payoff del flip/fix. */}
+      <AbsoluteFill style={cameraAt(frame, SHOTS, [PRESS_BTN, PRESS_SEND], [NEW_FLIP])}>
         <AbsoluteFill style={whipStyle}>
           <DeviceFrame>
             {/* SIDEBAR — identica alla Dashboard, indicatore mobile + 5ª voce che cresce */}
@@ -157,7 +165,8 @@ export const Segnalazioni: React.FC = () => {
                 <span style={{ fontSize: 14, fontWeight: 600, color: C.muted }}>3 siti connessi</span>
                 {/* Il bottone entra nel beat OPEN (al taglio l'angolo topbar resta pulito). */}
                 <div style={{ marginLeft: "auto", opacity: openP, ...pressButton(frame, PRESS_BTN, 0.93) }}>
-                  <span style={{ display: "inline-flex", alignItems: "center", gap: 7, backgroundColor: C.accentSoft, color: C.accentInk, borderRadius: 999, padding: "6px 16px", fontSize: 14, fontWeight: 600 }}>⚠ Segnala un problema</span>
+                  {/* hoverBloom sul pill (D5.6): anello lime + micro-lift; pressButton resta sul wrapper → i transform si compongono via DOM, mira intatta. */}
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: 7, backgroundColor: C.accentSoft, color: C.accentInk, borderRadius: 999, padding: "6px 16px", fontSize: 14, fontWeight: 600, ...hoverBloom(frame, PRESS_BTN) }}>⚠ Segnala un problema</span>
                 </div>
               </div>
               {/* TRACK 200%: Contenuti → Segnalazioni */}
@@ -168,7 +177,7 @@ export const Segnalazioni: React.FC = () => {
                     <div style={{ transform: `translateX(${(1 - openP) * 48}px)`, opacity: openP }}>
                       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
                         <span style={{ fontWeight: 600, fontSize: 18 }}>Contenuti del sito</span>
-                        <span style={{ fontSize: 13, color: C.muted, fontFamily: "monospace" }}>gmsolar.it/dashboard/contenuti</span>
+                        <span style={{ fontSize: 13, color: C.muted, fontFamily: monoFamily }}>gmsolar.it/dashboard/contenuti</span>
                       </div>
                       <div style={{ display: "grid", gridTemplateColumns: "280px 1fr", gap: 16, marginTop: 16 }}>
                         <div style={{ ...cardBox, padding: 14 }}>
@@ -215,7 +224,7 @@ export const Segnalazioni: React.FC = () => {
                         <span>Stato</span>
                       </div>
                       {/* NUOVO TICKET */}
-                      <div style={{ display: "grid", gridTemplateColumns: GRID, gap: 12, padding: "12px 16px", alignItems: "center", borderTop: `1px solid ${C.border}`, backgroundColor: "rgba(132,204,22,0.06)", ...enter(frame, NEWTICKET, { y: 16, anticipate: true }) }}>
+                      <div style={{ display: "grid", gridTemplateColumns: GRID, gap: 12, padding: "12px 16px", alignItems: "center", borderTop: `1px solid ${C.border}`, backgroundColor: "rgba(132,204,22,0.06)", ...enter(frame, NEWTICKET, { y: 16, anticipate: true, blur: 4, scaleFrom: 0.965 }) }}>
                         <div style={{ position: "relative", width: 34, height: 34, borderRadius: 8, overflow: "hidden", backgroundColor: C.surface2, border: `1px solid ${C.border}` }}>
                           <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, color: C.muted }}>🖼</div>
                           <div style={{ position: "absolute", inset: 0, ...maskReveal(frame, IMG_FIX, { dir: "l" }) }}>
@@ -224,7 +233,7 @@ export const Segnalazioni: React.FC = () => {
                         </div>
                         <div style={{ minWidth: 0 }}>
                           <div style={{ fontSize: 14, fontWeight: 600 }}>Immagine hero non si carica</div>
-                          <div style={{ fontSize: 12, color: C.muted, fontFamily: "monospace" }}>gmsolar.it/dashboard/contenuti</div>
+                          <div style={{ fontSize: 12, color: C.muted, fontFamily: monoFamily }}>gmsolar.it/dashboard/contenuti</div>
                         </div>
                         <span style={{ fontSize: 13, color: C.muted }}>Oggi</span>
                         <span style={{ position: "relative", display: "inline-grid", perspective: 400 }}>
@@ -238,7 +247,7 @@ export const Segnalazioni: React.FC = () => {
                           <div style={{ width: 34, height: 34, borderRadius: 8, backgroundColor: STATO[stato].bg, color: STATO[stato].fg, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 15 }}>{STATO[stato].icon}</div>
                           <div style={{ minWidth: 0 }}>
                             <div style={{ fontSize: 14, fontWeight: 500 }}>{obj}</div>
-                            <div style={{ fontSize: 12, color: C.muted, fontFamily: "monospace" }}>{page}</div>
+                            <div style={{ fontSize: 12, color: C.muted, fontFamily: monoFamily }}>{page}</div>
                           </div>
                           <span style={{ fontSize: 13, color: C.muted }}>{date}</span>
                           <span><span style={chip(stato)}><span style={{ width: 6, height: 6, borderRadius: 999, backgroundColor: STATO[stato].dot }} />{stato}</span></span>
@@ -261,18 +270,20 @@ export const Segnalazioni: React.FC = () => {
                   <div>
                     <div style={label()}>Pagina</div>
                     <div style={{ display: "flex", alignItems: "center", gap: 8, ...cardBox, backgroundColor: C.surface2, padding: "10px 12px", marginTop: 6, transform: `scale(${pageZoom})` }}>
-                      <span style={{ fontFamily: "monospace", fontSize: 13, flex: 1 }}>gmsolar.it/dashboard/contenuti</span>
+                      <span style={{ fontFamily: monoFamily, fontSize: 13, flex: 1 }}>gmsolar.it/dashboard/contenuti</span>
                       <span style={{ backgroundColor: C.accentSoft, color: C.accentInk, borderRadius: 999, padding: "3px 10px", fontSize: 11, fontWeight: 600, whiteSpace: "nowrap" }}>Rilevata in automatico ✓</span>
                     </div>
                   </div>
                   <div>
                     <div style={label()}>Descrizione</div>
                     <div style={{ ...cardBox, backgroundColor: C.background, padding: "12px 14px", marginTop: 6, minHeight: 84, overflow: "hidden" }}>
-                      <span style={{ fontSize: 15, fontWeight: 500, whiteSpace: "nowrap", display: "inline-block", ...typeInset(frame, TYPE_DESC, 35) }}>L'immagine della hero non si carica</span>
+                      {/* type-on con caret lime (D3.3), stesso beat TYPE_DESC del typeInset precedente. */}
+                      <TypeOn text="L'immagine della hero non si carica" beat={TYPE_DESC} size={15} weight={500} />
                     </div>
                   </div>
                   <div style={{ alignSelf: "flex-start", ...pressButton(frame, PRESS_SEND, 0.94) }}>
-                    <span style={{ backgroundColor: C.accent, color: C.accentContrast, borderRadius: 10, padding: "11px 22px", fontSize: 15, fontWeight: 600 }}>Invia segnalazione</span>
+                    {/* hoverBloom telegrafa il click (D5.6); pressButton sul wrapper, transform compositi. */}
+                    <span style={{ backgroundColor: C.accent, color: C.accentContrast, borderRadius: 10, padding: "11px 22px", fontSize: 15, fontWeight: 600, ...hoverBloom(frame, PRESS_SEND) }}>Invia segnalazione</span>
                   </div>
                 </div>
               </div>
@@ -292,6 +303,7 @@ export const Segnalazioni: React.FC = () => {
       <Cursor
         shots={SHOTS}
         clicks={[PRESS_BTN, PRESS_SEND]}
+        calms={[NEW_FLIP]}
         moves={[
           { beat: CUR_BTN, ...P.btn, mode: "hand" },
           { beat: { ...TYPE_DESC, end: TYPE_DESC.start + s2f(0.3), dur: s2f(0.3) }, ...P.desc, mode: "text" },
