@@ -39,7 +39,7 @@ export const DotsTexture: React.FC<{ opacity?: number }> = ({ opacity = 0.2 }) =
  * -0.2) → hold → uscita compatta (0.6s, velo+contenuto salgono e sfumano).
  * Ritorna i beat da passare a <ChapterCard>. `holdSeconds` default = DUR.hold.
  */
-export function chapterIntroBeats(t: ReturnType<typeof seq>, holdSeconds = DUR.hold) {
+export function chapterIntroBeats(t: ReturnType<typeof seq>, holdSeconds: number = DUR.hold) {
   const title = t.add(DUR.scene);
   const sub = t.add(DUR.beat, -0.2);
   const out = t.add(DUR.beat, holdSeconds);
