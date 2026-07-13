@@ -127,7 +127,7 @@ export const Ricarica: React.FC = () => {
           backgroundSize: "32px 32px",
         }}
       />
-      <AbsoluteFill style={cameraAt(frame, SHOTS)}>
+      <AbsoluteFill style={cameraAt(frame, SHOTS, [PRESS_SEND, PRESS_BOOK])}>
         {/* PHONE */}
         <div style={{ position: "absolute", left: PHONE.x, top: PHONE.y, width: PHONE.w, height: PHONE.h, borderRadius: 42, border: `5px solid ${C.border}`, backgroundColor: C.surface2, boxShadow: "0 24px 60px rgba(2,6,23,0.18)" }}>
           <div style={{ position: "absolute", top: 0, left: "50%", transform: "translateX(-50%)", width: 80, height: 20, borderBottomLeftRadius: 16, borderBottomRightRadius: 16, backgroundColor: C.surface2, zIndex: 20 }} />

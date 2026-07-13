@@ -21,8 +21,18 @@ export const EASE_IN_SCENE = Easing.bezier(0.16, 1, 0.3, 1);
 export const EASE_OUT_SCENE = Easing.in(Easing.quad);
 /** Micro-interazioni: overshoot & settle (GSAP back.out(1.6)). */
 export const EASE_SNAP = Easing.out(Easing.back(1.6));
+/** Ladder di overshoot (D0.1): SOFT per lo staggering di routine (rimbalzo appena
+ *  percepibile), HERO riservato ai due flip-firma. Regola: back(1.6) ai beat-firma,
+ *  back(1.8) ai flip hero, back(1.1) al resto — mai doppio-rimbalzo. */
+export const EASE_SNAP_SOFT = Easing.out(Easing.back(1.1));
+export const EASE_SNAP_HERO = Easing.out(Easing.back(1.8));
 /** Camera e traversate continue: morbida, simmetrica, MAI back (GSAP power1.inOut). */
 export const EASE_CAMERA = Easing.inOut(Easing.quad);
+/** Camera ASIMMETRICA (D0.2): IN = attacco lento-deciso + lungo settle (peso);
+ *  OUT = rilascio deciso + decelerazione morbida (ease-out vero). Tag per posa via
+ *  CameraShot.ease; il cursore eredita (screenPoint legge lo stesso next.ease). */
+export const EASE_CAMERA_IN = Easing.bezier(0.45, 0, 0.15, 1);
+export const EASE_CAMERA_OUT = Easing.bezier(0.33, 0, 0, 1);
 
 /** Scala di durate IN SECONDI (identica a DUR del kit web). */
 export const DUR = {
@@ -110,16 +120,21 @@ export function val(
 export function enter(
   frame: number,
   beat: Beat,
-  opts: { y?: number; anticipate?: boolean } = {},
+  opts: { y?: number; anticipate?: boolean; snap?: number; blur?: number; scaleFrom?: number } = {},
 ): React.CSSProperties {
-  const { y = 24, anticipate } = opts;
-  const ease = anticipate ? EASE_SNAP : EASE_IN_SCENE;
-  const p = prog(frame, beat, ease);
-  // opacity con ease dolce separata: l'overshoot di EASE_SNAP non deve portare opacity >1
+  const { y = 24, anticipate, snap, blur = 0, scaleFrom = 1 } = opts;
+  // L'overshoot vive SOLO sulla posizione (transform). opacity, scala e blur girano
+  // su un track MONOTONO (EASE_IN_SCENE) → scala risolve a 1.0 e opacity a 1 senza
+  // rimbalzo (niente flash >1, niente "resolve-into-focus" che sfarfalla). D0.1.
+  const posEase = snap != null ? Easing.out(Easing.back(snap)) : anticipate ? EASE_SNAP : EASE_IN_SCENE;
+  const p = prog(frame, beat, posEase);
   const alpha = prog(frame, beat, EASE_IN_SCENE);
+  const yOff = (1 - p) * (anticipate ? y * 1.25 : y);
+  const scale = scaleFrom + (1 - scaleFrom) * alpha;
   return {
     opacity: alpha,
-    transform: `translateY(${(1 - p) * (anticipate ? y * 1.25 : y)}px)`,
+    transform: scale === 1 ? `translateY(${yOff}px)` : `translateY(${yOff}px) scale(${scale})`,
+    ...(blur > 0 ? { filter: `blur(${(1 - alpha) * blur}px)` } : {}),
   };
 }
 
@@ -194,6 +209,48 @@ export function pressButton(frame: number, beat: Beat, downScale = 0.94): React.
   return { transform: `scale(${scale})` };
 }
 
+/** Accent lime del brand (de-brandizzato) #84CC16 in canale RGB — per gli FX luce. */
+const ACCENT_RGB = "132, 204, 22";
+
+/**
+ * HOVER-BLOOM / telegrafo pre-click (D5.6): apre un piccolo "gap di hover" nei
+ * ~6 frame PRIMA che parta un press beat, così l'occhio anticipa il click. È un
+ * segnale QUIETO — più sommesso del ripple post-click:
+ *   • un anello accent SOFT a raggio FISSO ~5px (NESSUNA espansione: solo l'alpha
+ *     sale, al contrario del ripple che si allarga dopo il click);
+ *   • un micro-lift di -2px (translateY) + una leggera ombra di elevazione.
+ *
+ * Ritorna React.CSSProperties. Per COMPORLO con `pressButton` (che ritorna un
+ * `transform: scale`) senza conflitti: applica `hoverBloom` su un WRAPPER e
+ * `pressButton` sul bottone interno — i due transform si compongono via DOM. In
+ * alternativa, su un elemento condiviso, usa solo il `boxShadow` di hoverBloom
+ * (anello + ombra, che NON toccano il transform) e lascia il transform a
+ * pressButton. Finestra e rilascio sono deterministici (pura funzione del frame);
+ * fuori dalla finestra ritorna uno stile vuoto.
+ */
+export function hoverBloom(frame: number, pressBeat: Beat): React.CSSProperties {
+  const LEAD = 6; // frame di telegrafo prima del click
+  const TAIL = 3; // breve handoff dopo lo start (subentra il ripple di pressButton)
+  const start = pressBeat.start;
+  let e: number;
+  if (frame <= start - LEAD || frame >= start + TAIL) {
+    e = 0;
+  } else if (frame < start) {
+    e = EASE_IN_SCENE((frame - (start - LEAD)) / LEAD); // rampa in 0→1 pre-click
+  } else {
+    e = 1 - (frame - start) / TAIL; // rilascio 1→0 subito dopo lo start
+  }
+  e = Math.max(0, Math.min(1, e));
+  if (e <= 0) return {};
+  const ringAlpha = 0.35 * e; // quieto: molto sotto il ripple post-click
+  const elevAlpha = 0.14 * e;
+  return {
+    // anello a raggio FISSO 5px (no espansione) + ombra di elevazione soft
+    boxShadow: `0 0 0 5px rgba(${ACCENT_RGB}, ${ringAlpha}), 0 ${4 * e}px ${10 * e}px rgba(15, 23, 42, ${elevAlpha})`,
+    transform: `translateY(${-2 * e}px)`, // micro-lift; su elemento condiviso vedi JSDoc
+  };
+}
+
 /**
  * Digitazione "macchina da scrivere" (typeInField del kit): quanti caratteri di
  * `text` mostrare al frame corrente, a scatti (steps).
@@ -231,16 +288,45 @@ export function drawPath(frame: number, beat: Beat) {
 }
 
 /**
- * WHIP-PAN sui cambi pannello (cameraWhip del kit): burst xPercent ±3 +
- * skewX ±1.2 che finisce neutro. dir "r" = pannello successivo.
+ * Velocità NORMALIZZATA (0..1) dello slide orizzontale del track su un beat.
+ * Differenza finita centrata del progresso `prog(frame, beat, ease)` (velocità
+ * per-frame), normalizzata campionando il PICCO sul beat → ease-agnostica: vale 1
+ * al massimo slide (~metà per una ease simmetrica) e ~0 al settle e fuori dal
+ * beat (lì `prog` è clampato, quindi la differenza finita è nulla). Deterministica.
+ */
+function slideVelocity(frame: number, beat: Beat, ease: Ease): number {
+  const speedAt = (f: number) => Math.abs(prog(f + 0.5, beat, ease) - prog(f - 0.5, beat, ease));
+  let peak = 1e-6;
+  for (let f = beat.start; f <= beat.end; f++) peak = Math.max(peak, speedAt(f));
+  return Math.min(1, speedAt(frame) / peak);
+}
+
+/**
+ * WHIP-PAN velocity-matched (D4.2) sui cambi pannello (cameraWhip del kit).
+ *
+ * Burst (translateX + skewX) e smear (blur) NON seguono più una curva fissa: sono
+ * guidati dalla VELOCITÀ NORMALIZZATA dello slide orizzontale del track — il
+ * modulo della derivata a differenze finite di `prog(frame, beat, EASE_CAMERA)`
+ * normalizzato a picco=1. Così lo smear culmina a METÀ slide (velocità massima) e
+ * si annulla al settle, a prescindere dall'ease. Il blur è ∝ velocità, cappato a
+ * 4px, ed è X-ONLY per costruzione: l'unico moto è orizzontale (translateX +
+ * skewX), mai su Y.
+ *
+ * IMPORTANTE: applicare il risultato SOLO all'elemento TRACK che scorre — MAI al
+ * wrapper che contiene una sidebar fissa, altrimenti sfocheresti anche la sidebar
+ * ferma (il blur è un `filter` isotropo di CSS: tienilo sul solo track in moto).
+ * Backward-compatible: si spreada in uno style come prima — `{...whip(f, b, "r")}`
+ * o `style={whip(f, b, "r")}`. dir "r" = pannello successivo.
  */
 export function whip(frame: number, beat: Beat, dir: "l" | "r"): React.CSSProperties {
   const sign = dir === "r" ? -1 : 1;
-  const half = Math.max(1, Math.floor(beat.dur / 2));
-  const inP = prog(frame, { start: beat.start, dur: half, end: beat.start + half }, Easing.in(Easing.exp));
-  const outP = prog(frame, { start: beat.start + half, dur: half, end: beat.end }, Easing.out(Easing.exp));
-  const k = inP * (1 - outP);
-  return { transform: `translateX(${3 * sign * k}%) skewX(${1.2 * sign * k}deg)` };
+  const v = slideVelocity(frame, beat, EASE_CAMERA); // 0..1, picco a metà slide
+  const style: React.CSSProperties = {
+    transform: `translateX(${3 * sign * v}%) skewX(${1.2 * sign * v}deg)`,
+  };
+  const blur = Math.min(4, 4 * v); // px, cap ≤4; X-only (il moto è solo orizzontale)
+  if (blur > 0.05) style.filter = `blur(${blur}px)`;
+  return style;
 }
 
 // ── CAMERA (porting del layer .imm-camera) ───────────────────────────────────
@@ -264,7 +350,69 @@ export type CamValues = { x: number; y: number; scale: number };
  * (che vive FUORI dal layer camera) possa trasformare il suo punto-target con
  * la STESSA matrice → atterra sempre esatto sul bottone anche a camera zoomata.
  */
-export function cameraValues(frame: number, shots: CameraShot[]): CamValues {
+/**
+ * Camera-respiro permanente: micro-drift + pulsazione di scala, così la camera
+ * non è MAI perfettamente ferma (toglie la staticità da screenshot). Applicato
+ * dentro cameraValues → sia la resa (cameraAt) sia la proiezione del cursore
+ * (screenPoint) lo condividono, quindi il cursore resta allineato ai bottoni.
+ * L'overscan costante (0.012) dà spazio al drift senza mai scoprire i bordi.
+ */
+function cameraBreath(frame: number): { dx: number; dy: number; dsSine: number } {
+  return {
+    dx: 5 * Math.sin((frame / 95) * Math.PI * 2),
+    dy: 4 * Math.sin((frame / 115) * Math.PI * 2 + 1),
+    // SOLO la parte sinusoidale (l'overscan costante vive in cameraValues, non smorzabile).
+    dsSine: 0.006 * (0.5 + 0.5 * Math.sin((frame / 75) * Math.PI * 2)),
+  };
+}
+
+/**
+ * Envelope di IMMOBILITÀ (D0.3): dentro (e a ridosso di) una finestra reveal la
+ * camera si acquieta — smorza SOLO il respiro sinusoidale (dx/dy/dsSine), MAI il
+ * kick, MAI l'overscan costante. Raised-cosine, rampa 0.35s, pavimento 0.25 (il
+ * frame si ferma *davvero* sul pagamento senza scatti al rientro del respiro).
+ */
+const CALM_FLOOR = 0.25;
+function cameraCalm(frame: number, calms: Beat[]): number {
+  const RAMP = s2f(0.35);
+  let damp = 1;
+  for (const cb of calms) {
+    if (frame < cb.start - RAMP || frame > cb.end + RAMP) continue;
+    const e = frame < cb.start ? (frame - (cb.start - RAMP)) / RAMP : frame > cb.end ? (cb.end + RAMP - frame) / RAMP : 1;
+    const env = 0.5 - 0.5 * Math.cos(Math.PI * Math.max(0, Math.min(1, e)));
+    damp = Math.min(damp, 1 - (1 - CALM_FLOOR) * env);
+  }
+  return damp;
+}
+
+/**
+ * SCREEN-KICK: micro scossa che decade all'istante del click (impatto tattile,
+ * stile AE). Guidata dagli STESSI beat di click passati al cursore → contenuto e
+ * cursore si scuotono insieme, quindi la mira resta esatta sul bottone.
+ */
+function cameraKick(frame: number, kicks: Beat[]): { kx: number; ky: number } {
+  for (const cb of kicks) {
+    const t0 = cb.end; // impatto al rilascio del bottone
+    const dur = s2f(0.28);
+    if (frame >= t0 && frame <= t0 + dur) {
+      const q = (frame - t0) / dur; // 0..1
+      const decay = (1 - q) * (1 - q);
+      return { kx: 5 * decay * Math.sin(q * Math.PI * 6), ky: 4 * decay * Math.cos(q * Math.PI * 5) };
+    }
+  }
+  return { kx: 0, ky: 0 };
+}
+
+/**
+ * POSA della camera al frame (D2.4): SOLO l'interpolazione tra pose successive
+ * (EASE_CAMERA, o `CameraShot.ease` per posa), SENZA respiro/kick/overscan. È la
+ * base "pulita" del movimento — `cameraValues` la usa e ci somma respiro + kick +
+ * overscan, quindi il suo output resta IDENTICO (il cursore continua a proiettare
+ * con la STESSA matrice → invariante intatta). Estratta per i layer di PARALLASSE,
+ * che devono muoversi con la sola posa (mai col respiro) per non driftare da
+ * fermi. Funzione pura del frame.
+ */
+export function cameraPose(frame: number, shots: CameraShot[]): CamValues {
   const all: CameraShot[] = [{ at: 0, x: 0, y: 0, scale: 1 }, ...shots];
   let prev = all[0];
   let next: CameraShot | null = null;
@@ -280,8 +428,8 @@ export function cameraValues(frame: number, shots: CameraShot[]): CamValues {
   let scale = prev.scale;
   if (next) {
     // Il movimento non può iniziare PRIMA che la posa precedente sia raggiunta
-    // (cameraAt fonde solo due pose per volta): clamp a prev.at evita lo scatto
-    // di un frame quando due shot si sovrappongono (from < prev.at).
+    // (si fondono solo due pose per volta): clamp a prev.at evita lo scatto di un
+    // frame quando due shot si sovrappongono (from < prev.at).
     const from = Math.max(next.from ?? prev.at, prev.at);
     const p = interpolate(frame, [from, Math.max(from + 1, next.at)], [0, 1], {
       extrapolateLeft: "clamp",
@@ -292,7 +440,20 @@ export function cameraValues(frame: number, shots: CameraShot[]): CamValues {
     y = prev.y + (next.y - prev.y) * p;
     scale = prev.scale + (next.scale - prev.scale) * p;
   }
-  return { x, y, scale: Math.min(1.7, Math.max(1, scale)) };
+  return { x, y, scale };
+}
+
+export function cameraValues(frame: number, shots: CameraShot[], kicks: Beat[] = [], calms: Beat[] = []): CamValues {
+  const pose = cameraPose(frame, shots);
+  const b = cameraBreath(frame);
+  const damp = cameraCalm(frame, calms);
+  const k = cameraKick(frame, kicks);
+  const OVERSCAN = 0.016; // costante, non smorzabile: spazio per drift (±5) + kick (±5)
+  return {
+    x: pose.x + b.dx * damp + k.kx,
+    y: pose.y + b.dy * damp + k.ky,
+    scale: Math.min(1.7, Math.max(1, pose.scale + OVERSCAN + b.dsSine * damp)),
+  };
 }
 
 /**
@@ -317,8 +478,8 @@ export function screenPoint(
 /**
  * Stato camera al frame come stile CSS (transform). Wrappa `cameraValues`.
  */
-export function cameraAt(frame: number, shots: CameraShot[]): React.CSSProperties {
-  const { x, y, scale } = cameraValues(frame, shots);
+export function cameraAt(frame: number, shots: CameraShot[], kicks: Beat[] = [], calms: Beat[] = []): React.CSSProperties {
+  const { x, y, scale } = cameraValues(frame, shots, kicks, calms);
   return {
     transform: `translate(${x}px, ${y}px) scale(${scale})`,
     transformOrigin: "50% 50%",
@@ -345,4 +506,34 @@ export function shotOn(
   x = Math.min(maxX, Math.max(-maxX, x));
   y = Math.min(maxY, Math.max(-maxY, y));
   return { x, y, scale: S };
+}
+
+/**
+ * PARALLASSE (D2.4): trasforma un LAYER (fondale/primo piano) a una data
+ * profondità `depth` (0..1), così che si muova come FRAZIONE della sola posa
+ * camera (translate) + un delta di scala ridotto. depth basso = si muove DI PIÙ
+ * (frazione ~1, quasi incollato al contenuto principale); depth alto = si muove DI
+ * MENO fino a restare fermo su schermo (frazione ~0, fondale "lontano") → è lo
+ * scarto rispetto al layer principale a dare la parallasse.
+ *
+ * Derivato STRETTAMENTE da `cameraPose` (NON da `cameraValues`): così i layer di
+ * parallasse NON driftano da fermi — il respiro muove solo l'intero frame (via
+ * cameraAt), non i singoli piani. Funzione pura del frame.
+ *
+ * Nota (solo-firma): pensato per PLATE materiche — es. una griglia di stazioni o
+ * un doppio-logo con texture — invisibile su fondi piatti e uniformi. Da applicare
+ * a un layer FUORI dal transform camera (sibling del `.imm-camera`), non annidato,
+ * per evitare il doppio conteggio della posa.
+ */
+export function parallax(frame: number, shots: CameraShot[], depth: number): React.CSSProperties {
+  const d = Math.max(0, Math.min(1, depth));
+  const factor = 1 - d; // depth basso → si muove di più
+  const pose = cameraPose(frame, shots);
+  const px = pose.x * factor;
+  const py = pose.y * factor;
+  const scale = 1 + (pose.scale - 1) * factor; // delta di scala ridotto
+  return {
+    transform: `translate(${px}px, ${py}px) scale(${scale})`,
+    transformOrigin: "50% 50%",
+  };
 }

@@ -27,7 +27,7 @@ import {
   typeInset,
   whip,
 } from "../kit/motion";
-import { Caption, captionBeats, ChapterCard, chapterIntroBeats, Cursor, DeviceFrame, FRAME } from "../kit/ui";
+import { Caption, captionBeats, ChapterCard, chapterIntroBeats, Cursor, DeviceFrame, FRAME, Odometer } from "../kit/ui";
 import { fontFamily } from "../kit/fonts";
 
 const fmtInt = new Intl.NumberFormat("it-IT", { maximumFractionDigits: 0 });
@@ -111,13 +111,15 @@ export const DASHBOARD_DURATION = t.total;
 
 // ── Coordinate e camera ──────────────────────────────────────────────────────
 const SIDE_W = 250;
+const NAV_H = 44; // altezza esplicita di ogni voce nav (layout deterministico)
+const NAV_TOP = 78; // 22 padding-top + 32 logo row + 24 margine sotto logo
 const NAV_ITEMS = ["Contenuti", "Prodotti", "Visite", "Ordini"];
-const navY = (i: number) => FRAME.y + 96 + i * 52;
+const navY = (i: number) => FRAME.y + NAV_TOP + i * NAV_H;
 const P = {
   heroRow: { x: FRAME.x + SIDE_W + 190, y: FRAME.y + 220 },
   replace: { x: FRAME.x + SIDE_W + 424, y: FRAME.y + 543 },
   publish: { x: FRAME.x + SIDE_W + 1056, y: FRAME.y + 820 },
-  nav: (i: number) => ({ x: FRAME.x + 125, y: navY(i) + 20 }),
+  nav: (i: number) => ({ x: FRAME.x + 125, y: navY(i) + NAV_H / 2 }),
   add: { x: FRAME.x + SIDE_W + 1000, y: FRAME.y + 120 },
   formNome: { x: 960, y: 440 },
   formPrezzo: { x: 960, y: 530 },
@@ -204,18 +206,18 @@ export const Dashboard: React.FC = () => {
 
   return (
     <AbsoluteFill style={{ backgroundColor: C.surface }}>
-      <AbsoluteFill style={cameraAt(frame, SHOTS)}>
+      <AbsoluteFill style={cameraAt(frame, SHOTS, [PRESS_HERO, PRESS_REPL, PRESS_PUB, PRESS_ADD, PRESS_SAVE, PRESS_ORD])}>
         <AbsoluteFill style={whipStyle}>
           <DeviceFrame>
             {/* SIDEBAR */}
             <div style={{ width: SIDE_W, flexShrink: 0, borderRight: `1px solid ${C.border}`, backgroundColor: C.surface, padding: "22px 16px", position: "relative" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 26, paddingLeft: 8 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 10, height: 32, marginBottom: 24, paddingLeft: 8 }}>
                 <div style={{ width: 18, height: 18, borderRadius: 5, backgroundColor: C.accent }} />
                 <span style={{ fontWeight: 600, fontSize: 17 }}>Dashboard</span>
               </div>
-              <div style={{ position: "absolute", left: 16, right: 16, top: indY - FRAME.y - 8, height: 44, borderRadius: 10, backgroundColor: C.accentSoft, transition: "none" }} />
+              <div style={{ position: "absolute", left: 16, right: 16, top: indY - FRAME.y, height: NAV_H, borderRadius: 10, backgroundColor: C.accentSoft, transition: "none" }} />
               {NAV_ITEMS.map((v, i) => (
-                <div key={v} style={{ position: "relative", padding: "11px 14px", fontSize: 16, color: i === navIndex ? C.foreground : C.muted, fontWeight: i === navIndex ? 600 : 400 }}>
+                <div key={v} style={{ position: "relative", height: NAV_H, display: "flex", alignItems: "center", padding: "0 14px", fontSize: 16, color: i === navIndex ? C.foreground : C.muted, fontWeight: i === navIndex ? 600 : 400 }}>
                   {v}
                 </div>
               ))}
@@ -356,8 +358,13 @@ export const Dashboard: React.FC = () => {
                         return (
                           <div key={lab} style={{ ...cardBox, backgroundColor: C.background, padding: 14, ...enter(frame, b, { y: 20, anticipate: true }) }}>
                             <div style={label(11)}>{lab}</div>
-                            <div style={{ color: C.accentInk, fontFamily, fontWeight: 700, fontSize: 26, fontVariantNumeric: "tabular-nums", marginTop: 4 }}>
-                              {i === 3 ? fmtTempo(Number(countUp(frame, COUNT_KPI, target as number))) : countUp(frame, COUNT_KPI, target as number, (n) => fmtInt.format(Math.round(n)))}
+                            <div style={{ marginTop: 4 }}>
+                              <Odometer
+                                text={i === 3 ? fmtTempo(target as number) : fmtInt.format(target as number)}
+                                p={prog(frame, COUNT_KPI, EASE_IN_SCENE)}
+                                size={26}
+                                color={C.accentInk}
+                              />
                             </div>
                             <div style={{ fontSize: 12, color: String(trend).startsWith("▲") ? C.accentInk : C.muted, marginTop: 2 }}>{trend}</div>
                           </div>

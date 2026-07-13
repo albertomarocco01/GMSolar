@@ -4,8 +4,8 @@
  * contestuale, SceneShell (hand-off scena→scena), trama a puntini accent.
  */
 import React from "react";
-import { AbsoluteFill, useCurrentFrame, interpolate } from "remotion";
-import { C } from "./tokens";
+import { AbsoluteFill, useCurrentFrame, interpolate, getRemotionEnvironment, Easing } from "remotion";
+import { C, SHADOW } from "./tokens";
 import {
   Beat,
   CameraShot,
@@ -21,7 +21,11 @@ import {
   screenPoint,
   seq,
 } from "./motion";
-import { fontFamily } from "./fonts";
+import { fontFamily, monoFamily } from "./fonts";
+
+/** Atterraggio gentile per-carattere della ChapterCard (D3.1): back(1.15), MAI
+ *  EASE_SNAP 1.6 — l'overshoot vive solo sulla posizione (grammatica D0.1). */
+const EASE_CHAR = Easing.out(Easing.back(1.15));
 
 /** Trama a puntini accent tenue (pattern di ChapterCard/ClosingScene web). */
 export const DotsTexture: React.FC<{ opacity?: number }> = ({ opacity = 0.2 }) => (
@@ -30,6 +34,31 @@ export const DotsTexture: React.FC<{ opacity?: number }> = ({ opacity = 0.2 }) =
       opacity,
       backgroundImage: `radial-gradient(rgba(132,204,22,0.2) 1.6px, transparent 2.2px)`,
       backgroundSize: "22px 22px",
+    }}
+  />
+);
+
+// ── StageBackdrop (D1.1) ──────────────────────────────────────────────────────
+
+/**
+ * Fondale del "set illuminato": va montato come PRIMO figlio NON trasformato della
+ * scena (FUORI dal layer camera) così eredita gratis il parallasse dal respiro
+ * dell'intero frame. È il piano su cui poggia il device.
+ *
+ * Composizione (deterministica, nessun frame):
+ *   • radiale neutro-FREDDO #fff → #eef2f7 → #e6ecf4 (la luce d'ambiente del set);
+ *   • un rimbalzo lime LARGO e BASSO ad alpha bassissima (≤0.06) sotto il centro —
+ *     luce di rimbalzo, non tinta: neutro, niente cast verde, il #fff resta #fff.
+ */
+export const StageBackdrop: React.FC = () => (
+  <AbsoluteFill
+    style={{
+      background: [
+        // rimbalzo lime: largo, basso, alpha ≤0.06 → percepito come luce, non colore
+        "radial-gradient(120% 62% at 50% 118%, rgba(132,204,22,0.055) 0%, rgba(132,204,22,0.02) 34%, rgba(132,204,22,0) 62%)",
+        // ambiente neutro-freddo
+        "radial-gradient(150% 120% at 50% 38%, #ffffff 0%, #eef2f7 60%, #e6ecf4 100%)",
+      ].join(", "),
     }}
   />
 );
@@ -55,13 +84,56 @@ export const ChapterCard: React.FC<{
   beats: { title: Beat; sub: Beat; out: Beat };
   /** offset verticale del blocco interno (px), es. -48 nella scena video */
   lift?: number;
-}> = ({ title, subtitle, beats, lift = 0 }) => {
+  /** indice capitolo 1..7 (D3.1): accende eyebrow `0N — 07`, hairline + dot lime e
+   *  il bloom lime sulla plate. Se assente → card classica (nessuna plate). */
+  index?: number;
+}> = ({ title, subtitle, beats, lift = 0, index }) => {
   const frame = useCurrentFrame();
   const outP = prog(frame, beats.out, EASE_OUT_SCENE);
   if (outP >= 1) return null;
   const subP = prog(frame, beats.sub, EASE_IN_SCENE);
-  // anticipazione del titolo: micro offset x contro il verso del wipe (EASE_SNAP)
-  const antX = -8 * (1 - prog(frame, beats.title, EASE_SNAP));
+  const subMask = maskReveal(frame, beats.sub, { dir: "b" }); // masked-rise: wipe verso l'alto
+
+  // Progresso "globale" del titolo (0→1) per tracking-settle, eyebrow e bloom.
+  const titleP = prog(frame, beats.title, EASE_IN_SCENE);
+  const titlePos = prog(frame, beats.title, EASE_CHAR); // rise dell'eyebrow, back(1.15)
+  // Tracking-settle: letter-spacing 0.06em → -0.03em mentre il titolo si risolve.
+  const tracking = (0.06 - 0.09 * titleP).toFixed(4);
+
+  // Kinetic typography: ogni lettera entra sfalsata. Grammatica D0.1 — l'overshoot
+  // (back 1.15) vive SOLO sulla posizione; opacity e blur su track monotono.
+  const STAG = s2f(0.035);
+  let ci = 0;
+  const words = title.split(" ").map((word, wi) => {
+    const spans = word.split("").map((ch) => {
+      const b = { start: beats.title.start + ci * STAG, dur: beats.title.dur, end: beats.title.end + ci * STAG };
+      const alphaP = prog(frame, b, EASE_IN_SCENE);
+      const posP = prog(frame, b, EASE_CHAR);
+      ci += 1;
+      return (
+        <span
+          key={ci}
+          style={{ display: "inline-block", opacity: alphaP, transform: `translateY(${24 * (1 - posP)}px)`, filter: `blur(${9 * (1 - alphaP)}px)`, willChange: "transform, filter, opacity" }}
+        >
+          {ch}
+        </span>
+      );
+    });
+    return (
+      <span key={wi} style={{ display: "inline-block", whiteSpace: "nowrap" }}>
+        {spans}
+      </span>
+    );
+  });
+
+  // Bloom lime sulla plate (D3.1): gonfia mentre il titolo si risolve, poi si posa.
+  const bloomPast = interpolate(frame, [beats.title.end, beats.title.end + s2f(0.6)], [0, 1], {
+    extrapolateLeft: "clamp",
+    extrapolateRight: "clamp",
+  });
+  const bloomOpacity = titleP * (1 - 0.22 * bloomPast); // swell → settle
+  const bloomScale = (0.92 + 0.22 * titleP) * (1 + 0.04 * bloomPast);
+
   return (
     <AbsoluteFill
       style={{
@@ -75,23 +147,85 @@ export const ChapterCard: React.FC<{
       <AbsoluteFill
         style={{ alignItems: "center", justifyContent: "center", transform: `translateY(${lift}px)` }}
       >
-        <div style={{ maxWidth: 1100, padding: "0 24px", textAlign: "center" }}>
+        {/* Bloom lime (solo con plate/index): radiale morbido, alpha ≤0.20, dietro il testo. */}
+        {index != null ? (
           <div
             style={{
-              ...maskReveal(frame, beats.title, { dir: "l", ease: EASE_CAMERA }),
-              transform: `translateX(${antX}px)`,
+              position: "absolute",
+              left: "50%",
+              top: "50%",
+              width: 900,
+              height: 440,
+              transform: `translate(-50%, -50%) scale(${bloomScale.toFixed(4)})`,
+              background:
+                "radial-gradient(ellipse at center, rgba(132,204,22,0.20) 0%, rgba(132,204,22,0.08) 34%, rgba(132,204,22,0) 68%)",
+              opacity: bloomOpacity,
+              pointerEvents: "none",
+            }}
+          />
+        ) : null}
+        <div style={{ position: "relative", maxWidth: 1100, padding: "0 24px", textAlign: "center" }}>
+          {/* Eyebrow `0N — 07` + hairline accentStrong + dot lime con glow (D3.1). */}
+          {index != null ? (
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 14,
+                marginBottom: 22,
+                opacity: titleP,
+                transform: `translateY(${16 * (1 - titlePos)}px)`,
+                filter: `blur(${6 * (1 - titleP)}px)`,
+              }}
+            >
+              {/* dot lime + glow (radiale piccolo) — leitmotiv */}
+              <span style={{ position: "relative", display: "inline-flex", width: 10, height: 10 }}>
+                <span
+                  style={{
+                    position: "absolute",
+                    inset: -7,
+                    borderRadius: "50%",
+                    background: "radial-gradient(circle, rgba(132,204,22,0.55) 0%, rgba(132,204,22,0) 70%)",
+                  }}
+                />
+                <span style={{ position: "relative", width: 10, height: 10, borderRadius: "50%", backgroundColor: C.accent, boxShadow: SHADOW.glow }} />
+              </span>
+              <span
+                style={{
+                  fontFamily: monoFamily,
+                  fontSize: 15,
+                  fontWeight: 600,
+                  letterSpacing: "0.22em",
+                  color: C.muted,
+                }}
+              >
+                {`${String(index).padStart(2, "0")} — 07`}
+              </span>
+              {/* hairline 2px in accentStrong (non lime sottile: sarebbe invisibile) */}
+              <span style={{ width: 56, height: 2, borderRadius: 1, backgroundColor: C.accentStrong }} />
+            </div>
+          ) : null}
+          <div
+            style={{
+              display: "flex",
+              flexWrap: "wrap",
+              justifyContent: "center",
+              columnGap: "0.28em",
+              rowGap: "0.08em",
               fontFamily,
               fontWeight: 700,
               fontSize: 84,
-              letterSpacing: "-0.03em",
+              letterSpacing: `${tracking}em`,
               color: C.foreground,
             }}
           >
-            {title}
+            {words}
           </div>
           {subtitle ? (
             <div
               style={{
+                ...subMask,
                 opacity: subP,
                 transform: `translateY(${14 * (1 - subP)}px)`,
                 marginTop: 20,
@@ -127,13 +261,45 @@ export function captionBeats(t: ReturnType<typeof seq>, holdSeconds = DUR.hold) 
 export const Caption: React.FC<{
   beats: { enter: Beat; leave: Beat };
   children: React.ReactNode;
-  /** posizione custom della pill (default: centrata in basso) */
+  /** posizione/override custom (default: centrata in basso) */
   style?: React.CSSProperties;
 }> = ({ beats, children, style }) => {
   const frame = useCurrentFrame();
   const inP = prog(frame, beats.enter, EASE_IN_SCENE);
   const outP = prog(frame, beats.leave, EASE_OUT_SCENE);
   if (inP <= 0 || outP >= 1) return null;
+
+  // Reveal WORD-BY-WORD (D3.2): stessa grammatica rise+blur della ChapterCard,
+  // stagger s2f(0.06). Funziona su stringa; con children non-stringa → fade di gruppo.
+  const WSTAG = s2f(0.06);
+  const textNode =
+    typeof children === "string" ? (
+      <>
+        {children.split(" ").map((w, i) => {
+          const b = { start: beats.enter.start + i * WSTAG, dur: beats.enter.dur, end: beats.enter.end + i * WSTAG };
+          const alphaP = prog(frame, b, EASE_IN_SCENE);
+          const posP = prog(frame, b, EASE_CHAR);
+          return (
+            <span
+              key={i}
+              style={{
+                display: "inline-block",
+                marginRight: "0.3em",
+                opacity: alphaP,
+                transform: `translateY(${12 * (1 - posP)}px)`,
+                filter: `blur(${5 * (1 - alphaP)}px)`,
+                willChange: "transform, filter, opacity",
+              }}
+            >
+              {w}
+            </span>
+          );
+        })}
+      </>
+    ) : (
+      <span style={{ opacity: inP }}>{children}</span>
+    );
+
   return (
     <div
       style={{
@@ -141,28 +307,58 @@ export const Caption: React.FC<{
         bottom: 96,
         left: "50%",
         transform: `translateX(-50%) translateY(${16 * (1 - inP) - 10 * outP}px)`,
-        opacity: inP * (1 - outP),
+        opacity: 1 - outP,
         zIndex: 40,
-        maxWidth: "70%",
-        borderRadius: 9999,
-        border: `1px solid ${C.border}`,
-        backgroundColor: "rgba(255,255,255,0.92)",
-        boxShadow: "0 8px 24px rgba(2,6,23,0.10)",
-        padding: "14px 28px",
+        maxWidth: "74%",
+        display: "flex",
+        alignItems: "center",
+        gap: 16,
+        padding: "12px 30px",
         ...style,
       }}
     >
+      {/* Scrim background-safe: radiale bianco → trasparente + blur leggero (≤3px),
+          mascherato ai bordi così NON resta un rettangolo sfocato (de-pill). */}
       <div
         style={{
+          position: "absolute",
+          inset: "-10px -26px",
+          background:
+            "radial-gradient(120% 190% at 50% 50%, rgba(255,255,255,0.78) 0%, rgba(255,255,255,0.5) 46%, rgba(255,255,255,0) 78%)",
+          backdropFilter: "blur(3px)",
+          WebkitBackdropFilter: "blur(3px)",
+          maskImage: "radial-gradient(120% 190% at 50% 50%, #000 0%, #000 44%, transparent 78%)",
+          WebkitMaskImage: "radial-gradient(120% 190% at 50% 50%, #000 0%, #000 44%, transparent 78%)",
+          opacity: inP,
+          pointerEvents: "none",
+        }}
+      />
+      {/* Tick lime (3px) come fratello di sinistra. */}
+      <div
+        style={{
+          position: "relative",
+          flexShrink: 0,
+          width: 3,
+          alignSelf: "stretch",
+          minHeight: 22,
+          borderRadius: 2,
+          backgroundColor: C.accent,
+          boxShadow: SHADOW.glow,
+          opacity: inP,
+        }}
+      />
+      <div
+        style={{
+          position: "relative",
           fontFamily,
           fontWeight: 600,
           fontSize: 22,
           letterSpacing: "-0.01em",
           color: C.foreground,
-          textAlign: "center",
+          textAlign: "left",
         }}
       >
-        {children}
+        {textNode}
       </div>
     </div>
   );
@@ -189,6 +385,132 @@ export type CursorMove = { beat: Beat; x: number; y: number; mode?: CursorMode }
  * (si abbassa di scatto e risale) e sgancia un anello accent che si espande —
  * feedback di click stile presentazione.
  */
+
+/** SETTLE meccanico del drum (D3.5): l'input `p` è lineare. LEAD 0.28 (anticipo
+ *  lento, ease-in) → EASE_SNAP (back 1.6) per il resto, con overshoot che si posa
+ *  ESATTO a 1 al termine. Il picco supera 1 di ~9% (≈ meno di 2 righe): per questo
+ *  il drum monta +2 righe reali, così l'overshoot atterra su cifre vere, mai oltre
+ *  il tetto della colonna. */
+const DRUM_LEAD_P = 0.28;
+const DRUM_LEAD_FRAC = 0.12;
+const DRUM_OVERSHOOT_ROWS = 2;
+function drumSettle(p: number): number {
+  const c = Math.min(1, Math.max(0, p));
+  if (c <= DRUM_LEAD_P) {
+    const u = c / DRUM_LEAD_P;
+    return DRUM_LEAD_FRAC * (u * u); // anticipo ease-in
+  }
+  const u = (c - DRUM_LEAD_P) / (1 - DRUM_LEAD_P);
+  return DRUM_LEAD_FRAC + (1 - DRUM_LEAD_FRAC) * EASE_SNAP(u); // snap → 1 esatto a u=1
+}
+
+/**
+ * Odometer: numero con cifre che "rotolano" (contatore meccanico). `p` = 0→1
+ * pilota il roll; i caratteri non-numerici (., :, €, %, spazio) restano fissi e
+ * appaiono. La colonna di ogni cifra rotola di 1 giro + fino alla cifra finale.
+ */
+export const Odometer: React.FC<{ text: string; p: number; size: number; color?: string; weight?: number }> = ({
+  text,
+  p,
+  size,
+  color,
+  weight = 700,
+}) => {
+  const H = Math.round(size * 1.16);
+  const SPINS = 1;
+  const q = drumSettle(p); // può superare 1 nell'overshoot, si posa a 1
+  // Motion-blur ROLL-CONDITIONAL: al MASSIMO 18% durante il rotolamento, → 0 (cifra
+  // nitida) man mano che la colonna si ferma. `moving = 1 - progressoGrezzo`, cap 0.18.
+  const moving = Math.min(0.18, 1 - Math.min(1, Math.max(0, p)));
+  const blurPx = moving * size * 0.5; // 0 a riposo, ≤ ~4px in corsa
+  const blurStyle = blurPx > 0.05 ? { filter: `blur(${blurPx.toFixed(2)}px)` } : undefined;
+  return (
+    <span style={{ display: "inline-flex", height: H, overflow: "hidden", fontFamily, fontWeight: weight, fontSize: size, lineHeight: `${H}px`, fontVariantNumeric: "tabular-nums", color }}>
+      {text.split("").map((ch, i) => {
+        if (!/[0-9]/.test(ch)) {
+          return (
+            <span key={i} style={{ display: "inline-block", height: H, opacity: Math.min(1, p) }}>
+              {ch === " " ? " " : ch}
+            </span>
+          );
+        }
+        const target = Number(ch) + SPINS * 10;
+        const cur = q * target; // overshoot ammesso: atterra sulle +2 righe reali
+        return (
+          <span key={i} style={{ display: "inline-block", height: H, overflow: "hidden" }}>
+            <span style={{ display: "block", transform: `translateY(${-cur * H}px)`, ...blurStyle }}>
+              {Array.from({ length: target + DRUM_OVERSHOOT_ROWS + 1 }, (_, r) => (
+                <span key={r} style={{ display: "block", height: H }}>
+                  {r % 10}
+                </span>
+              ))}
+            </span>
+          </span>
+        );
+      })}
+    </span>
+  );
+};
+
+// ── TypeOn (D3.3) ─────────────────────────────────────────────────────────────
+
+/**
+ * Type-on per campi input (D3.3): scopre `text` a scatti (steps, come typeInset) ma
+ * con un CARET lime (#84cc16) SOLIDO mentre digita, che poi LAMPEGGIA solo nella coda
+ * idle (~1.25Hz → 0.4s/stato) e sfuma. Deterministico. Eredita la tipografia dal
+ * contenitore (size/color/weight opzionali per override). Le scene sostituiranno i
+ * loro `typeInset` degli input con questo.
+ */
+export const TypeOn: React.FC<{
+  text: string;
+  /** finestra di digitazione */
+  beat: Beat;
+  /** coda idle in secondi dopo la digitazione: il caret lampeggia, poi sfuma. Default 1.0 */
+  idle?: number;
+  color?: string;
+  size?: number;
+  weight?: number;
+  caretColor?: string;
+}> = ({ text, beat, idle = 1.0, color, size, weight, caretColor = C.accent }) => {
+  const frame = useCurrentFrame();
+  // Reveal a SCATTI per carattere (come typeInset) → il caret segue il bordo del testo.
+  const raw = prog(frame, beat, (t) => t); // lineare, gli scatti li fa il floor
+  const n = Math.max(0, Math.min(text.length, Math.floor(raw * text.length)));
+  const visible = text.slice(0, n);
+
+  // Caret: SOLIDO mentre (e prima di) digita; nella coda idle LAMPEGGIA e sfuma.
+  let caretOpacity = 1;
+  if (frame > beat.end) {
+    const idleF = s2f(idle);
+    const t = frame - beat.end;
+    if (t >= idleF) {
+      caretOpacity = 0;
+    } else {
+      const half = s2f(0.4); // 0.4s/stato → ~1.25Hz (ciclo 0.8s)
+      const on = Math.floor(t / half) % 2 === 0 ? 1 : 0;
+      caretOpacity = on * (1 - t / idleF); // blink × dissolvenza sulla coda
+    }
+  }
+
+  return (
+    <span style={{ whiteSpace: "pre", fontFamily, fontSize: size, fontWeight: weight, color }}>
+      {visible}
+      <span
+        aria-hidden
+        style={{
+          display: "inline-block",
+          width: 2,
+          height: "1.05em",
+          marginLeft: 1,
+          verticalAlign: "-0.15em",
+          backgroundColor: caretColor,
+          opacity: caretOpacity,
+        }}
+      />
+    </span>
+  );
+};
+
 export const Cursor: React.FC<{
   moves: CursorMove[];
   shots?: CameraShot[];
@@ -205,22 +527,47 @@ export const Cursor: React.FC<{
   let x = parkX;
   let y = parkY;
   let mode: CursorMode = "arrow";
-  for (const m of moves) {
+  for (let i = 0; i < moves.length; i++) {
+    const m = moves[i];
     if (frame >= m.beat.end) {
+      // SETTLED — mira SACRA: esatto sul target a beat.end. NON TOCCARE.
       x = m.x;
       y = m.y;
       mode = m.mode ?? "arrow";
     } else if (frame >= m.beat.start) {
+      // TRAVEL (solo visivo): arco + arrivo magnetico. Endpoint SEMPRE esatti perché
+      // arco e magnete si annullano a p=1 (e comunque a beat.end subentra il ramo settled).
       const p = prog(frame, m.beat, EASE_CAMERA);
-      x = x + (m.x - x) * p;
-      y = y + (m.y - y) * p;
+      const x0 = x, y0 = y; // start = target/park precedente
+      const lx = x0 + (m.x - x0) * p; // lerp dritto
+      const ly = y0 + (m.y - y0) * p;
+      const dx = m.x - x0, dy = m.y - y0;
+      const dist = Math.hypot(dx, dy) || 1;
+      const ux = dx / dist, uy = dy / dist; // direzione di viaggio (unitaria)
+      // Arco: offset PERPENDICOLARE, ~8% della distanza (cap 42..80px), segno
+      // ALTERNATO per indice-move (non curva sempre dallo stesso lato).
+      const amp = Math.min(80, Math.max(42, dist * 0.08));
+      const bell = Math.sin(p * Math.PI); // 0 agli estremi → endpoint intatti
+      const sign = i % 2 === 0 ? 1 : -1;
+      let tx = lx + -uy * amp * bell * sign;
+      let ty = ly + ux * amp * bell * sign;
+      // Arrivo MAGNETICO: ~6px di overshoot lungo la direzione, che decade, nell'ultimo 18%.
+      if (p > 0.82) {
+        const u = (p - 0.82) / 0.18; // 0..1
+        const mag = 6 * Math.sin(u * Math.PI); // 0 a u=0 e u=1 → si azzera all'arrivo
+        tx += ux * mag;
+        ty += uy * mag;
+      }
+      x = tx;
+      y = ty;
       mode = "arrow"; // in viaggio: freccia
       break;
     } else break;
   }
 
-  // Proiezione allo schermo con la matrice camera → esatto sul bottone.
-  const cam = shots ? cameraValues(frame, shots) : { x: 0, y: 0, scale: 1 };
+  // Proiezione allo schermo con la matrice camera → esatto sul bottone. I click
+  // passano anche come kick: contenuto e cursore si scuotono insieme, mira intatta.
+  const cam = shots ? cameraValues(frame, shots, clicks ?? []) : { x: 0, y: 0, scale: 1 };
   const sp = screenPoint(x, y, cam);
 
   const first = moves[0].beat;
@@ -256,9 +603,24 @@ export const Cursor: React.FC<{
   const icon = { width: 34, height: 34, position: "absolute" as const, top: -17, left: -17 };
   return (
     <>
-      {/* Anello di click accent che si espande */}
+      {/* Click FX: focus-glow (bloom morbido) + anello accent che si espande */}
       {ripple >= 0 && ripple < 1 ? (
         <>
+          <div
+            style={{
+              position: "absolute",
+              left: sp.x,
+              top: sp.y,
+              width: 30 + ripple * 150,
+              height: 30 + ripple * 150,
+              marginLeft: -(30 + ripple * 150) / 2,
+              marginTop: -(30 + ripple * 150) / 2,
+              borderRadius: 9999,
+              background: "radial-gradient(circle, rgba(132,204,22,0.45) 0%, rgba(132,204,22,0) 68%)",
+              opacity: (1 - ripple) * opacity,
+              zIndex: 58,
+            }}
+          />
           <div
             style={{
               position: "absolute",
@@ -376,30 +738,66 @@ export const SceneShell: React.FC<{
  *  1400×875 nel frame 1920×1080. */
 export const FRAME = { w: 1400, h: 875, x: (1920 - 1400) / 2, y: (1080 - 875) / 2 } as const;
 
-export const DeviceFrame: React.FC<{ children: React.ReactNode; bg?: string }> = ({
-  children,
-  bg = C.background,
-}) => (
-  <AbsoluteFill style={{ alignItems: "center", justifyContent: "center" }}>
-    <div
-      style={{
-        width: FRAME.w,
-        height: FRAME.h,
-        borderRadius: 16,
-        border: `1px solid ${C.border}`,
-        backgroundColor: bg,
-        boxShadow: "0 2px 4px rgba(2,6,23,0.08), 0 18px 40px rgba(2,6,23,0.16)",
-        overflow: "hidden",
-        display: "flex",
-        position: "relative",
-        fontFamily,
-        color: C.foreground,
-      }}
-    >
-      {children}
-    </div>
-  </AbsoluteFill>
-);
+export const DeviceFrame: React.FC<{
+  children: React.ReactNode;
+  bg?: string;
+  /** elevazione reattiva 0..1 (D2.3): approfondisce/allunga SOLO l'ombra di pavimento
+   *  e l'ellisse di contatto. Default 0 → output byte-identico (il match-cut lo esige). */
+  lift?: number;
+}> = ({ children, bg = C.background, lift = 0 }) => {
+  const L = Math.max(0, Math.min(1, lift));
+  // Con lift>0 si ricompone SOLO lo strato di pavimento (gli altri 3 restano fissi).
+  const boxShadow =
+    L === 0
+      ? SHADOW.device
+      : [
+          "inset 0 1px 0 rgba(255,255,255,0.9)",
+          "0 1px 2px rgba(2,6,23,0.10)",
+          "0 12px 28px -10px rgba(2,6,23,0.22)",
+          `0 ${(44 + 30 * L).toFixed(1)}px ${(80 + 44 * L).toFixed(1)}px -36px rgba(2,6,23,${(0.3 + 0.12 * L).toFixed(3)})`,
+        ].join(", ");
+  return (
+    <AbsoluteFill style={{ alignItems: "center", justifyContent: "center" }}>
+      <div style={{ position: "relative", width: FRAME.w, height: FRAME.h }}>
+        {/* Ellisse di CONTATTO: scura e corta, appena sotto il bordo → àncora l'oggetto
+            al piano (nessun filtro: la morbidezza è nel gradiente, deterministica). */}
+        <div
+          aria-hidden
+          style={{
+            position: "absolute",
+            left: "50%",
+            bottom: -14 - 12 * L,
+            width: FRAME.w * 0.9,
+            height: 40 + 20 * L,
+            transform: "translateX(-50%)",
+            borderRadius: "50%",
+            background:
+              "radial-gradient(ellipse at center, rgba(2,6,23,0.22) 0%, rgba(2,6,23,0.10) 40%, rgba(2,6,23,0) 72%)",
+            zIndex: 0,
+          }}
+        />
+        <div
+          style={{
+            position: "relative",
+            zIndex: 1,
+            width: FRAME.w,
+            height: FRAME.h,
+            borderRadius: 16,
+            border: `1px solid ${C.border}`,
+            backgroundColor: bg,
+            boxShadow,
+            overflow: "hidden",
+            display: "flex",
+            fontFamily,
+            color: C.foreground,
+          }}
+        >
+          {children}
+        </div>
+      </div>
+    </AbsoluteFill>
+  );
+};
 
 /** Tre puntini "sta scrivendo…" che rimbalzano (animate-bounce web). */
 export const TypingDots: React.FC<{ color?: string }> = ({ color = C.muted }) => {
@@ -428,20 +826,34 @@ export const CinematicGrain: React.FC<{ opacity?: number }> = ({ opacity = 0.05 
   const frame = useCurrentFrame();
   const jitterX = (frame % 4) * 7;
   const jitterY = ((frame + 2) % 4) * 5;
+  // PERF: il filtro SVG feTurbulence viene rasterizzato ogni frame ed è costoso →
+  // la grana vive SOLO al render. La vignetta (gradiente radiale, gratis) resta
+  // sempre, così l'anteprima conserva il "peso" cinematografico senza lag.
+  const { isRendering } = getRemotionEnvironment();
+  // Vignetta leggermente FUORI-CENTRO (47%/41%) + micro-respiro (≤0.05) su frame/95:
+  // il "peso" dell'ottica non è mai perfettamente statico né perfettamente simmetrico.
+  const vig = (0.16 + 0.04 * Math.sin((frame / 95) * Math.PI * 2)).toFixed(3);
   return (
-    <AbsoluteFill style={{ zIndex: 90, pointerEvents: "none", opacity, mixBlendMode: "overlay" }}>
-      <svg width="100%" height="100%">
-        <filter id="grain">
-          <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" stitchTiles="stitch" />
-        </filter>
-        <rect
-          width="110%"
-          height="110%"
-          x={-jitterX}
-          y={-jitterY}
-          filter="url(#grain)"
-        />
-      </svg>
-    </AbsoluteFill>
+    <>
+      {/* Vignetta cinematografica: bordi appena scuriti per dare peso e profondità. */}
+      <AbsoluteFill
+        style={{
+          zIndex: 89,
+          pointerEvents: "none",
+          background: `radial-gradient(ellipse at 47% 41%, transparent 52%, rgba(8,16,32,${vig}) 100%)`,
+        }}
+      />
+      {/* Grana (solo al render). */}
+      {isRendering ? (
+        <AbsoluteFill style={{ zIndex: 90, pointerEvents: "none", opacity, mixBlendMode: "overlay" }}>
+          <svg width="100%" height="100%">
+            <filter id="grain">
+              <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" stitchTiles="stitch" />
+            </filter>
+            <rect width="110%" height="110%" x={-jitterX} y={-jitterY} filter="url(#grain)" />
+          </svg>
+        </AbsoluteFill>
+      ) : null}
+    </>
   );
 };

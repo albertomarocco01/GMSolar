@@ -187,7 +187,7 @@ export const Assistente: React.FC = () => {
 
   return (
     <AbsoluteFill style={{ backgroundColor: C.background }}>
-      <AbsoluteFill style={cameraAt(frame, SHOTS)}>
+      <AbsoluteFill style={cameraAt(frame, SHOTS, [PRESS1, PRESS2, PRESS3])}>
         <DeviceFrame>
           {/* HOME */}
           <div style={{ position: "absolute", inset: 0, opacity: homeDim, transform: `scale(${1 - 0.015 * chatP})` }}>

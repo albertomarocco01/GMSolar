@@ -6,6 +6,7 @@ import { Dashboard, DASHBOARD_DURATION } from "./scenes/Dashboard";
 import { Segnalazioni, SEGNALAZIONI_DURATION } from "./scenes/Segnalazioni";
 import { Gestionale, GESTIONALE_DURATION } from "./scenes/Gestionale";
 import { Ricarica, RICARICA_DURATION } from "./scenes/Ricarica";
+import { Integrazioni, INTEGRAZIONI_DURATION } from "./scenes/Integrazioni";
 import { Closing, CLOSING_DURATION } from "./scenes/Closing";
 
 // Comp singole per scena (frame LOCALI): utili per iterare/verificare una scena
@@ -17,6 +18,7 @@ const SCENE_COMPS = [
   { id: "SceneSegnalazioni", C: Segnalazioni, d: SEGNALAZIONI_DURATION },
   { id: "SceneGestionale", C: Gestionale, d: GESTIONALE_DURATION },
   { id: "SceneRicarica", C: Ricarica, d: RICARICA_DURATION },
+  { id: "SceneIntegrazioni", C: Integrazioni, d: INTEGRAZIONI_DURATION },
   { id: "SceneClosing", C: Closing, d: CLOSING_DURATION },
 ] as const;
 

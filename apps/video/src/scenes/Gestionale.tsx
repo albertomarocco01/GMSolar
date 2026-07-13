@@ -67,10 +67,12 @@ t.hold(1);
 export const GESTIONALE_DURATION = t.total;
 
 const SIDE_W = 230;
-const navY = (i: number) => FRAME.y + 96 + i * 52;
+const NAV_H = 42; // altezza esplicita di ogni voce nav (layout deterministico)
+const NAV_TOP = 76; // 22 padding-top + 30 logo row + 24 margine sotto logo
+const navY = (i: number) => FRAME.y + NAV_TOP + i * NAV_H;
 const NAV = ["Panoramica", "Colonnine", "Sessioni", "Manutenzione"];
 const P = {
-  nav: (i: number) => ({ x: FRAME.x + 115, y: navY(i) + 20 }),
+  nav: (i: number) => ({ x: FRAME.x + 115, y: navY(i) + NAV_H / 2 }),
   query: { x: FRAME.x + SIDE_W + 340, y: FRAME.y + 130 },
   ai: { x: FRAME.x + FRAME.w - 120, y: FRAME.y + 30 },
   req: { x: FRAME.x + FRAME.w - 250, y: FRAME.y + 170 },
@@ -137,20 +139,20 @@ export const Gestionale: React.FC = () => {
 
   return (
     <AbsoluteFill style={{ backgroundColor: C.background }}>
-      <AbsoluteFill style={cameraAt(frame, SHOTS)}>
+      <AbsoluteFill style={cameraAt(frame, SHOTS, [PRESS_AI])}>
         <AbsoluteFill style={whipStyle}>
           <DeviceFrame bg={C.surface}>
             {/* SIDEBAR SCURA */}
             <div style={{ width: SIDE_W, flexShrink: 0, backgroundColor: C.foreground, padding: "22px 14px", position: "relative", display: "flex", flexDirection: "column" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 24, paddingLeft: 8 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 10, height: 30, marginBottom: 24, paddingLeft: 8 }}>
                 <div style={{ width: 18, height: 18, borderRadius: 5, backgroundColor: C.accent }} />
                 <span style={{ fontWeight: 600, fontSize: 16, color: "#fff" }}>Gestionale</span>
               </div>
-              <div style={{ position: "absolute", left: 14, right: 14, top: indY - FRAME.y - 6, height: 42, borderRadius: 10, backgroundColor: "rgba(255,255,255,0.1)", display: "flex" }}>
+              <div style={{ position: "absolute", left: 14, right: 14, top: indY - FRAME.y, height: NAV_H, borderRadius: 10, backgroundColor: "rgba(255,255,255,0.1)", display: "flex" }}>
                 <div style={{ width: 4, borderRadius: 999, backgroundColor: C.accent, margin: "6px 0 6px 4px" }} />
               </div>
               {NAV.map((v, i) => (
-                <div key={v} style={{ position: "relative", padding: "10px 16px", fontSize: 15, color: i === navIndex ? "#fff" : "rgba(255,255,255,0.75)", fontWeight: i === navIndex ? 600 : 400 }}>
+                <div key={v} style={{ position: "relative", height: NAV_H, display: "flex", alignItems: "center", padding: "0 16px", fontSize: 15, color: i === navIndex ? "#fff" : "rgba(255,255,255,0.75)", fontWeight: i === navIndex ? 600 : 400 }}>
                   {v}
                 </div>
               ))}
