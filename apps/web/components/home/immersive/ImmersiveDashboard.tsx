@@ -6,9 +6,13 @@
  *   Visite / Ordini) e track orizzontale a 4 schermate scrubbed dallo scroll.
  *   Beat ①: il cursore MODIFICA un contenuto
  *   ESISTENTE del sito (lista «Pagine del sito» → editor «Hero homepage» già
- *   compilato: sostituzione immagine con wipe, riscrittura titolo, Pubblica →
- *   toast). Poi catalogo prodotti (griglia 3 col), KPI compatti + grafici
- *   affiancati, tabella ordini con Data/Canale. Tono DESCRITTIVO. Kit ./shared.
+ *   compilato: «Carica immagine» → chip di UPLOAD con barra che si riempie e
+ *   ✓, la foto nuova entra col wipe; riscrittura titolo; Pubblica → toast).
+ *   Poi catalogo prodotti (griglia compatta a 5 colonne, UNA riga: la card
+ *   nuova — cavo spiralato, prodotto REALE del catalogo cliente — entra in
+ *   vista), KPI + grafici + LISTA INTERAZIONI con filtri (il cursore attiva
+ *   «Preventivi» → le altre righe si attenuano), tabella ordini con
+ *   Data/Canale. Tono DESCRITTIVO. Kit ./shared.
  *   CAMERA (P11): follow sidebar→editor, push-in sul typing del titolo, punch su
  *   «Pubblica» + pull-back reveal sul toast, whip su OGNI pan del binario,
  *   push-in lento sui KPI durante il countUp → reset. La camera è NEUTRA a
@@ -98,19 +102,49 @@ const ORD_STATS = [
 /** Altezze barre giornaliere (%). */
 const BARS = [32, 48, 41, 67, 58, 80, 72] as const;
 
-/** Prodotti già presenti nel catalogo (fotovoltaico + ricarica EV, coerenti).
- *  `img` = foto placeholder in /assets/products/ — le STESSE che l'AI consiglia
- *  nella scena Assistente → dashboard e vetrina combaciano.
- *  NB: ogni foto DEVE mostrare il prodotto indicato (richiesta 2026-07-12) —
- *  niente foto "a caso". `inverter-01.jpg` ritrae in realtà un TETTO
- *  fotovoltaico (nome file storico, vedi DEBITO-TECNICO #21): qui illustra il
- *  kit tetto, coerente col CONTENUTO della foto. */
+/** Prodotti già presenti nel catalogo. Allineati al catalogo REALE del cliente
+ *  (cavoperfetto.it/shop: cavi di ricarica Mennekes + wallbox; niente colonnine
+ *  pubbliche — non le vendono). Foto in /assets/products/: ogni foto DEVE
+ *  mostrare il prodotto indicato (richiesta 2026-07-12), `cavo-schuko.png` e
+ *  `cavo-spiralato.jpg` sono product shot presi dallo shop del cliente.
+ *  QUATTRO prodotti + la card nuova = UNA riga da 5 → la card aggiunta dal
+ *  form entra SEMPRE in vista (richiesta 2026-07-13). */
 const PRODOTTI_INIT: ReadonlyArray<{ nome: string; prezzo: string; img: string }> = [
-  { nome: "Cavo Type 2 · 5 m", prezzo: "149 €", img: "/assets/products/cavo-03.jpg" },
+  { nome: "Cavo Modo 3 · Tipo 2 · 5 m", prezzo: "189 €", img: "/assets/products/cavo-03.jpg" },
   { nome: "Wallbox 22 kW", prezzo: "899 €", img: "/assets/products/wallbox-detail.jpg" },
   { nome: "Pannello 400 W", prezzo: "210 €", img: "/assets/products/pannello-01.jpg" },
-  { nome: "Kit fotovoltaico tetto", prezzo: "6.900 €", img: "/assets/products/inverter-01.jpg" },
-  { nome: "Colonnina di ricarica", prezzo: "1.190 €", img: "/assets/products/cavo-06.jpg" },
+  { nome: "Cavo Modo 2 · Schuko", prezzo: "389 €", img: "/assets/products/cavo-schuko.png" },
+];
+
+/** Il prodotto che il form aggiunge: il cavo SPIRALATO del catalogo reale
+ *  (nome, prezzo e foto dallo shop del cliente). */
+const NUOVO_PRODOTTO = {
+  nome: "Cavo Modo 3 · spiralato",
+  prezzo: "219 €",
+  img: "/assets/products/cavo-spiralato.jpg",
+  file: "cavo-spiralato.jpg",
+} as const;
+
+/** Lista «Ultime interazioni» della vista Visite (mock deterministici).
+ *  `kind` = filtro di appartenenza; il cursore attiva «Preventivi» → le righe
+ *  degli altri tipi si attenuano (classe `imm-int-dim` sulle non-preventivo). */
+const FILTRI = ["Tutte", "Preventivi", "Chat", "Download"] as const;
+const INTERAZIONI: ReadonlyArray<{
+  ora: string;
+  kind: (typeof FILTRI)[number];
+  testo: string;
+  pagina: string;
+}> = [
+  {
+    ora: "14:32",
+    kind: "Preventivi",
+    testo: "Richiesta preventivo wallbox",
+    pagina: "/preventivo",
+  },
+  { ora: "14:18", kind: "Chat", testo: "Domanda su ricarica notturna", pagina: "/assistente" },
+  { ora: "13:55", kind: "Download", testo: "Scheda tecnica cavo Tipo 2", pagina: "/prodotti" },
+  { ora: "13:41", kind: "Preventivi", testo: "Preventivo impianto 6 kW", pagina: "/preventivo" },
+  { ora: "13:22", kind: "Chat", testo: "Orari per un sopralluogo", pagina: "/assistente" },
 ];
 
 /** Righe tabella ordini (Data/Canale mock deterministici; somma = 16.889 €). */
@@ -171,6 +205,14 @@ const STATO_CLS: Record<string, string> = {
   "In attesa": "bg-amber-100 text-amber-700",
 };
 
+/** Classi badge per TIPO di interazione (accent per i preventivi — sono il
+ *  filtro che il walkthrough attiva; sky/amber = colori-convenzione, cfr. #17). */
+const KIND_CLS: Record<string, string> = {
+  Preventivi: "bg-accent-soft text-accent-ink",
+  Chat: "bg-sky-100 text-sky-700",
+  Download: "bg-amber-100 text-amber-700",
+};
+
 /** Foto reali della hero: ATTUALE (wallbox) → NUOVA (impianto fotovoltaico).
  *  Due foto DIVERSE a colpo d'occhio → il wipe di sostituzione si vede.
  *  FOTO_NUOVA («impianto-2026.jpg») è la STESSA che la scena Segnalazioni usa
@@ -204,6 +246,13 @@ export default function ImmersiveDashboard() {
     // partono nascosti, li rivelano i rispettivi beat.
     gsap.set(".imm-add-form", { autoAlpha: 0, y: 14, scale: 0.94 });
     gsap.set(".imm-visits-detail", { autoAlpha: 0, y: 16 });
+    // Chip di upload (beat ①) e lista interazioni con filtri (beat ③).
+    gsap.set(".imm-upload", { autoAlpha: 0, y: 6 });
+    gsap.set(".imm-upload-bar", { scaleX: 0, transformOrigin: "left" });
+    gsap.set(".imm-upload-done", { autoAlpha: 0 });
+    gsap.set(".imm-inter", { autoAlpha: 0, y: 14 });
+    gsap.set(".imm-int-row", { autoAlpha: 0, x: -12 });
+    gsap.set(".imm-flt-prev-on", { autoAlpha: 0 });
     gsap.set(".imm-ord-stat", { autoAlpha: 0, y: 14 });
     gsap.set(".imm-ord-detail", { autoAlpha: 0, y: 14 });
     gsap.set(".imm-ord-active", { autoAlpha: 0 });
@@ -228,17 +277,23 @@ export default function ImmersiveDashboard() {
     // (sennò galleggerebbe sulla voce di sinistra). Il cursorTo sotto lo riporta.
     hideCursor(tl);
 
-    // «Sostituisci immagine»: la foto attuale viene COPERTA dalla nuova (wipe)
+    // «Carica immagine»: si VEDE l'upload — chip col nome file, barra che si
+    // riempie, ✓ — e SOLO a caricamento finito la foto nuova entra col wipe.
     cursorTo(tl, ".imm-replace-btn", { mode: "hand" });
     tl.to({}, { duration: DUR.micro / 2 });
     pressButton(tl, ".imm-replace-btn", { down: 0.93, downDur: 0.1, upDur: 0.18, back: 2.5 });
+    tl.to(".imm-upload", { autoAlpha: 1, y: 0, duration: DUR.micro, ease: EASE_IN_SCENE });
+    tl.to(".imm-upload-bar", { scaleX: 1, duration: DUR.scene, ease: EASE_IN_SCENE });
+    tl.to(".imm-upload-done", { autoAlpha: 1, duration: DUR.micro, ease: EASE_IN_SCENE });
+    hold(tl, 0.3); // si legge il ✓ prima che la foto entri
     // Anticipazione R2: la foto nuova è l'ARRIVO del beat ① → contromovimento + settle col wipe.
     maskReveal(tl, ".imm-img-new", {
       dir: "l",
       duration: DUR.scene,
       anticipate: true,
-      position: "<0.1",
     });
+    // A wipe finito il chip di upload si congeda (la foto nuova è il payoff).
+    tl.to(".imm-upload", { autoAlpha: 0, y: 6, duration: DUR.micro, ease: EASE_OUT_SCENE });
 
     // Il titolo si RISCRIVE: il vecchio sfuma e il nuovo si digita mentre la CAMERA
     // SEGUE IL CARET (item 4) — trasla a dx col punto di scrittura invece del push-in
@@ -370,7 +425,26 @@ export default function ImmersiveDashboard() {
     tl.to(".imm-visits-detail", { autoAlpha: 1, y: 0, duration: DUR.beat, ease: EASE_IN_SCENE });
     drawPath(tl, ".imm-detail-path", { duration: DUR.scene, ease: EASE_CAMERA, position: ">-0.2" });
     tl.to(".imm-detail-area", { opacity: 1, duration: DUR.beat, ease: EASE_IN_SCENE }, ">-0.3");
-    tl.to({}, { duration: DUR.scene * 1.5 }); // …e c'è TEMPO PIENO per leggerlo
+    tl.to({}, { duration: DUR.scene }); // …e c'è tempo per leggerlo
+
+    // LISTA INTERAZIONI (colonna destra): entra col suo stagger di righe, poi
+    // il cursore attiva il filtro «Preventivi» → il chip si accende e le righe
+    // degli altri tipi si ATTENUANO (filtro visibile, scrub-safe: solo opacity).
+    enter(tl, ".imm-inter", { y: 14, duration: DUR.beat });
+    tl.to(
+      ".imm-int-row",
+      { autoAlpha: 1, x: 0, duration: DUR.beat, stagger: 0.08, ease: EASE_IN_SCENE },
+      ">-0.1",
+    );
+    hold(tl, 0.4); // si legge la lista completa prima del filtro
+    cursorTo(tl, ".imm-flt-prev", { mode: "hand" });
+    tl.to({}, { duration: DUR.micro / 2 });
+    pressButton(tl, ".imm-flt-prev", { down: 0.94, downDur: 0.1, upDur: 0.2, back: 2.2 });
+    tl.to(".imm-flt-all-on", { autoAlpha: 0, duration: DUR.micro, ease: EASE_OUT_SCENE }, "<");
+    tl.to(".imm-flt-prev-on", { autoAlpha: 1, duration: DUR.micro, ease: EASE_IN_SCENE }, "<");
+    tl.to(".imm-int-dim", { opacity: 0.3, duration: DUR.beat, ease: EASE_OUT_SCENE }, "<0.1");
+    hideCursor(tl);
+    tl.to({}, { duration: DUR.scene }); // pausa: la lista filtrata resta leggibile
 
     // ── ④ Ordini ──────────────────────────────────────────────────────────────
     cursorTo(tl, navItems[3], { mode: "hand" }); // click "Ordini"
@@ -419,10 +493,11 @@ export default function ImmersiveDashboard() {
   return (
     <ImmersiveStage
       ref={ref}
-      // 900 → 1200: typing/countUp rallentati + pause di lettura hanno bisogno
-      // di più corsa di scroll → scrub più dolce, tutto resta leggibile anche
-      // per un utente non tecnico che scrolla veloce.
-      heightVh={1200}
+      // 900 → 1200 → 1350: typing/countUp rallentati + pause di lettura + i due
+      // beat nuovi (upload immagine, filtro interazioni) hanno bisogno di più
+      // corsa di scroll → scrub più dolce, tutto resta leggibile anche per un
+      // utente non tecnico che scrolla veloce.
+      heightVh={1350}
       label={CHAPTERS[2].title}
       chapterIndex={2}
     >
@@ -613,13 +688,29 @@ export default function ImmersiveDashboard() {
                                 </span>
                               </div>
                             </div>
+                            {/* Chip di UPLOAD: nome file + barra che si riempie + ✓.
+                                Appare al click su «Carica immagine»; il wipe della
+                                foto nuova parte SOLO a barra piena. */}
+                            <div
+                              className="imm-upload border-border bg-background/95 absolute inset-x-2 bottom-2 rounded-lg border px-2.5 py-1.5 shadow-sm"
+                              style={{ opacity: 0 }}
+                              aria-hidden
+                            >
+                              <div className="flex items-center justify-between text-[10px] font-semibold">
+                                <span className="text-foreground">impianto-2026.jpg · 1,8 MB</span>
+                                <span className="imm-upload-done text-accent-ink">✓ Caricata</span>
+                              </div>
+                              <div className="bg-surface-2 mt-1 h-1 overflow-hidden rounded-full">
+                                <div className="imm-upload-bar bg-accent h-full w-full" />
+                              </div>
+                            </div>
                           </div>
                           <button
                             className="imm-replace-btn border-border bg-surface-2 text-foreground mt-2 rounded-lg border px-3 py-1.5 text-xs font-semibold"
                             tabIndex={-1}
                             aria-hidden
                           >
-                            Sostituisci immagine
+                            Carica immagine
                           </button>
                         </div>
 
@@ -691,35 +782,45 @@ export default function ImmersiveDashboard() {
                     </button>
                   </div>
 
-                  <div className="grid grid-cols-3 gap-4">
+                  {/* UNA riga da 5: card COMPATTE (4 prodotti + la nuova) → la card
+                      aggiunta dal form entra sempre in vista, niente seconda riga
+                      clippata dal device frame. */}
+                  <div className="grid grid-cols-5 gap-3">
                     {PRODOTTI_INIT.map((p) => (
                       <div
                         key={p.nome}
-                        className="border-border bg-surface rounded-xl border p-3 shadow-sm"
+                        className="border-border bg-surface rounded-xl border p-2 shadow-sm"
                       >
                         <img
                           src={p.img}
                           alt=""
                           loading="lazy"
                           decoding="async"
-                          className="mb-2 aspect-square w-full rounded-lg object-cover"
+                          className="mb-1.5 aspect-square w-full rounded-lg object-cover"
                         />
-                        <p className="text-foreground text-sm font-semibold">{p.nome}</p>
-                        <p className="text-accent-ink text-xs font-bold">{p.prezzo}</p>
+                        <p className="text-foreground line-clamp-2 text-xs leading-snug font-semibold">
+                          {p.nome}
+                        </p>
+                        <p className="text-accent-ink mt-0.5 text-[11px] font-bold">{p.prezzo}</p>
                       </div>
                     ))}
 
-                    {/* Nuova card: entra con back.out dopo il «Salva» del form */}
-                    <div className="imm-new-card border-accent/40 bg-accent/5 rounded-xl border-2 p-3 shadow-sm">
+                    {/* Nuova card: entra con back.out dopo il «Salva» del form —
+                        il cavo SPIRALATO del catalogo reale del cliente. */}
+                    <div className="imm-new-card border-accent/40 bg-accent/5 rounded-xl border-2 p-2 shadow-sm">
                       <img
-                        src="/assets/products/cavo-05.jpg"
+                        src={NUOVO_PRODOTTO.img}
                         alt=""
                         loading="lazy"
                         decoding="async"
-                        className="mb-2 aspect-square w-full rounded-lg object-cover"
+                        className="mb-1.5 aspect-square w-full rounded-lg object-cover"
                       />
-                      <p className="text-foreground text-sm font-semibold">Stazione DC 50 kW</p>
-                      <p className="text-accent-ink text-xs font-bold">3.200 €</p>
+                      <p className="text-foreground line-clamp-2 text-xs leading-snug font-semibold">
+                        {NUOVO_PRODOTTO.nome}
+                      </p>
+                      <p className="text-accent-ink mt-0.5 text-[11px] font-bold">
+                        {NUOVO_PRODOTTO.prezzo}
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -741,7 +842,7 @@ export default function ImmersiveDashboard() {
                       </label>
                       <div className="border-border bg-surface-2 text-foreground min-h-[32px] overflow-hidden rounded-lg border px-3 py-1.5 text-sm">
                         <span className="imm-form-nome inline-block whitespace-nowrap">
-                          Stazione DC 50 kW
+                          {NUOVO_PRODOTTO.nome}
                         </span>
                       </div>
                     </div>
@@ -751,7 +852,7 @@ export default function ImmersiveDashboard() {
                       </label>
                       <div className="border-border bg-surface-2 text-foreground min-h-[32px] overflow-hidden rounded-lg border px-3 py-1.5 text-sm">
                         <span className="imm-form-prezzo inline-block whitespace-nowrap">
-                          3.200 €
+                          {NUOVO_PRODOTTO.prezzo}
                         </span>
                       </div>
                     </div>
@@ -762,14 +863,14 @@ export default function ImmersiveDashboard() {
                       <div className="flex items-center gap-2">
                         <span className="imm-form-foto block aspect-square w-12 overflow-hidden rounded-lg">
                           <img
-                            src="/assets/products/cavo-05.jpg"
+                            src={NUOVO_PRODOTTO.img}
                             alt=""
                             loading="lazy"
                             decoding="async"
                             className="h-full w-full object-cover"
                           />
                         </span>
-                        <span className="text-muted text-xs">stazione-dc-50kw.jpg</span>
+                        <span className="text-muted text-xs">{NUOVO_PRODOTTO.file}</span>
                       </div>
                     </div>
                   </div>
@@ -821,129 +922,202 @@ export default function ImmersiveDashboard() {
                     ))}
                   </div>
 
-                  {/* Due colonne affiancate: sparkline | barre giornaliere */}
-                  <div className="grid grid-cols-2 gap-4">
-                    {/* Sparkline: disegnata tramite strokeDashoffset → 0 */}
-                    <div className="border-border bg-surface rounded-xl border p-4 shadow-sm">
-                      <p className="text-muted mb-2 text-[11px] font-semibold tracking-wider uppercase">
-                        Trend visite
-                      </p>
-                      <svg
-                        viewBox="0 0 200 60"
-                        className="h-20 w-full"
-                        preserveAspectRatio="none"
+                  {/* Due colonne: a sinistra i grafici (mini-chart + dettaglio),
+                      a destra la LISTA INTERAZIONI con filtri (la vista non è
+                      più solo numeri: si vede COSA fanno i visitatori). */}
+                  <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,0.9fr)] gap-4">
+                    <div className="flex min-w-0 flex-col gap-3">
+                      <div className="grid grid-cols-2 gap-3">
+                        {/* Sparkline: disegnata tramite strokeDashoffset → 0 */}
+                        <div className="border-border bg-surface rounded-xl border p-3 shadow-sm">
+                          <p className="text-muted mb-2 text-[11px] font-semibold tracking-wider uppercase">
+                            Trend visite
+                          </p>
+                          <svg
+                            viewBox="0 0 200 60"
+                            className="h-14 w-full"
+                            preserveAspectRatio="none"
+                            aria-hidden
+                          >
+                            <defs>
+                              <linearGradient id="imm-db2-spark-grad" x1="0" y1="0" x2="0" y2="1">
+                                {/* var() non è valido negli attributi SVG di presentazione → style */}
+                                <stop
+                                  offset="0%"
+                                  style={{ stopColor: "var(--accent)" }}
+                                  stopOpacity="0.15"
+                                />
+                                <stop
+                                  offset="100%"
+                                  style={{ stopColor: "var(--accent)" }}
+                                  stopOpacity="0"
+                                />
+                              </linearGradient>
+                            </defs>
+                            <path
+                              d={`${SPARK_D} L200,60 L0,60 Z`}
+                              fill="url(#imm-db2-spark-grad)"
+                            />
+                            <path
+                              className="imm-spark-path stroke-accent"
+                              d={SPARK_D}
+                              fill="none"
+                              strokeWidth="2"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                            />
+                          </svg>
+                        </div>
+
+                        {/* Barre giornaliere: scaleY 0→1 dal basso con stagger */}
+                        <div className="border-border bg-surface rounded-xl border p-3 shadow-sm">
+                          <p className="text-muted mb-2 text-[11px] font-semibold tracking-wider uppercase">
+                            Visite per giorno
+                          </p>
+                          <div className="flex h-14 items-end gap-1.5">
+                            {BARS.map((h, i) => (
+                              <span
+                                key={i}
+                                className={`imm-bar flex-1 rounded-t ${
+                                  i === BARS.length - 1 ? "bg-accent" : "bg-accent/25"
+                                }`}
+                                style={{ height: `${h}%` }}
+                              />
+                            ))}
+                          </div>
+                          {/* Etichette giorno (mock statico) */}
+                          <div className="text-muted mt-1.5 flex gap-1.5 text-xs font-medium">
+                            {["L", "M", "M", "G", "V", "S", "D"].map((d, i) => (
+                              <span key={i} className="flex-1 text-center">
+                                {d}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Grafico DETTAGLIO visite: compare al click sulla card KPI
+                          «Visite» (beat ③) — area chart dedicato, con tempo di lettura. */}
+                      <div
+                        className="imm-visits-detail border-border bg-surface rounded-xl border p-3 shadow-sm"
+                        style={{ opacity: 0 }}
                         aria-hidden
                       >
-                        <defs>
-                          <linearGradient id="imm-db2-spark-grad" x1="0" y1="0" x2="0" y2="1">
-                            {/* var() non è valido negli attributi SVG di presentazione → style */}
-                            <stop
-                              offset="0%"
-                              style={{ stopColor: "var(--accent)" }}
-                              stopOpacity="0.15"
-                            />
-                            <stop
-                              offset="100%"
-                              style={{ stopColor: "var(--accent)" }}
-                              stopOpacity="0"
-                            />
-                          </linearGradient>
-                        </defs>
-                        <path d={`${SPARK_D} L200,60 L0,60 Z`} fill="url(#imm-db2-spark-grad)" />
-                        <path
-                          className="imm-spark-path stroke-accent"
-                          d={SPARK_D}
-                          fill="none"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        />
-                      </svg>
+                        <div className="mb-2 flex items-center justify-between">
+                          <p className="text-muted text-[11px] font-semibold tracking-wider uppercase">
+                            Dettaglio visite · per settimana
+                          </p>
+                          <span className="text-accent-ink text-[11px] font-semibold">
+                            ▲ 12% vs periodo precedente
+                          </span>
+                        </div>
+                        <svg
+                          viewBox="0 0 400 80"
+                          className="h-16 w-full"
+                          preserveAspectRatio="none"
+                          aria-hidden
+                        >
+                          <defs>
+                            <linearGradient id="imm-db2-detail-grad" x1="0" y1="0" x2="0" y2="1">
+                              {/* var() non è valido negli attributi SVG di presentazione → style */}
+                              <stop
+                                offset="0%"
+                                style={{ stopColor: "var(--accent)" }}
+                                stopOpacity="0.2"
+                              />
+                              <stop
+                                offset="100%"
+                                style={{ stopColor: "var(--accent)" }}
+                                stopOpacity="0"
+                              />
+                            </linearGradient>
+                          </defs>
+                          {/* Area: si riempie dopo che la linea si è disegnata */}
+                          <path
+                            className="imm-detail-area"
+                            d={`${DETAIL_D} L400,80 L0,80 Z`}
+                            fill="url(#imm-db2-detail-grad)"
+                            style={{ opacity: 0 }}
+                          />
+                          <path
+                            className="imm-detail-path stroke-accent"
+                            d={DETAIL_D}
+                            fill="none"
+                            strokeWidth="2.5"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          />
+                        </svg>
+                        <div className="text-muted mt-1 flex justify-between text-xs font-medium">
+                          {["Sett. 1", "Sett. 2", "Sett. 3", "Sett. 4"].map((s) => (
+                            <span key={s}>{s}</span>
+                          ))}
+                        </div>
+                      </div>
                     </div>
 
-                    {/* Barre giornaliere: scaleY 0→1 dal basso con stagger */}
-                    <div className="border-border bg-surface rounded-xl border p-4 shadow-sm">
+                    {/* LISTA «Ultime interazioni» + FILTRI: il cursore attiva
+                        «Preventivi» → il chip si accende (overlay accent-soft)
+                        e le righe degli altri tipi si attenuano (.imm-int-dim). */}
+                    <div
+                      className="imm-inter border-border bg-surface min-w-0 rounded-xl border p-3 shadow-sm"
+                      style={{ opacity: 0 }}
+                      aria-hidden
+                    >
                       <p className="text-muted mb-2 text-[11px] font-semibold tracking-wider uppercase">
-                        Visite per giorno
+                        Ultime interazioni
                       </p>
-                      <div className="flex h-20 items-end gap-1.5">
-                        {BARS.map((h, i) => (
+                      <div className="mb-1.5 flex flex-wrap gap-1.5">
+                        {FILTRI.map((f) => (
                           <span
-                            key={i}
-                            className={`imm-bar flex-1 rounded-t ${
-                              i === BARS.length - 1 ? "bg-accent" : "bg-accent/25"
+                            key={f}
+                            className={`bg-surface-2 relative rounded-full px-2.5 py-1 text-[10px] font-semibold ${
+                              f === "Preventivi" ? "imm-flt-prev" : ""
                             }`}
-                            style={{ height: `${h}%` }}
-                          />
-                        ))}
-                      </div>
-                      {/* Etichette giorno (mock statico) */}
-                      <div className="text-muted mt-1.5 flex gap-1.5 text-xs font-medium">
-                        {["L", "M", "M", "G", "V", "S", "D"].map((d, i) => (
-                          <span key={i} className="flex-1 text-center">
-                            {d}
+                          >
+                            {/* Pill attiva: «Tutte» accesa all'inizio, «Preventivi»
+                                si accende al click (overlay, il testo resta sopra). */}
+                            {f === "Tutte" && (
+                              <span
+                                className="imm-flt-all-on bg-accent-soft ring-accent-ring absolute inset-0 rounded-full ring-1"
+                                aria-hidden
+                              />
+                            )}
+                            {f === "Preventivi" && (
+                              <span
+                                className="imm-flt-prev-on bg-accent-soft ring-accent-ring absolute inset-0 rounded-full ring-1"
+                                aria-hidden
+                              />
+                            )}
+                            <span className="text-foreground relative">{f}</span>
                           </span>
                         ))}
                       </div>
-                    </div>
-                  </div>
-
-                  {/* Grafico DETTAGLIO visite: compare al click sulla card KPI
-                    «Visite» (beat ③) — area chart dedicato, con tempo di lettura. */}
-                  <div
-                    className="imm-visits-detail border-border bg-surface mt-3 rounded-xl border p-4 shadow-sm"
-                    style={{ opacity: 0 }}
-                    aria-hidden
-                  >
-                    <div className="mb-2 flex items-center justify-between">
-                      <p className="text-muted text-[11px] font-semibold tracking-wider uppercase">
-                        Dettaglio visite · per settimana
-                      </p>
-                      <span className="text-accent-ink text-[11px] font-semibold">
-                        ▲ 12% vs periodo precedente
-                      </span>
-                    </div>
-                    <svg
-                      viewBox="0 0 400 80"
-                      className="h-24 w-full"
-                      preserveAspectRatio="none"
-                      aria-hidden
-                    >
-                      <defs>
-                        <linearGradient id="imm-db2-detail-grad" x1="0" y1="0" x2="0" y2="1">
-                          {/* var() non è valido negli attributi SVG di presentazione → style */}
-                          <stop
-                            offset="0%"
-                            style={{ stopColor: "var(--accent)" }}
-                            stopOpacity="0.2"
-                          />
-                          <stop
-                            offset="100%"
-                            style={{ stopColor: "var(--accent)" }}
-                            stopOpacity="0"
-                          />
-                        </linearGradient>
-                      </defs>
-                      {/* Area: si riempie dopo che la linea si è disegnata */}
-                      <path
-                        className="imm-detail-area"
-                        d={`${DETAIL_D} L400,80 L0,80 Z`}
-                        fill="url(#imm-db2-detail-grad)"
-                        style={{ opacity: 0 }}
-                      />
-                      <path
-                        className="imm-detail-path stroke-accent"
-                        d={DETAIL_D}
-                        fill="none"
-                        strokeWidth="2.5"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                    </svg>
-                    <div className="text-muted mt-1 flex justify-between text-xs font-medium">
-                      {["Sett. 1", "Sett. 2", "Sett. 3", "Sett. 4"].map((s) => (
-                        <span key={s}>{s}</span>
-                      ))}
+                      <div className="divide-border divide-y">
+                        {INTERAZIONI.map((r) => (
+                          <div
+                            key={`${r.ora}-${r.testo}`}
+                            className={`imm-int-row flex items-center gap-2.5 py-1.5 ${
+                              r.kind !== "Preventivi" ? "imm-int-dim" : ""
+                            }`}
+                          >
+                            <span className="text-muted w-9 shrink-0 font-mono text-[10px]">
+                              {r.ora}
+                            </span>
+                            <span
+                              className={`w-[4.5rem] shrink-0 rounded-full px-2 py-0.5 text-center text-[9px] font-semibold ${KIND_CLS[r.kind] ?? "bg-surface-2 text-muted"}`}
+                            >
+                              {r.kind === "Preventivi" ? "Preventivo" : r.kind}
+                            </span>
+                            <span className="text-foreground min-w-0 flex-1 truncate text-xs">
+                              {r.testo}
+                            </span>
+                            <span className="text-muted shrink-0 font-mono text-[10px]">
+                              {r.pagina}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   </div>
                 </div>
