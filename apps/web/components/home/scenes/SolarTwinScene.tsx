@@ -7,11 +7,15 @@
  *   video solare ALL-KEYFRAME (`/assets/solar-twin.mp4`) scrubbato dallo scroll.
  *   Regia: TITLE CARD di capitolo 01 (P12, ChapterCard del kit immersive — la
  *   scena NON usa ImmersiveStage ma importa il kit capitoli) sui primissimi px
- *   di scroll → scrub del video fino a VIDEO_END → SPLIT FINALE: il video "si
- *   apre in due" (due metà-canvas con l'ULTIMO frame, catturato a runtime,
- *   traslano a sinistra e a destra — transform-only) scoprendo un pannello
- *   scuro con TRE card 3D di servizio; quella centrale (wallbox) ha il bordo
- *   elettrico (ElectricBorder). Il cue "Scorri" grande in basso a sinistra
+ *   di scroll → scrub del video fino a VIDEO_END → SPLIT: il video "si apre in
+ *   due" (due metà-canvas con l'ULTIMO frame, catturato a runtime, traslano a
+ *   sinistra e a destra — transform-only) scoprendo un pannello CHIARO con TRE
+ *   card 3D di servizio (tilt-back in entrata, float nel hold; la centrale ha
+ *   il bordo elettrico, ElectricBorder) → TRASLAZIONE ORIZZONTALE: il finto
+ *   sito "scrolla di lato" (track a 2 pannelli, xPercent 0→-50) e porta alla
+ *   sezione CHI SIAMO, con due righe di testo gigante in MOVIMENTO scroll-
+ *   linked (marquee scrubbate in versi opposti) + copy e numeri. Il cue
+ *   "Scorri" grande in basso a sinistra
  *   parte con una MICRO-DEMO in loop (proxy → seek del video + dot del mousino
  *   in sync) che si uccide al primo scroll reale e rispetta la pausa globale
  *   della presentazione (`presentation:pausechange`).
@@ -53,13 +57,17 @@ const FRASE = "Con una forte narrativa, costruita tramite scrollytelling video."
 
 /** Il video esaurisce la sua durata a questo progress di scroll: da qui in poi
  *  l'ultimo frame resta fermo e parte la sequenza di SPLIT (vedi sotto). */
-const VIDEO_END = 0.52;
+const VIDEO_END = 0.4;
 /** Da questo progress i due canvas-metà catturano l'ultimo frame del video
  *  (finestra "live" fino a SPLIT_AT: il lerp di ScrubVideo sta ancora
  *  arrivando all'ultimo frame, l'ultima cattura vince). */
-const SNAP_FROM = 0.53;
+const SNAP_FROM = 0.41;
 /** Le due metà diventano visibili e iniziano a traslare fuori. */
-const SPLIT_AT = 0.56;
+const SPLIT_AT = 0.44;
+/** Parte la traslazione orizzontale del track verso il Chi siamo (→ +0.12). */
+const SLIDE_AT = 0.72;
+/** Pannello card ormai fuori schermo → autoAlpha 0 (spegne l'ElectricBorder). */
+const CARDS_OFF = 0.88;
 /** Colore del riempimento di sicurezza delle metà (se il frame non è pronto). */
 const HALF_FALLBACK = "#0b1020";
 /** Escursione (in frazione di video) della micro-demo del cue: avanti/indietro. */
@@ -90,6 +98,21 @@ const SERVIZI = [
   },
 ] as const;
 
+/** Sezione CHI SIAMO (pannello 2 del track orizzontale): due righe giganti in
+ *  movimento scroll-linked + copy breve + tre numeri. Contenuto in-world. */
+const ABOUT = {
+  kicker: "Chi siamo",
+  // Righe marquee: ripetute ×3 nel markup per superare la larghezza del device.
+  marquee1: "Energia pulita · Dal sole alla casa · ",
+  marquee2: "Progettiamo · Installiamo · Monitoriamo · ",
+  copy: "Dal 2008 progettiamo e installiamo impianti fotovoltaici e sistemi di ricarica: un solo interlocutore, dal sopralluogo al collaudo.",
+  stats: [
+    { n: "15+", label: "anni di esperienza" },
+    { n: "800+", label: "impianti realizzati" },
+    { n: "6 MW", label: "di potenza installata" },
+  ],
+} as const;
+
 export default function SolarTwinScene() {
   const reduced = useReducedMotion();
   const stageRef = useRef<HTMLElement>(null);
@@ -105,10 +128,10 @@ export default function SolarTwinScene() {
     let disposeDemo: () => void = () => {};
 
     const ctx = gsap.context(() => {
-      // Stato iniziale: velo d'uscita, metà-sipario e pannello card nascosti.
+      // Stato iniziale: velo d'uscita, metà-sipario e pannelli del track nascosti.
       gsap.set(".st-cue", { autoAlpha: 1 });
       gsap.set(".st-exit-veil", { autoAlpha: 0 });
-      gsap.set(".st-half, .st-cards", { autoAlpha: 0 });
+      gsap.set(".st-half, .st-cards, .st-about", { autoAlpha: 0 });
       // Card 3D: prospettiva per-card + tilt PERSISTENTE "a galleria" delle due
       // laterali (rotationY non è mai toccata dai tween d'entrata → resta).
       gsap.set(".st-card", { transformPerspective: 1100, transformOrigin: "50% 60%" });
@@ -203,46 +226,101 @@ export default function SolarTwinScene() {
       // Cue "Scorri": sfuma appena parte lo scroll.
       tl.to(".st-cue", { autoAlpha: 0, duration: 0.04, ease: EASE_OUT_SCENE }, 0.05); // motion: dissolve lampo al primo scroll (unità scrub, non secondi)
 
-      // ── SPLIT FINALE: il video "si apre in due" sulle card 3D ──────────────
-      // Le metà appaiono INSIEME al pannello (stesso istante: mostrano lo stesso
-      // frame del video, il passaggio è invisibile) e traslano fuori — solo
-      // transform, scrub-safe e reversibile: tornando indietro si richiudono.
+      // ── SPLIT: il video "si apre in due" sulle card 3D ─────────────────────
+      // Le metà appaiono INSIEME ai pannelli del track (stesso istante: mostrano
+      // lo stesso frame del video, il passaggio è invisibile) e traslano fuori —
+      // solo transform, scrub-safe e reversibile: tornando indietro si richiudono.
+      // (.st-about è già visibile ma CLIPPATO fuori a destra dal track finché
+      // la traslazione orizzontale non lo porta dentro.)
       tl.set(".st-half", { autoAlpha: 1 }, SPLIT_AT);
-      tl.set(".st-cards", { autoAlpha: 1 }, SPLIT_AT);
-      tl.to(".st-half-l", { xPercent: -101, duration: 0.14, ease: EASE_CAMERA }, SPLIT_AT);
-      tl.to(".st-half-r", { xPercent: 101, duration: 0.14, ease: EASE_CAMERA }, SPLIT_AT);
+      tl.set(".st-cards, .st-about", { autoAlpha: 1 }, SPLIT_AT);
+      tl.to(".st-half-l", { xPercent: -101, duration: 0.12, ease: EASE_CAMERA }, SPLIT_AT);
+      tl.to(".st-half-r", { xPercent: 101, duration: 0.12, ease: EASE_CAMERA }, SPLIT_AT);
       // Heading del pannello: kicker in rise + titolo con wipe a maschera.
       tl.fromTo(
         ".st-cards-kicker",
         { autoAlpha: 0, y: 16 },
-        { autoAlpha: 1, y: 0, duration: 0.05, ease: EASE_IN_SCENE },
-        0.6,
+        { autoAlpha: 1, y: 0, duration: 0.04, ease: EASE_IN_SCENE },
+        0.48,
       );
-      maskReveal(tl, ".st-cards-title", { dir: "l", duration: 0.07, position: 0.62 });
-      // Card 3D in cascata: salgono da sotto con push di profondità (z) e si
-      // assestano; le laterali conservano il tilt impostato al mount. Valori
-      // FISSI (fromTo) → scrub-safe in entrambe le direzioni.
+      maskReveal(tl, ".st-cards-title", { dir: "l", duration: 0.06, position: 0.5 });
+      // Card 3D in cascata: salgono da sotto con push di profondità (z) e
+      // TILT-BACK (rotationX 16→0, si "raddrizzano" salendo); le laterali
+      // conservano il tilt rotationY impostato al mount. Valori FISSI (fromTo)
+      // → scrub-safe in entrambe le direzioni.
       tl.fromTo(
         ".st-card-l",
-        { autoAlpha: 0, y: 90, z: -180, scale: 0.92 },
-        { autoAlpha: 1, y: 0, z: -26, scale: 1, duration: 0.1, ease: EASE_IN_SCENE },
-        0.64,
+        { autoAlpha: 0, y: 90, z: -180, rotationX: 16, scale: 0.92 },
+        { autoAlpha: 1, y: 0, z: -26, rotationX: 0, scale: 1, duration: 0.08, ease: EASE_IN_SCENE },
+        0.52,
       );
       tl.fromTo(
         ".st-card-c",
-        { autoAlpha: 0, y: 90, z: -180, scale: 0.92 },
-        { autoAlpha: 1, y: 0, z: 0, scale: 1, duration: 0.1, ease: EASE_IN_SCENE },
-        0.68,
+        { autoAlpha: 0, y: 90, z: -180, rotationX: 16, scale: 0.92 },
+        { autoAlpha: 1, y: 0, z: 0, rotationX: 0, scale: 1, duration: 0.08, ease: EASE_IN_SCENE },
+        0.555,
       );
       tl.fromTo(
         ".st-card-r",
-        { autoAlpha: 0, y: 90, z: -180, scale: 0.92 },
-        { autoAlpha: 1, y: 0, z: -26, scale: 1, duration: 0.1, ease: EASE_IN_SCENE },
-        0.72,
+        { autoAlpha: 0, y: 90, z: -180, rotationX: 16, scale: 0.92 },
+        { autoAlpha: 1, y: 0, z: -26, rotationX: 0, scale: 1, duration: 0.08, ease: EASE_IN_SCENE },
+        0.59,
+      );
+      // FLOAT nel hold: micro-deriva verticale sfalsata, scroll-linked (ease
+      // none) → la galleria "respira" mentre si continua a scorrere.
+      tl.to(".st-card-l", { y: -8, duration: 0.07, ease: "none" }, 0.64);
+      tl.to(".st-card-c", { y: -14, duration: 0.07, ease: "none" }, 0.645);
+      tl.to(".st-card-r", { y: -8, duration: 0.07, ease: "none" }, 0.65);
+
+      // ── TRASLAZIONE ORIZZONTALE → CHI SIAMO ────────────────────────────────
+      // Il track (2 pannelli affiancati, largo 200%) trasla di mezzo sé stesso:
+      // scrollando in giù il finto sito "scrolla di lato". Le card SWINGANO in
+      // 3D (rotationY +14 dal tilt corrente) mentre escono: la pagina che si
+      // trascina dietro la galleria.
+      tl.to(".st-track", { xPercent: -50, duration: 0.12, ease: EASE_CAMERA }, SLIDE_AT);
+      tl.to(".st-card-l", { rotationY: 24, duration: 0.12, ease: "none" }, SLIDE_AT);
+      tl.to(".st-card-c", { rotationY: 14, duration: 0.12, ease: "none" }, SLIDE_AT);
+      tl.to(".st-card-r", { rotationY: 4, duration: 0.12, ease: "none" }, SLIDE_AT);
+      // Pannello card ormai fuori schermo → spento (ferma il rAF del bordo
+      // elettrico via il gate [data-quadro]); scrub indietro lo riaccende.
+      tl.set(".st-cards", { autoAlpha: 0 }, CARDS_OFF);
+      // TESTO IN MOVIMENTO: le due righe giganti scorrono in versi opposti,
+      // scroll-linked (ease none) per TUTTO il tratto → si muovono finché
+      // scorri, avanti e indietro. Valori fissi in xPercent: scrub-safe.
+      tl.fromTo(
+        ".st-marq-1",
+        { xPercent: -6 },
+        { xPercent: -26, duration: 0.26, ease: "none" },
+        SLIDE_AT,
+      );
+      tl.fromTo(
+        ".st-marq-2",
+        { xPercent: -26 },
+        { xPercent: -6, duration: 0.26, ease: "none" },
+        SLIDE_AT,
+      );
+      // Copy del Chi siamo: kicker → paragrafo → numeri in cascata.
+      tl.fromTo(
+        ".st-about-kicker",
+        { autoAlpha: 0, y: 16 },
+        { autoAlpha: 1, y: 0, duration: 0.05, ease: EASE_IN_SCENE },
+        0.8,
+      );
+      tl.fromTo(
+        ".st-about-copy",
+        { autoAlpha: 0, y: 22 },
+        { autoAlpha: 1, y: 0, duration: 0.06, ease: EASE_IN_SCENE },
+        0.83,
+      );
+      tl.fromTo(
+        ".st-about-stats > *",
+        { autoAlpha: 0, y: 18 },
+        { autoAlpha: 1, y: 0, duration: 0.05, stagger: 0.02, ease: EASE_IN_SCENE },
+        0.86,
       );
 
       // Velo chiaro d'uscita → la scena successiva è chiara. Sale sul finale,
-      // dopo un hold leggibile del pannello card (0.82 → 0.95).
+      // dopo un hold leggibile del Chi siamo.
       tl.to(".st-exit-veil", { autoAlpha: 1, duration: 0.05, ease: EASE_OUT_SCENE }, 0.95); // motion: 0.95+0.05=1 — il velo chiude ESATTAMENTE a fine scrub
 
       // Guardia di sviluppo: un tween oltre lo spacer allunga la timeline e
@@ -391,6 +469,35 @@ export default function SolarTwinScene() {
               <ServiceCard key={s.title} {...s} className="w-60" />
             ))}
           </div>
+          {/* Chi siamo statico: righe FERME (niente marquee) + copy + numeri. */}
+          <div className="mt-14">
+            <p className="text-accent-ink text-xs font-semibold tracking-[0.22em] uppercase">
+              {ABOUT.kicker}
+            </p>
+            <p className="font-display text-foreground mt-4 truncate text-4xl font-bold tracking-tight uppercase">
+              {ABOUT.marquee1}
+            </p>
+            <p
+              className="font-display mt-1 truncate text-4xl font-bold tracking-tight uppercase"
+              style={{
+                color: "transparent",
+                WebkitTextStroke: "1.5px color-mix(in oklab, var(--foreground) 32%, transparent)",
+              }}
+            >
+              {ABOUT.marquee2}
+            </p>
+            <p className="text-muted mt-6 max-w-xl text-base leading-relaxed">{ABOUT.copy}</p>
+            <div className="mt-8 flex gap-12">
+              {ABOUT.stats.map((s) => (
+                <div key={s.label}>
+                  <p className="font-display text-foreground text-3xl font-bold tracking-tight">
+                    {s.n}
+                  </p>
+                  <p className="text-muted mt-1 text-xs">{s.label}</p>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       </section>
     );
@@ -408,7 +515,7 @@ export default function SolarTwinScene() {
       // AutoScroll: anchor extra a FINE SCRUB → il tratto vuoto (velo chiaro +
       // hand-off) verso l'Assistente si attraversa veloce invece che a passo bell.
       data-fast-handoff="true"
-      className="relative isolate h-[340svh]"
+      className="relative isolate h-[460svh]"
     >
       <div className="bg-background sticky top-0 flex h-svh items-center justify-center overflow-hidden">
         {/* FINTO SITO in DEVICE FRAME (R3 regola 1): browser mock centrato,
@@ -445,36 +552,105 @@ export default function SolarTwinScene() {
               className="absolute inset-x-0 bottom-0 h-1/3 bg-linear-to-t from-black/45 to-transparent"
             />
 
-            {/* PANNELLO CARD 3D — sotto le metà-sipario: rivelato quando il video
-                si apre in due. Sfondo OPACO scuro (copre video e scrim), continua
-                il mood dell'hero e fa friggere il lime del bordo elettrico.
-                `data-quadro` = gate di visibilità di ElectricBorder: il suo rAF
-                gira SOLO quando questo pannello è visibile (autoAlpha 0→1). */}
-            <div
-              data-quadro
-              className="st-cards absolute inset-0 z-10 flex flex-col items-center justify-center gap-7 bg-linear-to-br from-[#0b1020] via-[#111b0e] to-[#0b1020] px-8"
-              style={{ opacity: 0, visibility: "hidden" }}
-            >
-              <div className="text-center">
-                <p className="st-cards-kicker text-accent text-xs font-semibold tracking-[0.22em] uppercase">
-                  I nostri servizi
-                </p>
-                <p className="st-cards-title font-display mt-2 text-3xl font-bold tracking-tight text-white md:text-4xl">
-                  Dal tetto alla ricarica.
-                </p>
-              </div>
-              {/* Galleria 3D: prospettiva sul contenitore, tilt persistente sulle
-                  laterali (gsap.set al mount). SOLO la card centrale ha il bordo
-                  elettrico — effetto per-elemento, mai sul contenitore. */}
+            {/* TRACK ORIZZONTALE — sotto le metà-sipario: 2 pannelli affiancati
+                (card 3D → Chi siamo), largo 200%. La timeline lo trasla di
+                xPercent -50: scrollando in giù il finto sito "scrolla di lato". */}
+            <div className="st-track absolute inset-y-0 left-0 z-10 flex w-[200%]">
+              {/* PANNELLO 1 — CARD 3D, rivelato quando il video si apre in due.
+                  Sfondo OPACO chiaro (copre video e scrim): il sito continua
+                  sotto l'hero. `data-quadro` = gate di visibilità di
+                  ElectricBorder: il suo rAF gira SOLO quando questo pannello è
+                  visibile (autoAlpha 0→1 alle soglie SPLIT_AT / CARDS_OFF). */}
               <div
-                className="flex items-center justify-center gap-6"
-                style={{ perspective: "1100px" }}
+                data-quadro
+                className="st-cards bg-background relative flex h-full w-1/2 flex-col items-center justify-center gap-7 px-8"
+                style={{ opacity: 0, visibility: "hidden" }}
               >
-                <ServiceCard {...SERVIZI[0]} className="st-card st-card-l w-60" />
-                <ElectricBorder radius={16} className="st-card st-card-c w-60">
-                  <ServiceCard {...SERVIZI[1]} className="h-full w-full" />
-                </ElectricBorder>
-                <ServiceCard {...SERVIZI[2]} className="st-card st-card-r w-60" />
+                {/* Trama a puntini accent tenue (stessa texture della ChapterCard) */}
+                <div
+                  aria-hidden
+                  className="absolute inset-0 opacity-20"
+                  style={{
+                    backgroundImage:
+                      "radial-gradient(color-mix(in oklab, var(--accent) 20%, transparent) 1px, transparent 1.4px)",
+                    backgroundSize: "22px 22px",
+                  }}
+                />
+                <div className="relative text-center">
+                  <p className="st-cards-kicker text-accent-ink text-xs font-semibold tracking-[0.22em] uppercase">
+                    I nostri servizi
+                  </p>
+                  <p className="st-cards-title font-display text-foreground mt-2 text-3xl font-bold tracking-tight md:text-4xl">
+                    Dal tetto alla ricarica.
+                  </p>
+                </div>
+                {/* Galleria 3D: prospettiva sul contenitore, tilt persistente sulle
+                    laterali (gsap.set al mount). SOLO la card centrale ha il bordo
+                    elettrico — effetto per-elemento, mai sul contenitore. */}
+                <div
+                  className="relative flex items-center justify-center gap-6"
+                  style={{ perspective: "1100px" }}
+                >
+                  <ServiceCard {...SERVIZI[0]} className="st-card st-card-l w-60" />
+                  <ElectricBorder radius={16} className="st-card st-card-c w-60">
+                    <ServiceCard {...SERVIZI[1]} className="h-full w-full" />
+                  </ElectricBorder>
+                  <ServiceCard {...SERVIZI[2]} className="st-card st-card-r w-60" />
+                </div>
+              </div>
+
+              {/* PANNELLO 2 — CHI SIAMO: righe giganti in movimento scroll-linked
+                  (marquee scrubbate in versi opposti, full-bleed) + copy e numeri. */}
+              <div
+                className="st-about bg-background relative flex h-full w-1/2 flex-col justify-center overflow-hidden"
+                style={{ opacity: 0, visibility: "hidden" }}
+              >
+                <p className="st-about-kicker text-accent-ink px-12 text-xs font-semibold tracking-[0.22em] uppercase">
+                  {ABOUT.kicker}
+                </p>
+                {/* TESTO IN MOVIMENTO: due strisce più larghe del device (contenuto
+                    ripetuto ×3), scrubbate in xPercent in versi opposti. Riga 1
+                    piena, riga 2 solo contorno (stroke sul foreground). */}
+                <div aria-hidden className="mt-5 space-y-1">
+                  <div className="overflow-hidden">
+                    <div className="st-marq-1 font-display text-foreground flex text-6xl font-bold tracking-tight whitespace-nowrap uppercase">
+                      {[0, 1, 2].map((i) => (
+                        <span key={i} className="shrink-0">
+                          {ABOUT.marquee1}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="overflow-hidden">
+                    <div
+                      className="st-marq-2 font-display flex text-6xl font-bold tracking-tight whitespace-nowrap uppercase"
+                      style={{
+                        color: "transparent",
+                        WebkitTextStroke:
+                          "1.5px color-mix(in oklab, var(--foreground) 32%, transparent)",
+                      }}
+                    >
+                      {[0, 1, 2].map((i) => (
+                        <span key={i} className="shrink-0">
+                          {ABOUT.marquee2}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+                <p className="st-about-copy text-muted mt-8 max-w-xl px-12 text-base leading-relaxed">
+                  {ABOUT.copy}
+                </p>
+                <div className="st-about-stats mt-8 flex gap-12 px-12">
+                  {ABOUT.stats.map((s) => (
+                    <div key={s.label}>
+                      <p className="font-display text-foreground text-3xl font-bold tracking-tight">
+                        {s.n}
+                      </p>
+                      <p className="text-muted mt-1 text-xs">{s.label}</p>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
 
