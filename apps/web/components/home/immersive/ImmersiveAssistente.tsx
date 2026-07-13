@@ -16,10 +16,12 @@
  *        indicator → l'assistente fa UNA domanda di chiarimento.
  *     ⑤ Il visitatore digita nella barra la risposta breve → 2ª bolla utente.
  *     ⑥ Typing indicator → l'assistente RAGIONA (spiega cosa ha pensato) e COSTRUISCE
- *        nella chat, un pezzo alla volta, l'INTERFACCIA della risposta: card setup
- *        (wallbox + cavo), mini-grafico «finestra di ricarica notturna» (barre che
- *        si alzano), riga stima costi con cifre a rullo, CTA «Prenota un sopralluogo»
- *        che il cursore preme → conferma ✓.
+ *        nella chat, un pezzo alla volta, l'INTERFACCIA della risposta: righe setup
+ *        (wallbox + cavo, thumb quadrata), mini-grafico «finestra di ricarica
+ *        notturna» (barre che si alzano), riga stima costi con cifre a rullo,
+ *        footer con nota FV + CTA compatta «Prenota un sopralluogo» che il
+ *        cursore preme → conferma ✓. Il thread è dimensionato per stare TUTTO
+ *        in vista: la 1ª bolla (la richiesta) resta sempre visibile.
  *     ⑦ Hold finale leggibile.
  *
  *   CAMERA (P11): push-in sul megamenu (②) e sulla barra durante il typing (③);
@@ -225,8 +227,8 @@ export default function ImmersiveAssistente() {
       { duration: DUR.scene, position: ">-0.2" },
     );
     hold(tl, 0.3);
-    // d. CTA «Prenota un sopralluogo».
-    enter(tl, ".imm-gen-cta", { y: 12, duration: DUR.beat });
+    // d. Footer del pannello (nota FV + CTA compatta).
+    enter(tl, ".imm-gen-foot", { y: 12, duration: DUR.beat });
     // Chiudo il push-in del pannello prima del punch sulla CTA (inquadratura pulita).
     cameraReset(tl, { duration: DUR.beat, position: ">-0.1" });
     hold(tl, 0.3);
@@ -374,11 +376,14 @@ export default function ImmersiveAssistente() {
           </div>
 
           {/* ══ CHAT ASSISTENTE: pannello messaggi che si apre sopra la barra ══════
-              Overlay che copre la home (dimmata). La barra resta sotto come composer.
-              flex-col justify-end: i messaggi si "appoggiano" al composer, i più
-              recenti (ragionamento + interfaccia generata) sempre in basso e visibili. */}
+              Widget CENTRATO sotto l'header del sito (top-[4.5rem] = h-14 + margine:
+              l'header resta visibile → il layout della home non si "rompe") e
+              largo al massimo 4xl come la barra → colonna di lettura, non tenda.
+              flex-col justify-end: i messaggi si "appoggiano" al composer; il
+              thread è DIMENSIONATO per stare tutto in vista — la 1ª bolla (la
+              richiesta dell'utente) DEVE restare visibile fino alla fine. */}
           <div
-            className="imm-chat border-border bg-background absolute inset-x-4 top-4 bottom-[4.75rem] z-30 flex flex-col overflow-hidden rounded-2xl border shadow-2xl"
+            className="imm-chat border-border bg-background absolute inset-x-6 top-[4.5rem] bottom-[4.75rem] z-30 mx-auto flex w-full max-w-4xl flex-col overflow-hidden rounded-2xl border shadow-2xl"
             style={{ opacity: 0 }}
           >
             {/* Header chat */}
@@ -431,66 +436,48 @@ export default function ImmersiveAssistente() {
                   </span>
                 </div>
 
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
-                  {/* a. Card SETUP: due prodotti, rettangoli verticali, foto ≥ quadrate */}
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)]">
+                  {/* a. SETUP: due RIGHE prodotto compatte (thumb quadrata + nome +
+                      prezzo) — struttura da chat, niente card alte che sfondano. */}
                   <div className="imm-gen-setup">
                     <p className="text-foreground mb-1.5 text-xs font-semibold">{SETUP.title}</p>
-                    <div className="grid grid-cols-2 gap-2">
+                    <div className="flex flex-col gap-2">
                       {SETUP.items.map((p) => (
                         <article
                           key={p.name}
-                          className="border-border bg-surface flex flex-col overflow-hidden rounded-lg border"
+                          className="border-border bg-surface flex items-center gap-2.5 rounded-lg border p-2"
                         >
-                          {/* Foto del prodotto INDICATO — quadrata (mai striscia bassa) */}
-                          <div className="aspect-square overflow-hidden">
-                            <img
-                              src={p.img}
-                              alt=""
-                              aria-hidden
-                              loading="lazy"
-                              decoding="async"
-                              className="h-full w-full object-cover"
-                            />
-                          </div>
-                          <div className="flex flex-1 flex-col p-2">
+                          {/* Foto del prodotto INDICATO — thumb QUADRATA */}
+                          <img
+                            src={p.img}
+                            alt=""
+                            aria-hidden
+                            loading="lazy"
+                            decoding="async"
+                            className="border-border h-14 w-14 shrink-0 rounded-md border object-cover"
+                          />
+                          <div className="min-w-0 flex-1">
                             <p className="text-accent-ink text-[0.6rem] font-bold tracking-wider uppercase">
                               {p.kind}
                             </p>
                             <p className="text-foreground mt-0.5 line-clamp-2 text-[0.72rem] leading-snug font-semibold">
                               {p.name}
                             </p>
-                            <div className="mt-1.5 flex flex-wrap gap-1">
-                              {p.badges.map((b, bi) => (
-                                <span
-                                  key={b}
-                                  className={cn(
-                                    "rounded-full px-1.5 py-0.5 text-[0.58rem] font-semibold",
-                                    bi === 0
-                                      ? "bg-accent text-accent-contrast"
-                                      : "bg-surface-2 text-muted",
-                                  )}
-                                >
-                                  {b}
-                                </span>
-                              ))}
-                            </div>
-                            <p className="text-foreground mt-auto pt-1.5 text-sm font-bold">
-                              {p.price}
-                            </p>
                           </div>
+                          <p className="text-foreground shrink-0 text-sm font-bold">{p.price}</p>
                         </article>
                       ))}
                     </div>
                   </div>
 
-                  {/* Colonna destra: grafico + stima + CTA */}
+                  {/* Colonna destra: grafico + stima */}
                   <div className="flex min-w-0 flex-col gap-2.5">
                     {/* b. Mini-grafico «finestra di ricarica notturna» */}
                     <div className="imm-gen-chart border-border bg-surface rounded-lg border p-2.5">
                       <p className="text-muted mb-1.5 text-[0.62rem] font-bold tracking-wider uppercase">
                         Finestra di ricarica notturna
                       </p>
-                      <div className="relative flex h-16 items-end gap-1">
+                      <div className="relative flex h-14 items-end gap-1">
                         {/* Fascia delle ore attive (carica in corso) */}
                         <span
                           className="imm-chart-band bg-accent-soft border-accent absolute inset-y-0 rounded border-x"
@@ -529,24 +516,27 @@ export default function ImmersiveAssistente() {
                           <span className="imm-cost-m text-accent-ink">0</span> €/mese
                         </span>
                       </div>
-                      <p className="text-muted mt-1 flex items-center gap-1 text-[0.6rem]">
-                        <Sun className="text-accent-ink h-3 w-3 shrink-0" aria-hidden />
-                        {COST.note}
-                      </p>
                     </div>
-
-                    {/* d. CTA «Prenota un sopralluogo» → conferma ✓ */}
-                    <span className="imm-gen-cta bg-accent text-accent-contrast relative mt-auto rounded-full px-3 py-2 text-center text-xs font-semibold">
-                      <span className="imm-cta-label inline-block">{CTA.label} →</span>
-                      <span
-                        className="imm-cta-done absolute inset-0 flex items-center justify-center gap-1.5"
-                        style={{ opacity: 0 }}
-                      >
-                        <Check className="h-3.5 w-3.5 shrink-0" aria-hidden />
-                        {CTA.done}
-                      </span>
-                    </span>
                   </div>
+                </div>
+
+                {/* d. Footer del pannello: nota FV a sinistra, CTA COMPATTA a
+                    destra (larghezza auto: un bottone, non una tenda). */}
+                <div className="imm-gen-foot mt-2.5 flex items-center justify-between gap-3">
+                  <p className="text-muted flex min-w-0 items-center gap-1.5 text-[0.65rem]">
+                    <Sun className="text-accent-ink h-3.5 w-3.5 shrink-0" aria-hidden />
+                    {COST.note}
+                  </p>
+                  <span className="imm-gen-cta bg-accent text-accent-contrast relative inline-flex shrink-0 items-center justify-center rounded-full px-4 py-2 text-xs font-semibold">
+                    <span className="imm-cta-label inline-block">{CTA.label} →</span>
+                    <span
+                      className="imm-cta-done absolute inset-0 flex items-center justify-center gap-1.5"
+                      style={{ opacity: 0 }}
+                    >
+                      <Check className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                      {CTA.done}
+                    </span>
+                  </span>
                 </div>
               </div>
             </div>

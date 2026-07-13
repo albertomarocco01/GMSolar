@@ -87,15 +87,14 @@ export const DIALOG = {
 } as const;
 
 // ── ⑥a Setup consigliato: DUE prodotti, ognuno con la SUA foto reale ─────────
-// Card = rettangoli verticali, immagini almeno quadrate (mai strisce orizzontali).
+// Nella chat sono RIGHE compatte (thumb quadrata + nome + prezzo), non card alte:
+// il thread deve stare tutto in vista, prima bolla compresa.
 export type SetupItem = {
-  /** Categoria breve (eyebrow della card). */
+  /** Categoria breve (eyebrow della riga). */
   kind: string;
   name: string;
   /** Foto in /assets/products/: DEVE mostrare il prodotto indicato. */
   img: string;
-  /** Due badge tecnici (il primo evidenziato). */
-  badges: [string, string];
   price: string;
 };
 
@@ -107,14 +106,12 @@ export const SETUP: { eyebrow: string; title: string; items: SetupItem[] } = {
       kind: "Wallbox",
       name: "Wallbox monofase 7,4 kW",
       img: "/assets/products/wallbox-detail.jpg",
-      badges: ["Carico dinamico", "Monofase"],
       price: "790 €",
     },
     {
       kind: "Cavo di ricarica",
       name: "Cavo Modo 3 · Tipo 2 · 5 m",
       img: "/assets/products/cavo-03.jpg",
-      badges: ["Fino a 7,4 kW", "Monofase"],
       price: "189 €",
     },
   ],
