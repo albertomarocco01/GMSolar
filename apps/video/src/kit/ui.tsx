@@ -8,6 +8,8 @@ import { AbsoluteFill, useCurrentFrame, interpolate } from "remotion";
 import { C } from "./tokens";
 import {
   Beat,
+  CameraShot,
+  cameraValues,
   DUR,
   EASE_CAMERA,
   EASE_IN_SCENE,
@@ -16,6 +18,7 @@ import {
   maskReveal,
   prog,
   s2f,
+  screenPoint,
   seq,
 } from "./motion";
 import { fontFamily } from "./fonts";
@@ -173,19 +176,32 @@ export type CursorMove = { beat: Beat; x: number; y: number; mode?: CursorMode }
 /**
  * Cursore finto (Cursor del kit web): freccia in viaggio, icona contestuale
  * all'arrivo. Coordinate design-time in px del frame 1920×1080 (il video è
- * deterministico: niente getBoundingClientRect). Parte nascosto al bordo
- * destro; fa fade-in sul primo movimento. `hideAfter` lo sfuma via.
+ * deterministico). Parte nascosto al bordo destro; fade-in sul primo movimento.
+ *
+ * CORREZIONE POSIZIONE (fondamentale): il cursore vive FUORI dal layer camera,
+ * ma i bottoni sono DENTRO. Passando `shots` (lo stesso array della scena) il
+ * cursore PROIETTA il suo punto-target con la stessa matrice camera → resta
+ * SEMPRE esatto sul bottone anche a camera zoomata/panata (l'anchor del cursore
+ * e quello del cameraTo coincidono). L'icona NON si scala: resta dimensione
+ * schermo.
+ *
+ * CLICK: passando `clicks` (i beat dei pressButton) il cursore fa il "press-dip"
+ * (si abbassa di scatto e risale) e sgancia un anello accent che si espande —
+ * feedback di click stile presentazione.
  */
 export const Cursor: React.FC<{
   moves: CursorMove[];
+  shots?: CameraShot[];
+  clicks?: Beat[];
   hideAfter?: Beat;
   /** parcheggio iniziale (default 92%, 60%) */
   parkX?: number;
   parkY?: number;
-}> = ({ moves, hideAfter, parkX = 1920 * 0.92, parkY = 1080 * 0.6 }) => {
+}> = ({ moves, shots, clicks, hideAfter, parkX = 1920 * 0.92, parkY = 1080 * 0.6 }) => {
   const frame = useCurrentFrame();
   if (moves.length === 0) return null;
 
+  // Posizione in coordinate LAYOUT (non trasformate), interpolata tra i move.
   let x = parkX;
   let y = parkY;
   let mode: CursorMode = "arrow";
@@ -203,6 +219,10 @@ export const Cursor: React.FC<{
     } else break;
   }
 
+  // Proiezione allo schermo con la matrice camera → esatto sul bottone.
+  const cam = shots ? cameraValues(frame, shots) : { x: 0, y: 0, scale: 1 };
+  const sp = screenPoint(x, y, cam);
+
   const first = moves[0].beat;
   let opacity = interpolate(frame, [first.start, Math.min(first.end, first.start + s2f(0.3))], [0, 1], {
     extrapolateLeft: "clamp",
@@ -211,18 +231,78 @@ export const Cursor: React.FC<{
   if (hideAfter) opacity *= 1 - prog(frame, hideAfter, EASE_OUT_SCENE);
   if (opacity <= 0) return null;
 
+  // Press-dip + anello di click dal beat di press attivo.
+  let dip = 0; // 0 = a riposo, 1 = premuto a fondo
+  let ripple = -1; // progresso 0..1 dell'anello, -1 = nessuno
+  if (clicks) {
+    for (const cb of clicks) {
+      const rippleEnd = cb.end + s2f(0.45);
+      if (frame >= cb.start && frame <= rippleEnd) {
+        const half = (cb.start + cb.end) / 2;
+        dip =
+          frame <= half
+            ? interpolate(frame, [cb.start, half], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" })
+            : interpolate(frame, [half, cb.end], [1, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
+        ripple = interpolate(frame, [cb.start, rippleEnd], [0, 1], {
+          extrapolateLeft: "clamp",
+          extrapolateRight: "clamp",
+          easing: EASE_OUT_SCENE,
+        });
+        break;
+      }
+    }
+  }
+
   const icon = { width: 34, height: 34, position: "absolute" as const, top: -17, left: -17 };
   return (
-    <div
-      style={{
-        position: "absolute",
-        left: x,
-        top: y,
-        opacity,
-        zIndex: 60,
-        filter: "drop-shadow(0 1px 2px rgba(255,255,255,0.95)) drop-shadow(0 2px 6px rgba(2,6,23,0.25))",
-      }}
-    >
+    <>
+      {/* Anello di click accent che si espande */}
+      {ripple >= 0 && ripple < 1 ? (
+        <>
+          <div
+            style={{
+              position: "absolute",
+              left: sp.x,
+              top: sp.y,
+              width: 16 + ripple * 64,
+              height: 16 + ripple * 64,
+              marginLeft: -(16 + ripple * 64) / 2,
+              marginTop: -(16 + ripple * 64) / 2,
+              borderRadius: 9999,
+              border: `2px solid ${C.accent}`,
+              opacity: 0.6 * (1 - ripple) * opacity,
+              zIndex: 59,
+            }}
+          />
+          <div
+            style={{
+              position: "absolute",
+              left: sp.x,
+              top: sp.y,
+              width: 10 + ripple * 18,
+              height: 10 + ripple * 18,
+              marginLeft: -(10 + ripple * 18) / 2,
+              marginTop: -(10 + ripple * 18) / 2,
+              borderRadius: 9999,
+              backgroundColor: C.accent,
+              opacity: 0.35 * (1 - ripple) * opacity,
+              zIndex: 59,
+            }}
+          />
+        </>
+      ) : null}
+      <div
+        style={{
+          position: "absolute",
+          left: sp.x,
+          top: sp.y,
+          opacity,
+          transform: `scale(${1 - 0.22 * dip})`,
+          transformOrigin: "0 0",
+          zIndex: 60,
+          filter: "drop-shadow(0 1px 2px rgba(255,255,255,0.95)) drop-shadow(0 2px 6px rgba(2,6,23,0.25))",
+        }}
+      >
       {mode === "arrow" ? (
         // MousePointer2 (freccia riempita)
         <svg viewBox="0 0 24 24" style={icon} fill={C.foreground} stroke={C.foreground} strokeWidth={1.25}>
@@ -245,7 +325,8 @@ export const Cursor: React.FC<{
           <path d="M7 2h1a4 4 0 0 1 4 4v1" />
         </svg>
       )}
-    </div>
+      </div>
+    </>
   );
 };
 

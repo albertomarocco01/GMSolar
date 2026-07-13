@@ -50,6 +50,9 @@ importers:
       '@remotion/media':
         specifier: ^4.0.0
         version: 4.0.489(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
+      '@remotion/transitions':
+        specifier: ^4.0.0
+        version: 4.0.489(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
       react:
         specifier: ^19.0.0
         version: 19.2.4
@@ -1247,6 +1250,9 @@ packages:
       react: '>=16.8.0'
       react-dom: '>=16.8.0'
 
+  '@remotion/paths@4.0.489':
+    resolution: {integrity: sha512-rnmn1zP+1ALb89se5j90ZhoiQvGyw3MiILlrf/NgSArKA5IHAdd/xgWAimKb34n+Eu5iI6l8jRv+/3jwk6DXdg==}
+
   '@remotion/player@4.0.489':
     resolution: {integrity: sha512-DvnJiIbUpnoBlBJCpnsK0yRoR5X8iCumCFvmwVfk+ijSM6mX3W4DRa8xyg3m5B9EQi/L3V5JI+bH2hGQV43eOw==}
     peerDependencies:
@@ -1255,6 +1261,12 @@ packages:
 
   '@remotion/renderer@4.0.489':
     resolution: {integrity: sha512-ggaB6HLigaEOk6nJjafYZWJNCbV0iXZQ4XHnVSJjEtF6ebmkSbD+QAVe/jHI7BHudXKUJXWwLMQ8U417FajILw==}
+    peerDependencies:
+      react: '>=16.8.0'
+      react-dom: '>=16.8.0'
+
+  '@remotion/shapes@4.0.489':
+    resolution: {integrity: sha512-ZIVgj3jmNYI8dWuI8PYjb6J9mBEukQFAjMN7BTfzh83Iunt3KDv08jZM24UojSDks/oyzFFBL2Iul7pT4uetZQ==}
     peerDependencies:
       react: '>=16.8.0'
       react-dom: '>=16.8.0'
@@ -1276,6 +1288,12 @@ packages:
 
   '@remotion/timeline-utils@4.0.489':
     resolution: {integrity: sha512-5VhndeYJY0muffx6GU6rB7eXIKntYBKsgTfuISj3/ugH+CwT6+943XYMgUPh+/LS4/DOqt+VhR6SB9FSKv8eGQ==}
+
+  '@remotion/transitions@4.0.489':
+    resolution: {integrity: sha512-hWzzPcGzXn+GA1cSmnF+tx5r+r4goBJnkIronsDnVgNj8pzFGhVmmtowv9AqRYZtE8B4WeUChYnqyIxP+wx/ww==}
+    peerDependencies:
+      react: '>=16.8.0'
+      react-dom: '>=16.8.0'
 
   '@remotion/web-renderer@4.0.489':
     resolution: {integrity: sha512-owkisp0rbeo2tcOKKdECFnktI4rO9K7CZ/sMFWmdgYTgma5uNIS1vosMZCyE0/ZqCNA2fwNcj/zpcEpadNhfdw==}
@@ -4673,13 +4691,13 @@ snapshots:
       '@remotion/timeline-utils': 4.0.489
       '@rspack/core': 1.7.11(@swc/helpers@0.5.15)
       '@rspack/plugin-react-refresh': 1.6.1(react-refresh@0.18.0)
-      css-loader: 7.1.4(@rspack/core@1.7.11(@swc/helpers@0.5.15))(webpack@5.105.0(postcss@8.5.15))
+      css-loader: 7.1.4(@rspack/core@1.7.11(@swc/helpers@0.5.15))(webpack@5.105.0(esbuild@0.28.1)(postcss@8.5.15))
       esbuild: 0.28.1
       react: 19.2.4
       react-dom: 19.2.4(react@19.2.4)
       react-refresh: 0.18.0
       remotion: 4.0.489(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
-      style-loader: 4.0.0(webpack@5.105.0(postcss@8.5.15))
+      style-loader: 4.0.0(webpack@5.105.0(esbuild@0.28.1)(postcss@8.5.15))
       webpack: 5.105.0(esbuild@0.28.1)(postcss@8.5.15)
     transitivePeerDependencies:
       - '@minify-html/node'
@@ -4786,6 +4804,8 @@ snapshots:
       remotion: 4.0.489(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
       zod: 4.3.6
 
+  '@remotion/paths@4.0.489': {}
+
   '@remotion/player@4.0.489(react-dom@19.2.4(react@19.2.4))(react@19.2.4)':
     dependencies:
       react: 19.2.4
@@ -4813,6 +4833,13 @@ snapshots:
     transitivePeerDependencies:
       - bufferutil
       - utf-8-validate
+
+  '@remotion/shapes@4.0.489(react-dom@19.2.4(react@19.2.4))(react@19.2.4)':
+    dependencies:
+      '@remotion/paths': 4.0.489
+      react: 19.2.4
+      react-dom: 19.2.4(react@19.2.4)
+      remotion: 4.0.489(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
 
   '@remotion/streaming@4.0.489': {}
 
@@ -4882,6 +4909,14 @@ snapshots:
   '@remotion/timeline-utils@4.0.489':
     dependencies:
       mediabunny: 1.50.8
+
+  '@remotion/transitions@4.0.489(react-dom@19.2.4(react@19.2.4))(react@19.2.4)':
+    dependencies:
+      '@remotion/paths': 4.0.489
+      '@remotion/shapes': 4.0.489(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
+      react: 19.2.4
+      react-dom: 19.2.4(react@19.2.4)
+      remotion: 4.0.489(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
 
   '@remotion/web-renderer@4.0.489(react-dom@19.2.4(react@19.2.4))(react@19.2.4)':
     dependencies:
@@ -5600,7 +5635,7 @@ snapshots:
       shebang-command: 2.0.0
       which: 2.0.2
 
-  css-loader@7.1.4(@rspack/core@1.7.11(@swc/helpers@0.5.15))(webpack@5.105.0(postcss@8.5.15)):
+  css-loader@7.1.4(@rspack/core@1.7.11(@swc/helpers@0.5.15))(webpack@5.105.0(esbuild@0.28.1)(postcss@8.5.15)):
     dependencies:
       icss-utils: 5.1.0(postcss@8.5.15)
       postcss: 8.5.15
@@ -7384,7 +7419,7 @@ snapshots:
 
   strip-json-comments@5.0.3: {}
 
-  style-loader@4.0.0(webpack@5.105.0(postcss@8.5.15)):
+  style-loader@4.0.0(webpack@5.105.0(esbuild@0.28.1)(postcss@8.5.15)):
     dependencies:
       webpack: 5.105.0(esbuild@0.28.1)(postcss@8.5.15)
 

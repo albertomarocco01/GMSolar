@@ -9,7 +9,6 @@ import { AbsoluteFill, useCurrentFrame } from "remotion";
 import { C, SHADOW } from "../kit/tokens";
 import {
   cameraAt,
-  countUp,
   drawPath,
   DUR,
   EASE_CAMERA,
@@ -23,7 +22,6 @@ import {
   s2f,
   seq,
   shotOn,
-  val,
 } from "../kit/motion";
 import { Caption, captionBeats, ChapterCard, chapterIntroBeats, Cursor, TypingDots } from "../kit/ui";
 import { fontFamily } from "../kit/fonts";
@@ -275,6 +273,8 @@ export const Ricarica: React.FC = () => {
       </AbsoluteFill>
 
       <Cursor
+        shots={SHOTS}
+        clicks={[PRESS_SEND, PRESS_BOOK]}
         moves={[
           { beat: CUR_SEND, ...P.send, mode: "hand" },
           { beat: CUR_BOOK, ...P.book, mode: "hand" },

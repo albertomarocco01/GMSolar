@@ -256,12 +256,15 @@ export type CameraShot = {
   ease?: Ease;
 };
 
+export type CamValues = { x: number; y: number; scale: number };
+
 /**
- * Stato camera al frame: interpola tra pose successive con EASE_CAMERA.
- * Le pose sono in px di traslazione del layer 1920×1080 + scale (clamp 1..1.7
- * come il kit web). La prima posa è sempre neutra {x:0,y:0,scale:1} a frame 0.
+ * Valori NUMERICI della camera al frame: interpola tra pose successive con
+ * EASE_CAMERA. Prima posa sempre neutra {0,0,1}. Esposto perché il cursore
+ * (che vive FUORI dal layer camera) possa trasformare il suo punto-target con
+ * la STESSA matrice → atterra sempre esatto sul bottone anche a camera zoomata.
  */
-export function cameraAt(frame: number, shots: CameraShot[]): React.CSSProperties {
+export function cameraValues(frame: number, shots: CameraShot[]): CamValues {
   const all: CameraShot[] = [{ at: 0, x: 0, y: 0, scale: 1 }, ...shots];
   let prev = all[0];
   let next: CameraShot | null = null;
@@ -276,7 +279,10 @@ export function cameraAt(frame: number, shots: CameraShot[]): React.CSSPropertie
   let y = prev.y;
   let scale = prev.scale;
   if (next) {
-    const from = next.from ?? prev.at;
+    // Il movimento non può iniziare PRIMA che la posa precedente sia raggiunta
+    // (cameraAt fonde solo due pose per volta): clamp a prev.at evita lo scatto
+    // di un frame quando due shot si sovrappongono (from < prev.at).
+    const from = Math.max(next.from ?? prev.at, prev.at);
     const p = interpolate(frame, [from, Math.max(from + 1, next.at)], [0, 1], {
       extrapolateLeft: "clamp",
       extrapolateRight: "clamp",
@@ -286,7 +292,33 @@ export function cameraAt(frame: number, shots: CameraShot[]): React.CSSPropertie
     y = prev.y + (next.y - prev.y) * p;
     scale = prev.scale + (next.scale - prev.scale) * p;
   }
-  scale = Math.min(1.7, Math.max(1, scale));
+  return { x, y, scale: Math.min(1.7, Math.max(1, scale)) };
+}
+
+/**
+ * Proietta un punto in coordinate LAYOUT (1920×1080, non trasformato) allo
+ * spazio SCHERMO applicando la trasformazione camera (transform-origin al centro).
+ * È la stessa matrice di `cameraAt` → un punto framato dalla camera e questo
+ * proiettato coincidono. Usato dal cursore/click-FX per stare sui bottoni.
+ */
+export function screenPoint(
+  x: number,
+  y: number,
+  cam: CamValues,
+  W = 1920,
+  H = 1080,
+): { x: number; y: number } {
+  return {
+    x: W / 2 + (x - W / 2) * cam.scale + cam.x,
+    y: H / 2 + (y - H / 2) * cam.scale + cam.y,
+  };
+}
+
+/**
+ * Stato camera al frame come stile CSS (transform). Wrappa `cameraValues`.
+ */
+export function cameraAt(frame: number, shots: CameraShot[]): React.CSSProperties {
+  const { x, y, scale } = cameraValues(frame, shots);
   return {
     transform: `translate(${x}px, ${y}px) scale(${scale})`,
     transformOrigin: "50% 50%",

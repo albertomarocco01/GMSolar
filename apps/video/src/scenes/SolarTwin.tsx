@@ -6,7 +6,7 @@
  * velo bianco d'uscita.
  */
 import React from "react";
-import { AbsoluteFill, Freeze, Img, OffthreadVideo, Sequence, staticFile, useCurrentFrame } from "remotion";
+import { AbsoluteFill, Freeze, Img, OffthreadVideo, staticFile, useCurrentFrame } from "remotion";
 import { C, SHADOW } from "../kit/tokens";
 import {
   DUR,
@@ -47,7 +47,9 @@ t.hold(0.1);
 export const SOLAR_DURATION = t.total;
 const MARQUEE = { start: SLIDE.start, end: EXIT_VEIL.end }; // drift continuo
 
-const VIDEO_LAST = VIDEO.end - 1;
+// Frame VIDEO-LOCALE dell'ultimo fotogramma (clip 10s = 300f): usato dai Freeze
+// che avvolgono un OffthreadVideo NUDO (senza Sequence → frame comp = frame media).
+const VIDEO_LAST = VIDEO.dur - 1;
 
 // ── Dati (identici alla scena web) ───────────────────────────────────────────
 const SERVIZI = [
@@ -342,6 +344,15 @@ export const SolarTwin: React.FC = () => {
   const veilP = prog(frame, EXIT_VEIL, EASE_OUT_SCENE);
   const progressBar = Math.min(1, frame / SOLAR_DURATION);
 
+  // Frame VIDEO-LOCALE dello scrub eased: 0 prima di VIDEO, rampa power1.inOut
+  // dentro VIDEO (da fermo → accelera → decelera), ultimo frame dopo.
+  const videoFrame =
+    frame < VIDEO.start
+      ? 0
+      : frame >= VIDEO.end
+        ? VIDEO_LAST
+        : Math.round(prog(frame, VIDEO, EASE_CAMERA) * VIDEO_LAST);
+
   return (
     <AbsoluteFill style={{ backgroundColor: C.background, alignItems: "center", justifyContent: "center" }}>
       {/* Device frame 16:10 */}
@@ -364,17 +375,14 @@ export const SolarTwin: React.FC = () => {
         <div style={{ flex: 1, position: "relative", overflow: "hidden", color: "#fff" }}>
           {/* fallback gradient */}
           <AbsoluteFill style={{ background: "linear-gradient(135deg, #0b1020, #13210a, #0b1020)", zIndex: -2 }} />
-          {/* video: prima frame 0 congelato, poi playback, poi ultimo frame */}
+          {/* Video SCRUBBATO con ease (come l'AutoScroll web: parte da fermo,
+              accelera, decelera): niente stacco statico→movimento. Prima di
+              VIDEO è al frame 0; dentro VIDEO segue la rampa eased; dopo TIENE
+              l'ultimo frame (copre lo split, niente flash del gradiente). */}
           <AbsoluteFill style={{ zIndex: 0 }}>
-            {frame < VIDEO.start ? (
-              <Freeze frame={0}>
-                <OffthreadVideo muted src={staticFile("assets/solar-twin.mp4")} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-              </Freeze>
-            ) : frame < VIDEO.end ? (
-              <Sequence from={VIDEO.start} layout="none">
-                <OffthreadVideo muted src={staticFile("assets/solar-twin.mp4")} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} />
-              </Sequence>
-            ) : null}
+            <Freeze frame={videoFrame}>
+              <OffthreadVideo muted src={staticFile("assets/solar-twin.mp4")} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+            </Freeze>
           </AbsoluteFill>
           <AbsoluteFill style={{ backgroundColor: "rgba(0,0,0,0.2)", zIndex: 1 }} />
           <div style={{ position: "absolute", left: 0, right: 0, bottom: 0, height: "33%", background: "linear-gradient(to top, rgba(0,0,0,0.45), transparent)", zIndex: 1 }} />

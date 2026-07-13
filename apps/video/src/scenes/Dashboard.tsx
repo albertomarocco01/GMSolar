@@ -25,7 +25,6 @@ import {
   seq,
   shotOn,
   typeInset,
-  val,
   whip,
 } from "../kit/motion";
 import { Caption, captionBeats, ChapterCard, chapterIntroBeats, Cursor, DeviceFrame, FRAME } from "../kit/ui";
@@ -116,15 +115,15 @@ const NAV_ITEMS = ["Contenuti", "Prodotti", "Visite", "Ordini"];
 const navY = (i: number) => FRAME.y + 96 + i * 52;
 const P = {
   heroRow: { x: FRAME.x + SIDE_W + 190, y: FRAME.y + 220 },
-  replace: { x: FRAME.x + SIDE_W + 700, y: FRAME.y + 470 },
-  publish: { x: FRAME.x + SIDE_W + 1020, y: FRAME.y + 700 },
+  replace: { x: FRAME.x + SIDE_W + 424, y: FRAME.y + 543 },
+  publish: { x: FRAME.x + SIDE_W + 1056, y: FRAME.y + 820 },
   nav: (i: number) => ({ x: FRAME.x + 125, y: navY(i) + 20 }),
   add: { x: FRAME.x + SIDE_W + 1000, y: FRAME.y + 120 },
   formNome: { x: 960, y: 440 },
   formPrezzo: { x: 960, y: 530 },
   formSave: { x: 960, y: 700 },
   kpi0: { x: FRAME.x + SIDE_W + 190, y: FRAME.y + 200 },
-  ord0: { x: FRAME.x + SIDE_W + 560, y: FRAME.y + 330 },
+  ord0: { x: FRAME.x + SIDE_W + 560, y: FRAME.y + 288 },
 };
 const SHOTS = [
   { at: CAM_EDIT.end, from: CAM_EDIT.start, ...shotOn(FRAME.x + SIDE_W + 800, FRAME.y + 480, 1.15) },
@@ -490,6 +489,8 @@ export const Dashboard: React.FC = () => {
       </AbsoluteFill>
 
       <Cursor
+        shots={SHOTS}
+        clicks={[PRESS_HERO, PRESS_REPL, PRESS_PUB, PRESS_ADD, PRESS_SAVE, PRESS_ORD]}
         moves={[
           { beat: CUR_HERO, ...P.heroRow, mode: "hand" },
           { beat: CUR_REPL, ...P.replace, mode: "hand" },

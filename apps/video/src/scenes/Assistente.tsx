@@ -380,8 +380,10 @@ export const Assistente: React.FC = () => {
         </DeviceFrame>
       </AbsoluteFill>
 
-      {/* Cursore finto (fuori camera, coordinate schermo) */}
+      {/* Cursore finto: proiettato con la camera (esatto sui bottoni) + click FX */}
       <Cursor
+        shots={SHOTS}
+        clicks={[PRESS1, PRESS2, PRESS3]}
         moves={[
           { beat: CUR_CAT, ...P.catalogo, mode: "hand" },
           { beat: CUR_HI0, ...P.hi0, mode: "hand" },

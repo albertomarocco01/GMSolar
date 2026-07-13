@@ -360,6 +360,8 @@ export const Gestionale: React.FC = () => {
       </AbsoluteFill>
 
       <Cursor
+        shots={SHOTS}
+        clicks={[PRESS_AI]}
         moves={[
           { beat: CUR_NAV1, ...P.nav(1), mode: "hand" },
           { beat: { ...TYPE_QUERY, end: TYPE_QUERY.start + s2f(0.3), dur: s2f(0.3) }, ...P.query, mode: "text" },

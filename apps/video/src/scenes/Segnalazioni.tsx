@@ -14,7 +14,6 @@ import {
   EASE_IN_SCENE,
   EASE_OUT_SCENE,
   EASE_SNAP,
-  enter,
   maskReveal,
   pressButton,
   prog,
@@ -22,7 +21,6 @@ import {
   seq,
   shotOn,
   typeInset,
-  val,
 } from "../kit/motion";
 import { Caption, captionBeats, ChapterCard, chapterIntroBeats, Cursor, DeviceFrame, FRAME } from "../kit/ui";
 import { fontFamily } from "../kit/fonts";
@@ -267,6 +265,8 @@ export const Segnalazioni: React.FC = () => {
       ) : null}
 
       <Cursor
+        shots={SHOTS}
+        clicks={[PRESS_BTN, PRESS_SEND]}
         moves={[
           { beat: CUR_BTN, ...P.btn, mode: "hand" },
           { beat: { ...TYPE_DESC, end: TYPE_DESC.start + s2f(0.3), dur: s2f(0.3) }, ...P.desc, mode: "text" },
