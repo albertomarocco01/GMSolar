@@ -9,7 +9,7 @@
  * elaborazione → Risolta + immagine riparata) → toast «Fix pubblicato».
  */
 import React from "react";
-import { AbsoluteFill, Img, staticFile, useCurrentFrame } from "remotion";
+import { AbsoluteFill, useCurrentFrame } from "remotion";
 import { C, SHADOW } from "../kit/tokens";
 import {
   cameraAt,
@@ -22,12 +22,12 @@ import {
   EASE_SNAP,
   enter,
   hoverBloom,
-  maskReveal,
   pressButton,
   prog,
   s2f,
   seq,
   shotOn,
+  typeTrackShots,
   whip,
 } from "../kit/motion";
 import { Caption, captionBeats, Cursor, DeviceFrame, FRAME, StageBackdrop, TypeOn } from "../kit/ui";
@@ -45,12 +45,15 @@ const CUR_BTN = t.add(1.0);
 // finestrino pre-click col cursore già posato sul bottone.
 const PRESS_BTN = t.add(0.45, 0.2);
 // ② drawer entra, pagina auto, descrizione digitata, invia
-const DRAWER_IN = t.add(1.0, -0.05);
+// (E) CAUSA→EFFETTO: il drawer parte DOPO il click. Era `-0.05` → partiva 1 frame
+// PRIMA della fine del press (≈ simultaneo al click, con l'ease fast-start del
+// drawer sembrava "la UI si muove, poi il mouse clicca"). Ora `+0.1` (≈0.33s dopo
+// l'impatto del press): il PRESS «Segnala un problema» precede sempre il drawer.
+const DRAWER_IN = t.add(1.0, 0.1);
 const CAM_RESET1 = t.add(0.8, "<");
 const PAGE_ZOOM = t.add(DUR.beat, 0.1);
 const SAY1 = captionBeats(t);
 const TYPE_DESC = t.add(2.0);
-const CAM_TYPE = { start: TYPE_DESC.start - s2f(0.3), dur: TYPE_DESC.dur, end: TYPE_DESC.end };
 const CUR_SEND = t.add(1.0);
 const PRESS_SEND = t.add(0.6, 0.2);
 // ②½ drawer esce, track → «Segnalazioni», nuovo ticket entra, pulse
@@ -83,11 +86,29 @@ const P = {
   send: { x: FRAME.x + FRAME.w - 280, y: FRAME.y + 340 },
   ticket: { x: FRAME.x + SIDE_W + 420, y: FRAME.y + 235 },
 };
+
+// ── Campo Descrizione del drawer (single-line, la camera lo insegue: (F)) ───────
+// Testo e size hoistati: il campo NON va a capo (whiteSpace:pre in TypeOn) e la
+// camera pania seguendo il caret, quindi xEnd si deriva dalla lunghezza reale.
+const DESC_TEXT = "L'immagine della hero non si carica";
+const DESC_FS = 15;
+// Il drawer è largo 400 e ancorato a destra del device: bordo sinistro = FRAME.x +
+// FRAME.w - 400. Il testo inizia dopo il padding del body (26) e dell'input (14) = +40.
+// y = centro della riga di testo (in alto nel box, non il centro del campo). xEnd ≈
+// xStart + nChar · fontSize · 0.55 (avanzamento medio del caret).
+const DESC_CAM = {
+  xStart: FRAME.x + FRAME.w - 360, // inizio testo (schermo layout)
+  y: FRAME.y + 234, // centro della prima riga di testo
+  xEnd: FRAME.x + FRAME.w - 360 + DESC_TEXT.length * DESC_FS * 0.55, // fine testo
+};
+
 const SHOTS = [
   // push-IN (peso, attacco lento + settle) vs reset (rilascio deciso, ease-out) — D2.2
   { at: CAM_BTN.end, from: CAM_BTN.start, ...shotOn(P.btn.x, P.btn.y, 1.4), ease: EASE_CAMERA_IN },
   { at: CAM_RESET1.end, from: CAM_RESET1.start, x: 0, y: 0, scale: 1, ease: EASE_CAMERA_OUT },
-  { at: CAM_TYPE.start + s2f(0.3), from: CAM_TYPE.start, ...shotOn(P.desc.x, P.desc.y, 1.22), ease: EASE_CAMERA_IN },
+  // (F) la camera si spinge CLOSE sul campo Descrizione e pania da inizio→fine testo,
+  // inseguendo il caret mentre si scrive (2 shot da typeTrackShots).
+  ...typeTrackShots(TYPE_DESC, DESC_CAM.xStart, DESC_CAM.y, DESC_CAM.xEnd, 1.9),
   { at: CAM_RESET2.end, from: CAM_RESET2.start, x: 0, y: 0, scale: 1, ease: EASE_CAMERA_OUT },
   { at: CAM_FIX.end, from: CAM_FIX.start, ...shotOn(P.ticket.x, P.ticket.y, 1.3), ease: EASE_CAMERA_IN },
   { at: CAM_RESET3.end, from: CAM_RESET3.start, x: 0, y: 0, scale: 1, ease: EASE_CAMERA_OUT },
@@ -108,7 +129,6 @@ const SEGNALAZIONI = [
 ] as const;
 const NAV = ["Contenuti", "Prodotti", "Visite", "Ordini", "Segnalazioni"];
 const GRID = "36px minmax(0,1fr) 64px 116px";
-const FOTO_FIX = "assets/products/pannello-01.jpg";
 
 const label = (fs = 12): React.CSSProperties => ({ fontSize: fs, textTransform: "uppercase", letterSpacing: "0.12em", color: C.muted, fontWeight: 600 });
 const chip = (s: string): React.CSSProperties => ({ backgroundColor: STATO[s].bg, color: STATO[s].fg, borderRadius: 999, padding: "3px 10px", fontSize: 12, fontWeight: 600, whiteSpace: "nowrap", display: "inline-flex", alignItems: "center", gap: 5 });
@@ -130,6 +150,7 @@ export const Segnalazioni: React.FC = () => {
   const fixToastP = prog(frame, FIX_TOAST, EASE_SNAP);
   const outP = prog(frame, OLD_FLIP, EASE_OUT_SCENE);
   const inP = prog(frame, NEW_FLIP, EASE_SNAP);
+  const fixP = prog(frame, IMG_FIX, EASE_SNAP); // preview 🖼→✓
   const pulse = 1 + 0.12 * prog(frame, PULSE_UP, EASE_SNAP) * (1 - prog(frame, PULSE_DN, EASE_IN_SCENE));
 
   return (
@@ -225,15 +246,14 @@ export const Segnalazioni: React.FC = () => {
                       </div>
                       {/* NUOVO TICKET */}
                       <div style={{ display: "grid", gridTemplateColumns: GRID, gap: 12, padding: "12px 16px", alignItems: "center", borderTop: `1px solid ${C.border}`, backgroundColor: "rgba(132,204,22,0.06)", ...enter(frame, NEWTICKET, { y: 16, anticipate: true, blur: 4, scaleFrom: 0.965 }) }}>
-                        <div style={{ position: "relative", width: 34, height: 34, borderRadius: 8, overflow: "hidden", backgroundColor: C.surface2, border: `1px solid ${C.border}` }}>
-                          <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, color: C.muted }}>🖼</div>
-                          <div style={{ position: "absolute", inset: 0, ...maskReveal(frame, IMG_FIX, { dir: "l" }) }}>
-                            <Img src={staticFile(FOTO_FIX)} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                          </div>
+                        <div style={{ position: "relative", width: 34, height: 34 }}>
+                          {/* rotto → risolto: la preview passa da 🖼 grigio alla ✓ verde (come i ticket Risolta), NON l'immagine */}
+                          <div style={{ position: "absolute", inset: 0, borderRadius: 8, overflow: "hidden", backgroundColor: C.surface2, border: `1px solid ${C.border}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, color: C.muted, opacity: 1 - fixP }}>🖼</div>
+                          <div style={{ position: "absolute", inset: 0, borderRadius: 8, backgroundColor: STATO.Risolta.bg, color: STATO.Risolta.fg, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 15, opacity: fixP, transform: `scale(${0.6 + 0.4 * fixP})` }}>{STATO.Risolta.icon}</div>
                         </div>
                         <div style={{ minWidth: 0 }}>
-                          <div style={{ fontSize: 14, fontWeight: 600 }}>Immagine hero non si carica</div>
-                          <div style={{ fontSize: 12, color: C.muted, fontFamily: monoFamily }}>gmsolar.it/dashboard/contenuti</div>
+                          <div style={{ fontSize: 14, fontWeight: 600, overflowWrap: "anywhere" }}>Immagine hero non si carica</div>
+                          <div style={{ fontSize: 12, color: C.muted, fontFamily: monoFamily, overflowWrap: "anywhere" }}>gmsolar.it/dashboard/contenuti</div>
                         </div>
                         <span style={{ fontSize: 13, color: C.muted }}>Oggi</span>
                         <span style={{ position: "relative", display: "inline-grid", perspective: 400 }}>
@@ -246,8 +266,8 @@ export const Segnalazioni: React.FC = () => {
                         <div key={obj} style={{ display: "grid", gridTemplateColumns: GRID, gap: 12, padding: "12px 16px", alignItems: "center", borderTop: `1px solid ${C.border}` }}>
                           <div style={{ width: 34, height: 34, borderRadius: 8, backgroundColor: STATO[stato].bg, color: STATO[stato].fg, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 15 }}>{STATO[stato].icon}</div>
                           <div style={{ minWidth: 0 }}>
-                            <div style={{ fontSize: 14, fontWeight: 500 }}>{obj}</div>
-                            <div style={{ fontSize: 12, color: C.muted, fontFamily: monoFamily }}>{page}</div>
+                            <div style={{ fontSize: 14, fontWeight: 500, overflowWrap: "anywhere" }}>{obj}</div>
+                            <div style={{ fontSize: 12, color: C.muted, fontFamily: monoFamily, overflowWrap: "anywhere" }}>{page}</div>
                           </div>
                           <span style={{ fontSize: 13, color: C.muted }}>{date}</span>
                           <span><span style={chip(stato)}><span style={{ width: 6, height: 6, borderRadius: 999, backgroundColor: STATO[stato].dot }} />{stato}</span></span>
@@ -263,22 +283,23 @@ export const Segnalazioni: React.FC = () => {
             {drawerP > 0.01 ? (
               <div style={{ position: "absolute", top: 0, bottom: 0, right: 0, width: 400, backgroundColor: C.surface, borderLeft: `1px solid ${C.border}`, boxShadow: SHADOW.lift, zIndex: 20, transform: `translateX(${(1 - drawerP) * 100}%)`, display: "flex", flexDirection: "column" }}>
                 <div style={{ borderBottom: `1px solid ${C.border}`, padding: "20px 26px" }}>
-                  <div style={{ fontWeight: 600, fontSize: 19, letterSpacing: "-0.01em" }}>Segnala un problema</div>
-                  <div style={{ color: C.muted, fontSize: 14, marginTop: 4 }}>La pagina è già allegata: descrivi cosa non va</div>
+                  <div style={{ fontWeight: 600, fontSize: 19, letterSpacing: "-0.01em", overflowWrap: "anywhere" }}>Segnala un problema</div>
+                  <div style={{ color: C.muted, fontSize: 14, marginTop: 4, overflowWrap: "anywhere" }}>La pagina è già allegata: descrivi cosa non va</div>
                 </div>
                 <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 22, padding: 26 }}>
                   <div>
                     <div style={label()}>Pagina</div>
                     <div style={{ display: "flex", alignItems: "center", gap: 8, ...cardBox, backgroundColor: C.surface2, padding: "10px 12px", marginTop: 6, transform: `scale(${pageZoom})` }}>
-                      <span style={{ fontFamily: monoFamily, fontSize: 13, flex: 1 }}>gmsolar.it/dashboard/contenuti</span>
+                      <span style={{ fontFamily: monoFamily, fontSize: 13, flex: 1, minWidth: 0, overflowWrap: "anywhere" }}>gmsolar.it/dashboard/contenuti</span>
                       <span style={{ backgroundColor: C.accentSoft, color: C.accentInk, borderRadius: 999, padding: "3px 10px", fontSize: 11, fontWeight: 600, whiteSpace: "nowrap" }}>Rilevata in automatico ✓</span>
                     </div>
                   </div>
                   <div>
                     <div style={label()}>Descrizione</div>
                     <div style={{ ...cardBox, backgroundColor: C.background, padding: "12px 14px", marginTop: 6, minHeight: 84, overflow: "hidden" }}>
-                      {/* type-on con caret lime (D3.3), stesso beat TYPE_DESC del typeInset precedente. */}
-                      <TypeOn text="L'immagine della hero non si carica" beat={TYPE_DESC} size={15} weight={500} />
+                      {/* type-on con caret lime (D3.3), stesso beat TYPE_DESC del typeInset precedente.
+                          Single-line (no wrap): la camera lo insegue, quindi NON va spezzato. */}
+                      <TypeOn text={DESC_TEXT} beat={TYPE_DESC} size={DESC_FS} weight={500} />
                     </div>
                   </div>
                   <div style={{ alignSelf: "flex-start", ...pressButton(frame, PRESS_SEND, 0.94) }}>

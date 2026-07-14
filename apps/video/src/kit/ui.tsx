@@ -87,21 +87,18 @@ export const ChapterCard: React.FC<{
   /** indice capitolo 1..7 (D3.1): accende eyebrow `0N — 07`, hairline + dot lime e
    *  il bloom lime sulla plate. Se assente → card classica (nessuna plate). */
   index?: number;
-}> = ({ title, subtitle, beats, lift = 0, index }) => {
+}> = ({ title, subtitle, beats, lift = 0 }) => {
   const frame = useCurrentFrame();
   const outP = prog(frame, beats.out, EASE_OUT_SCENE);
   if (outP >= 1) return null;
   const subP = prog(frame, beats.sub, EASE_IN_SCENE);
   const subMask = maskReveal(frame, beats.sub, { dir: "b" }); // masked-rise: wipe verso l'alto
-
-  // Progresso "globale" del titolo (0→1) per tracking-settle, eyebrow e bloom.
   const titleP = prog(frame, beats.title, EASE_IN_SCENE);
-  const titlePos = prog(frame, beats.title, EASE_CHAR); // rise dell'eyebrow, back(1.15)
   // Tracking-settle: letter-spacing 0.06em → -0.03em mentre il titolo si risolve.
   const tracking = (0.06 - 0.09 * titleP).toFixed(4);
 
-  // Kinetic typography: ogni lettera entra sfalsata. Grammatica D0.1 — l'overshoot
-  // (back 1.15) vive SOLO sulla posizione; opacity e blur su track monotono.
+  // Kinetic typography: ogni lettera entra sfalsata (overshoot back 1.15 SOLO sulla
+  // posizione; opacity e blur su track monotono).
   const STAG = s2f(0.035);
   let ci = 0;
   const words = title.split(" ").map((word, wi) => {
@@ -126,14 +123,8 @@ export const ChapterCard: React.FC<{
     );
   });
 
-  // Bloom lime sulla plate (D3.1): gonfia mentre il titolo si risolve, poi si posa.
-  const bloomPast = interpolate(frame, [beats.title.end, beats.title.end + s2f(0.6)], [0, 1], {
-    extrapolateLeft: "clamp",
-    extrapolateRight: "clamp",
-  });
-  const bloomOpacity = titleP * (1 - 0.22 * bloomPast); // swell → settle
-  const bloomScale = (0.92 + 0.22 * titleP) * (1 + 0.04 * bloomPast);
-
+  // Title card su fondo BIANCO, pulita: niente numeri/eyebrow, niente bloom/verde,
+  // niente trama a puntini — solo il titolo cinetico su bianco.
   return (
     <AbsoluteFill
       style={{
@@ -143,69 +134,10 @@ export const ChapterCard: React.FC<{
         zIndex: 50,
       }}
     >
-      <DotsTexture />
       <AbsoluteFill
         style={{ alignItems: "center", justifyContent: "center", transform: `translateY(${lift}px)` }}
       >
-        {/* Bloom lime (solo con plate/index): radiale morbido, alpha ≤0.20, dietro il testo. */}
-        {index != null ? (
-          <div
-            style={{
-              position: "absolute",
-              left: "50%",
-              top: "50%",
-              width: 900,
-              height: 440,
-              transform: `translate(-50%, -50%) scale(${bloomScale.toFixed(4)})`,
-              background:
-                "radial-gradient(ellipse at center, rgba(132,204,22,0.20) 0%, rgba(132,204,22,0.08) 34%, rgba(132,204,22,0) 68%)",
-              opacity: bloomOpacity,
-              pointerEvents: "none",
-            }}
-          />
-        ) : null}
         <div style={{ position: "relative", maxWidth: 1100, padding: "0 24px", textAlign: "center" }}>
-          {/* Eyebrow `0N — 07` + hairline accentStrong + dot lime con glow (D3.1). */}
-          {index != null ? (
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                gap: 14,
-                marginBottom: 22,
-                opacity: titleP,
-                transform: `translateY(${16 * (1 - titlePos)}px)`,
-                filter: `blur(${6 * (1 - titleP)}px)`,
-              }}
-            >
-              {/* dot lime + glow (radiale piccolo) — leitmotiv */}
-              <span style={{ position: "relative", display: "inline-flex", width: 10, height: 10 }}>
-                <span
-                  style={{
-                    position: "absolute",
-                    inset: -7,
-                    borderRadius: "50%",
-                    background: "radial-gradient(circle, rgba(132,204,22,0.55) 0%, rgba(132,204,22,0) 70%)",
-                  }}
-                />
-                <span style={{ position: "relative", width: 10, height: 10, borderRadius: "50%", backgroundColor: C.accent, boxShadow: SHADOW.glow }} />
-              </span>
-              <span
-                style={{
-                  fontFamily: monoFamily,
-                  fontSize: 15,
-                  fontWeight: 600,
-                  letterSpacing: "0.22em",
-                  color: C.muted,
-                }}
-              >
-                {`${String(index).padStart(2, "0")} — 07`}
-              </span>
-              {/* hairline 2px in accentStrong (non lime sottile: sarebbe invisibile) */}
-              <span style={{ width: 56, height: 2, borderRadius: 1, backgroundColor: C.accentStrong }} />
-            </div>
-          ) : null}
           <div
             style={{
               display: "flex",
@@ -471,7 +403,10 @@ export const TypeOn: React.FC<{
   size?: number;
   weight?: number;
   caretColor?: string;
-}> = ({ text, beat, idle = 1.0, color, size, weight, caretColor = C.accent }) => {
+  /** true = testo lungo che VA A CAPO (pre-wrap) e cresce; default single-line (pre). */
+  multiline?: boolean;
+  lineHeight?: number;
+}> = ({ text, beat, idle = 1.0, color, size, weight, caretColor = C.accent, multiline, lineHeight }) => {
   const frame = useCurrentFrame();
   // Reveal a SCATTI per carattere (come typeInset) → il caret segue il bordo del testo.
   const raw = prog(frame, beat, (t) => t); // lineare, gli scatti li fa il floor
@@ -493,7 +428,7 @@ export const TypeOn: React.FC<{
   }
 
   return (
-    <span style={{ whiteSpace: "pre", fontFamily, fontSize: size, fontWeight: weight, color }}>
+    <span style={{ whiteSpace: multiline ? "pre-wrap" : "pre", overflowWrap: multiline ? "break-word" : undefined, fontFamily, fontSize: size, fontWeight: weight, color, lineHeight }}>
       {visible}
       <span
         aria-hidden

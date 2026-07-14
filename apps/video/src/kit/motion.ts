@@ -357,13 +357,11 @@ export type CamValues = { x: number; y: number; scale: number };
  * (screenPoint) lo condividono, quindi il cursore resta allineato ai bottoni.
  * L'overscan costante (0.012) dà spazio al drift senza mai scoprire i bordi.
  */
-function cameraBreath(frame: number): { dx: number; dy: number; dsSine: number } {
-  return {
-    dx: 5 * Math.sin((frame / 95) * Math.PI * 2),
-    dy: 4 * Math.sin((frame / 115) * Math.PI * 2 + 1),
-    // SOLO la parte sinusoidale (l'overscan costante vive in cameraValues, non smorzabile).
-    dsSine: 0.006 * (0.5 + 0.5 * Math.sin((frame / 75) * Math.PI * 2)),
-  };
+function cameraBreath(_frame: number): { dx: number; dy: number; dsSine: number } {
+  // Camera-respiro DISATTIVATO su richiesta: la "finestra sempre oscillante" dava
+  // fastidio. Il frame è ora fermo; resta solo lo screen-kick (breve, sui click) e
+  // un overscan minimo costante (in cameraValues) che gli fa spazio senza scoprire i bordi.
+  return { dx: 0, dy: 0, dsSine: 0 };
 }
 
 /**
@@ -390,16 +388,9 @@ function cameraCalm(frame: number, calms: Beat[]): number {
  * stile AE). Guidata dagli STESSI beat di click passati al cursore → contenuto e
  * cursore si scuotono insieme, quindi la mira resta esatta sul bottone.
  */
-function cameraKick(frame: number, kicks: Beat[]): { kx: number; ky: number } {
-  for (const cb of kicks) {
-    const t0 = cb.end; // impatto al rilascio del bottone
-    const dur = s2f(0.28);
-    if (frame >= t0 && frame <= t0 + dur) {
-      const q = (frame - t0) / dur; // 0..1
-      const decay = (1 - q) * (1 - q);
-      return { kx: 5 * decay * Math.sin(q * Math.PI * 6), ky: 4 * decay * Math.cos(q * Math.PI * 5) };
-    }
-  }
+function cameraKick(_frame: number, _kicks: Beat[]): { kx: number; ky: number } {
+  // Screen-kick DISATTIVATO su richiesta: niente "terremoto" del frame sui click.
+  // La firma resta (le scene passano ancora i kicks, innocui) per non toccarle.
   return { kx: 0, ky: 0 };
 }
 
@@ -448,11 +439,11 @@ export function cameraValues(frame: number, shots: CameraShot[], kicks: Beat[] =
   const b = cameraBreath(frame);
   const damp = cameraCalm(frame, calms);
   const k = cameraKick(frame, kicks);
-  const OVERSCAN = 0.016; // costante, non smorzabile: spazio per drift (±5) + kick (±5)
+  const OVERSCAN = 0.008; // minimo costante: solo spazio per lo screen-kick (±5px)
   return {
     x: pose.x + b.dx * damp + k.kx,
     y: pose.y + b.dy * damp + k.ky,
-    scale: Math.min(1.7, Math.max(1, pose.scale + OVERSCAN + b.dsSine * damp)),
+    scale: Math.min(2.4, Math.max(1, pose.scale + OVERSCAN + b.dsSine * damp)),
   };
 }
 
@@ -487,6 +478,22 @@ export function cameraAt(frame: number, shots: CameraShot[], kicks: Beat[] = [],
 }
 
 /**
+ * Shot che INSEGUONO il cursore di scrittura: la camera si avvicina MOLTO sul campo
+ * di testo e pania da sinistra (inizio testo) a destra (fine testo) mentre il testo
+ * cresce, così la lettera in scrittura resta ~al centro dell'inquadratura. `beat` =
+ * finestra di digitazione; (xStart,y) = inizio del testo, xEnd = fine; scale ~1.9
+ * (mostra quasi solo il campo). Da spargere nell'array SHOTS della scena, al posto
+ * del vecchio shot statico sul campo. Il cursore-testo eredita il pan (proietta
+ * con la stessa matrice camera).
+ */
+export function typeTrackShots(beat: Beat, xStart: number, y: number, xEnd: number, scale = 1.9): CameraShot[] {
+  return [
+    { at: beat.start + s2f(0.3), from: beat.start - s2f(0.15), ...shotOn(xStart, y, scale), ease: EASE_CAMERA_IN },
+    { at: beat.end, from: beat.start + s2f(0.3), ...shotOn(xEnd, y, scale), ease: EASE_CAMERA },
+  ];
+}
+
+/**
  * Helper per COSTRUIRE la posa che centra un punto del layout (px del frame
  * 1920×1080) al centro dello schermo alla scala S — l'equivalente di cameraShot
  * del kit web, ma con coordinate note a design-time (il video è deterministico).
@@ -498,7 +505,7 @@ export function shotOn(
   W = 1920,
   H = 1080,
 ): { x: number; y: number; scale: number } {
-  const S = Math.min(1.7, Math.max(1, scale));
+  const S = Math.min(2.4, Math.max(1, scale)); // cap 2.4: consente lo zoom-testo ravvicinato (typeTrackShots ~1.9)
   let x = (W / 2 - cx) * S;
   let y = (H / 2 - cy) * S;
   const maxX = (W / 2) * (S - 1);

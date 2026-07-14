@@ -27,6 +27,7 @@ import {
   s2f,
   seq,
   shotOn,
+  typeTrackShots,
 } from "../kit/motion";
 import { Caption, captionBeats, ChapterCard, chapterIntroBeats, Cursor, StageBackdrop, TypeOn, TypingDots } from "../kit/ui";
 import { fontFamily, monoFamily } from "../kit/fonts";
@@ -39,7 +40,6 @@ const CARD = chapterIntroBeats(t);
 const PH_OUT = t.add(0.15);
 const WORDS_IN = t.add(DUR.micro); // + stagger 0.19 × 7
 const WORDS_END = WORDS_IN.start + s2f(0.19 * (WORDS.length - 1) + 0.3);
-const CAM_INPUT = { start: WORDS_IN.start, dur: s2f(1.5), end: WORDS_IN.start + s2f(1.5) };
 t.hold((WORDS_END - t.cursor) / s2f(0.8) > 0 ? (WORDS_END - t.cursor) / s2f(0.8) : 0.1); // attende fine parole
 const CAM_SEND = t.add(DUR.beat);
 const CUR_SEND = t.add(1.0);
@@ -88,9 +88,21 @@ const P = {
   send: { x: PHONE.x + PHONE.w - 34, y: PHONE.y + PHONE.h - 36 },
   book: { x: 960, y: PHONE.y + 640 },
 };
+// (F) Ancora del testo digitato nel campo input, per il camera-track che insegue il caret (D3.3).
+// xStart = bordo sinistro del testo: inset scocca 3 + padding barra 10 + padding campo 12.
+// y = centro verticale della barra di input. xEnd ≈ xStart + n°caratteri × fontSize × 0.55.
+const TYPE_FONT = 12; // = size passato a <TypeOn> nel campo input
+const INPUT = {
+  xStart: PHONE.x + 3 + 10 + 12,
+  y: PHONE.y + PHONE.h - 32,
+  xEnd: PHONE.x + 3 + 10 + 12 + Math.round(USER1.length * TYPE_FONT * 0.55),
+};
 const SHOTS = [
-  // Push-in / reframe verso un soggetto → EASE_CAMERA_IN (attacco+settle, D2.2).
-  { at: CAM_INPUT.end, from: CAM_INPUT.start, ...shotOn(960, PHONE.y + PHONE.h - 40, 1.3), ease: EASE_CAMERA_IN },
+  // (F) La camera INSEGUE il caret di scrittura del campo input (D3.3): push-in vicino
+  // all'inizio del testo, poi pan a destra seguendo il caret (la lettera resta ~centrata).
+  // Rimpiazza il vecchio shot statico; il testo sta in una riga (non clippato) e lo zoom
+  // (cap shotOn 1.7) tiene il telefono dentro il frame.
+  ...typeTrackShots(TYPE_INPUT, INPUT.xStart, INPUT.y, INPUT.xEnd, 1.85),
   { at: CAM_SEND.end, from: CAM_SEND.start, ...shotOn(P.send.x, P.send.y, 1.24), ease: EASE_CAMERA_IN },
   // Reset a neutro → EASE_CAMERA_OUT (rilascio + decelerazione morbida).
   { at: CAM_RESET1.end, from: CAM_RESET1.start, x: 0, y: 0, scale: 1, ease: EASE_CAMERA_OUT },
@@ -126,6 +138,10 @@ export const Ricarica: React.FC = () => {
     padding: "9px 13px",
     fontSize: 14.5,
     lineHeight: 1.4,
+    // (G) le stringhe lunghe (risposte AI, bolla richiesta) vanno SEMPRE a capo su più
+    // righe: mai nowrap né clip. I valori mono kW/€ non passano di qui.
+    whiteSpace: "normal",
+    overflowWrap: "break-word",
     ...(side === "r"
       ? { backgroundColor: C.accent, color: C.accentContrast, borderTopRightRadius: 4, fontWeight: 500 }
       : accent
@@ -295,7 +311,7 @@ export const Ricarica: React.FC = () => {
                 {wordsVisible ? (
                   <span style={{ display: "inline-block", opacity: 1 - wordsOutP }}>
                     {/* Type-on con CARET lime (D3.3): scatti per carattere, poi caret idle. */}
-                    <TypeOn text={USER1} beat={TYPE_INPUT} size={12} color={C.foreground} idle={0.9} />
+                    <TypeOn text={USER1} beat={TYPE_INPUT} size={TYPE_FONT} color={C.foreground} idle={0.9} />
                   </span>
                 ) : null}
               </div>

@@ -13,6 +13,7 @@ import {
   countUp,
   drawPath,
   DUR,
+  EASE_CAMERA,
   EASE_CAMERA_IN,
   EASE_CAMERA_OUT,
   EASE_IN_SCENE,
@@ -27,6 +28,7 @@ import {
   s2f,
   seq,
   shotOn,
+  typeTrackShots,
   val,
 } from "../kit/motion";
 import { Caption, captionBeats, ChapterCard, chapterIntroBeats, Cursor, DeviceFrame, FRAME, StageBackdrop, TypeOn, TypingDots } from "../kit/ui";
@@ -69,12 +71,17 @@ const t = seq();
 const CARD = chapterIntroBeats(t);
 const CAM_NAV = t.add(DUR.beat);
 const CUR_CAT = t.add(1.0);
-const MEGA_IN = t.add(DUR.beat, -0.05);
+// E · CAUSA→EFFETTO: il megamenu si apre DOPO che il cursore è arrivato su "Catalogo"
+// (prima apriva 1 frame prima dell'atterraggio). +0.1s → ~3 frame dopo l'arrivo.
+const MEGA_IN = t.add(DUR.beat, 0.1);
 const CUR_HI0 = t.add(1.0);
-const HI0 = t.add(DUR.micro, -0.75);
+// E · l'highlight FIORISCE dopo l'arrivo del cursore sulla voce (prima fioriva ~22 frame
+// PRIMA che il cursore atterrasse). +0.1s → ~3 frame dopo l'arrivo.
+const HI0 = t.add(DUR.micro, 0.1);
 t.hold(0.6);
 const CUR_HI1 = t.add(1.0);
-const HI1 = t.add(DUR.micro, -0.8);
+// E · idem: highlight dopo l'arrivo del cursore sulla seconda voce.
+const HI1 = t.add(DUR.micro, 0.1);
 t.hold(0.6);
 const MEGA_OUT = t.add(DUR.beat);
 const CAM_RESET1 = t.add(1.0, "<");
@@ -86,7 +93,9 @@ const TYPE1 = t.add(2.0);
 const CAM_SEND = t.add(DUR.beat);
 const CUR_SEND1 = t.add(DUR.beat);
 const PRESS1 = t.add(0.45, -0.05);
-const CAM_RESET2 = t.add(1.0);
+// E · la chat compare DOPO che il tasto Invia si è alzato (piccolo gap +0.08s ≈ 2 frame):
+// prima → click, poi → reazione. CHAT_IN è allineato "<" all'inizio di CAM_RESET2.
+const CAM_RESET2 = t.add(1.0, 0.08);
 const CHAT_IN = t.add(1.0, "<");
 const MSG_Q = t.add(DUR.beat, -0.2);
 t.hold(0.4);
@@ -100,7 +109,9 @@ const RING2 = t.add(DUR.micro, -0.7);
 const TYPE2 = t.add(1.1);
 const CUR_SEND2 = t.add(1.0);
 const PRESS2 = t.add(0.45, -0.05);
-const MSG_A = t.add(DUR.beat, -0.1);
+// E · la bolla-risposta (eco dell'utente) compare DOPO il click Invia (prima partiva 3
+// frame PRIMA che il press finisse): +0.1s ≈ 3 frame dopo PRESS2.end.
+const MSG_A = t.add(DUR.beat, 0.1);
 t.hold(0.4);
 const MSG_REASON = t.add(DUR.beat);
 t.hold(0.5);
@@ -126,7 +137,8 @@ const PRESS3 = t.add(0.45, -0.05);
 // D5.7: il confirm è un PAYOFF, non un crossfade — la finestra si allarga (0.3→1.1s)
 // così flourish (label-lift → check → flash → ring bloom → testo) sta TUTTO qui e la
 // camera si sposa a resettare solo DOPO (frame fermo sulla conferma, vedi CALM_CONFIRM).
-const CTA_SWAP = t.add(1.1, -0.05);
+// E · il confirm parte DOPO che il tasto CTA si è alzato (+0.08s ≈ 2 frame): press→conferma.
+const CTA_SWAP = t.add(1.1, 0.08);
 const CAM_RESET4 = t.add(1.0);
 t.hold(1.0);
 export const ASSISTENTE_DURATION = t.total;
@@ -160,14 +172,30 @@ const P = {
   cta: { x: 1180, y: FRAME.y + FRAME.h - 150 },
 };
 
+// F · CAMERA CHE INSEGUE IL TESTO DIGITATO. Il campo del composer inizia a schermo-x=612
+// (bordo device 260 + centratura barra 290 + padding 14 + icona 36 + gap 12) e ha il centro
+// verticale in P.bar.y. La camera si tuffa CLOSE sul campo e pania seguendo il caret di
+// scrittura da xStart (inizio testo) a xEnd (fine testo ≈ nChar × fontSize × 0.55).
+const TYPE_X0 = 612; // schermo-x dove inizia il testo digitato nella barra
+const TYPE_Y = P.bar.y; // centro verticale del campo
+const ANS_XEND = TYPE_X0 + ANSWER.length * 16 * 0.55; // fine della risposta breve (font 16)
+
 // D2.2: push-in con EASE_CAMERA_IN (attacco deciso + settle pesante), reset con
 // EASE_CAMERA_OUT (rilascio deciso + decelerazione morbida).
 const SHOTS = [
   { at: CAM_NAV.end, from: CAM_NAV.start, ...shotOn(960, FRAME.y + 34, 1.16), ease: EASE_CAMERA_IN },
   { at: CAM_RESET1.end, from: CAM_RESET1.start, x: 0, y: 0, scale: 1, ease: EASE_CAMERA_OUT },
-  { at: CAM_BAR.end, from: CAM_BAR.start, ...shotOn(P.bar.x, P.bar.y, 1.12), ease: EASE_CAMERA_IN },
+  // F · pre-inquadra l'inizio del campo, poi si assesta INQUADRANDO il composer intero.
+  { at: CAM_BAR.end, from: CAM_BAR.start, ...shotOn(TYPE_X0, TYPE_Y, 1.3), ease: EASE_CAMERA_IN },
+  // La richiesta è LUNGA e VA A CAPO (2 righe): niente pan orizzontale sul caret — si tiene
+  // il composer inquadrato e fermo (zoom moderato) così entrambe le righe restano leggibili.
+  { at: TYPE1.start + s2f(0.35), from: CAM_BAR.end, ...shotOn(920, TYPE_Y - 8, 1.34), ease: EASE_CAMERA },
   { at: CAM_SEND.end, from: CAM_SEND.start, ...shotOn(P.send.x, P.send.y, 1.24), ease: EASE_CAMERA_IN },
   { at: CAM_RESET2.end, from: CAM_RESET2.start, x: 0, y: 0, scale: 1, ease: EASE_CAMERA_OUT },
+  // F · stesso close+pan per la risposta breve, poi PULL-BACK a pieno campo così le bolle
+  // di risposta (MSG_A / MSG_REASON) si leggono larghe prima del dive sul pannello generato.
+  ...typeTrackShots(TYPE2, TYPE_X0, TYPE_Y, ANS_XEND, 1.85),
+  { at: CUR_SEND2.end, from: TYPE2.end, x: 0, y: 0, scale: 1, ease: EASE_CAMERA_OUT },
   { at: CAM_GEN.end, from: CAM_GEN.start, ...shotOn(P.gen.x, P.gen.y, 1.14), ease: EASE_CAMERA_IN },
   { at: CAM_RESET3.end, from: CAM_RESET3.start, x: 0, y: 0, scale: 1, ease: EASE_CAMERA_OUT },
   { at: CAM_CTA.end, from: CAM_CTA.start, ...shotOn(P.cta.x, P.cta.y, 1.24), ease: EASE_CAMERA_IN },
@@ -244,6 +272,10 @@ export const Assistente: React.FC = () => {
         padding: "10px 16px",
         fontSize: 16,
         lineHeight: 1.45,
+        // G · testi display lunghi (REQUEST / CLARIFY / REASONING) devono andare a capo su
+        // più righe: nessun nowrap, wrap naturale parola-per-parola dentro maxWidth.
+        whiteSpace: "normal",
+        overflowWrap: "break-word",
         ...(align === "r"
           ? { backgroundColor: C.accent, color: C.accentContrast, borderBottomRightRadius: 4 }
           : { backgroundColor: C.surface2, color: C.foreground, borderBottomLeftRadius: 4 }),
@@ -479,29 +511,32 @@ export const Assistente: React.FC = () => {
             </div>
           ) : null}
 
-          {/* COMPOSER BAR */}
+          {/* COMPOSER BAR — pillola che CRESCE: la richiesta lunga va a capo su più righe
+              (niente più testo che sfora il campo e sparisce). minHeight anziché height. */}
           <div style={{ position: "absolute", left: 0, right: 0, bottom: 22, display: "flex", justifyContent: "center", zIndex: 40 }}>
-            <div style={{ position: "relative", width: 820, height: 60, borderRadius: 999, border: `1px solid ${C.border}`, backgroundColor: "rgba(255,255,255,0.95)", boxShadow: SHADOW.card, display: "flex", alignItems: "center", gap: 12, padding: "0 10px 0 14px" }}>
-              <div style={{ position: "absolute", inset: -1, borderRadius: 999, border: `2px solid ${C.accent}`, opacity: Math.max(ring1, ring2) }} />
-              <div style={{ width: 36, height: 36, borderRadius: 999, backgroundColor: C.accent, color: C.accentContrast, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 17 }}>✦</div>
-              <div style={{ position: "relative", flex: 1, height: 24, overflow: "hidden" }}>
+            <div style={{ position: "relative", width: 820, minHeight: 60, borderRadius: 26, border: `1px solid ${C.border}`, backgroundColor: "rgba(255,255,255,0.95)", boxShadow: SHADOW.card, display: "flex", alignItems: "center", gap: 12, padding: "8px 10px 8px 14px", overflow: "hidden" }}>
+              <div style={{ position: "absolute", inset: 1, borderRadius: 25, border: `2px solid ${C.accent}`, opacity: Math.max(ring1, ring2) }} />
+              <div style={{ flexShrink: 0, width: 36, height: 36, borderRadius: 999, backgroundColor: C.accent, color: C.accentContrast, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 17 }}>✦</div>
+              {/* Campo IN-FLOW (non più absolute): il testo che va a capo dà altezza al campo,
+                  la pillola cresce di conseguenza. La richiesta lunga usa TypeOn multiline. */}
+              <div style={{ position: "relative", flex: 1, minWidth: 0 }}>
                 {!typed1Active && !typed2Active ? (
-                  <span style={{ position: "absolute", left: 0, color: C.muted, fontSize: 16, whiteSpace: "nowrap" }}>Chiedi all'assistente, in parole tue…</span>
+                  <div style={{ color: C.muted, fontSize: 16, whiteSpace: "nowrap" }}>Chiedi all'assistente, in parole tue…</div>
                 ) : null}
-                {/* D3.3 · type-on con caret lime (input UTENTE). */}
+                {/* D3.3 · type-on con caret lime (input UTENTE). Richiesta lunga → multiline (va a capo). */}
                 {typed1Active ? (
-                  <span style={{ position: "absolute", left: 0, whiteSpace: "nowrap" }}>
-                    <TypeOn text={REQUEST} beat={TYPE1} size={14} color={C.foreground} idle={1.4} />
-                  </span>
+                  <div style={{ whiteSpace: "pre-wrap" }}>
+                    <TypeOn text={REQUEST} beat={TYPE1} size={15} color={C.foreground} idle={1.4} multiline lineHeight={1.35} />
+                  </div>
                 ) : null}
                 {typed2Active ? (
-                  <span style={{ position: "absolute", left: 0, whiteSpace: "nowrap" }}>
+                  <div style={{ whiteSpace: "nowrap" }}>
                     <TypeOn text={ANSWER} beat={TYPE2} size={16} color={C.foreground} idle={1.4} />
-                  </span>
+                  </div>
                 ) : null}
               </div>
               {/* Send — hoverBloom telegrafa il click (solo boxShadow: transform a pressButton). */}
-              <div style={{ width: 44, height: 44, borderRadius: 999, backgroundColor: C.accent, color: C.accentContrast, display: "flex", alignItems: "center", justifyContent: "center", boxShadow: hoverBloom(frame, frame < CAM_RESET2.start ? PRESS1 : PRESS2).boxShadow, ...pressButton(frame, frame < CAM_RESET2.start ? PRESS1 : PRESS2, 0.88) }}>
+              <div style={{ flexShrink: 0, width: 44, height: 44, borderRadius: 999, backgroundColor: C.accent, color: C.accentContrast, display: "flex", alignItems: "center", justifyContent: "center", boxShadow: hoverBloom(frame, frame < CAM_RESET2.start ? PRESS1 : PRESS2).boxShadow, ...pressButton(frame, frame < CAM_RESET2.start ? PRESS1 : PRESS2, 0.88) }}>
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
                   <path d="M3 11l18-8-8 18-2.5-7.5L3 11z" />
                 </svg>

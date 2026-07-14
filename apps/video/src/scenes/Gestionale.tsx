@@ -26,6 +26,7 @@ import {
   s2f,
   seq,
   shotOn,
+  typeTrackShots,
   whip,
 } from "../kit/motion";
 import { Caption, captionBeats, ChapterCard, chapterIntroBeats, Cursor, DeviceFrame, FRAME, StageBackdrop, TypeOn } from "../kit/ui";
@@ -39,7 +40,10 @@ const NET_BARS = t.add(1.0, -0.4); // + stagger 0.2
 t.hold(1);
 const SAY1 = captionBeats(t);
 const CUR_NAV1 = t.add(1.0);
-const TRACK1 = t.add(1.5, -0.7);
+// (E) CAUSA→EFFETTO: la mano ATTERRA sulla voce nav → PRESS-DIP → SOLO POI il track scorre.
+// Prima TRACK partiva a -0.7 (durante il viaggio del cursore): l'UI si muoveva prima del click.
+const NAV1_PRESS = t.add(0.45, -0.05); // press-dip sulla voce "Colonnine" (arriva con l'atterraggio)
+const TRACK1 = t.add(1.5); // track + indicatore scorrono al RILASCIO del press, non prima
 const TYPE_QUERY = t.add(2.5, 0.3);
 const ROWS_DIM = t.add(DUR.beat, 0.15);
 const MATCH = t.add(DUR.beat, "<"); // + stagger 0.18
@@ -49,8 +53,11 @@ t.hold(0.5);
 const SAY2 = captionBeats(t);
 const CUR_AI = t.add(1.0);
 const PRESS_AI = t.add(0.45, -0.05);
-const DRAWER_IN = t.add(1.0, -0.1);
+// (E) il drawer si apre DOPO il rilascio del press AI (era -0.1: apriva 3f prima del rilascio).
+const DRAWER_IN = t.add(1.0, 0.05);
 const TYPE_REQ = t.add(2.0, 0.2);
+// (F) pull-back dal campo-richiesta zoomato alla vista drawer, così si vedono comparire gli step.
+const CAM_STEPS = t.add(0.7, 0.1);
 const STEPS = t.add(DUR.beat, 0.15); // + stagger 0.5 ×4
 const CAM_LIST = t.add(DUR.beat, 1.7); // push-in al riquadro flip (EASE_CAMERA_IN)
 const OLD_FLIP = t.add(DUR.micro, -0.45); // + stagger 0.12
@@ -64,7 +71,9 @@ t.hold(1);
 const SAY3 = captionBeats(t);
 const DRAWER_OUT = t.add(DUR.beat);
 const CUR_NAV3 = t.add(1.0);
-const TRACK2 = t.add(1.5, -0.7);
+// (E) stesso fix del nav1: press-dip sulla voce "Manutenzione" → POI il track scorre.
+const NAV3_PRESS = t.add(0.45, -0.05);
+const TRACK2 = t.add(1.5); // track al rilascio del press, non durante il viaggio del cursore
 const MANT_ROWS = t.add(DUR.beat, 0.15); // + stagger 0.22
 const MANT_CHIPS = t.add(DUR.beat, "<"); // + stagger 0.22
 const CAM_MANT = t.add(DUR.beat, 0.5);
@@ -79,14 +88,25 @@ const navY = (i: number) => FRAME.y + NAV_TOP + i * NAV_H;
 const NAV = ["Panoramica", "Colonnine", "Sessioni", "Manutenzione"];
 const P = {
   nav: (i: number) => ({ x: FRAME.x + 115, y: navY(i) + NAV_H / 2 }),
-  query: { x: FRAME.x + SIDE_W + 340, y: FRAME.y + 130 },
+  // (F) query/req puntano all'INIZIO del testo digitato (non al centro campo): la camera
+  // pania da qui verso la fine della scritta e il cursore-testo atterra dove parte la scritta.
+  // query: main-left (FRAME.x+SIDE_W) + padding pannello 22 + padding campo 18; y = topbar 56 + pad 22 + mezzo campo 21.
+  query: { x: FRAME.x + SIDE_W + 40, y: FRAME.y + 99 },
   ai: { x: FRAME.x + FRAME.w - 120, y: FRAME.y + 30 },
-  req: { x: FRAME.x + FRAME.w - 250, y: FRAME.y + 170 },
+  // req: drawer-left (FRAME.x+FRAME.w-470) + pad 24 + avatar 30 + gap 10 + pad bolla 14 = -392; y = pad 24 + header 34 + gap 18 + mezza bolla 18.
+  req: { x: FRAME.x + FRAME.w - 392, y: FRAME.y + 96 },
 };
 // Push-in taggati EASE_CAMERA_IN (attacco deciso + settle pesante); reset taggati EASE_CAMERA_OUT.
 const SHOTS = [
-  { at: TYPE_QUERY.start + s2f(0.3), from: TYPE_QUERY.start, ...shotOn(P.query.x, P.query.y, 1.2), ease: EASE_CAMERA_IN },
+  // (F) La camera INSEGUE il caret: push-in vicino sul campo query e pan da inizio→fine testo.
+  // "colonnine offline" = 17 char × 15px × 0.55 ≈ 140px di corsa. (scale 1.9 → shotOn cappa a 1.7.)
+  ...typeTrackShots(TYPE_QUERY, P.query.x, P.query.y, P.query.x + 140, 1.9),
   { at: CAM_RESET1.end, from: CAM_RESET1.start, x: 0, y: 0, scale: 1, ease: EASE_CAMERA_OUT },
+  // (F) La camera insegue la richiesta AI digitata nel drawer.
+  // "«riavvia le colonnine offline»" = 30 char × 14.5px × 0.55 ≈ 239px di corsa.
+  ...typeTrackShots(TYPE_REQ, P.req.x, P.req.y, P.req.x + 239, 1.9),
+  // Pull-back alla vista drawer (neutro) così gli step compaiono in campo.
+  { at: CAM_STEPS.end, from: CAM_STEPS.start, x: 0, y: 0, scale: 1, ease: EASE_CAMERA_OUT },
   { at: CAM_LIST.end, from: CAM_LIST.start, ...shotOn(FRAME.x + FRAME.w - 260, FRAME.y + 480, 1.4), ease: EASE_CAMERA_IN },
   // D2.6: dolly-down dal riquadro flip al contatore offline nel footer del drawer.
   { at: CAM_COUNT.end, from: CAM_COUNT.start, ...shotOn(FRAME.x + FRAME.w - 250, FRAME.y + 800, 1.42), ease: EASE_CAMERA_IN },
@@ -96,7 +116,9 @@ const SHOTS = [
 ];
 // Kicks (screen-KICK): il click AI e l'atterraggio del flip HERO. Calms: la finestra del flip,
 // così il frame si acquieta sul payoff (D2.7). Condivisi da cameraAt, dal lift e dal Cursor.
-const CAM_KICKS = [PRESS_AI, NEW_FLIP];
+// I click nav ricevono lo screen-KICK come il click AI: così il frame E il cursore (che
+// proietta con gli stessi kick) si scuotono insieme → mira sul bottone intatta durante il click.
+const CAM_KICKS = [NAV1_PRESS, PRESS_AI, NAV3_PRESS, NEW_FLIP];
 const CAM_CALMS = [NEW_FLIP];
 
 const KPI = [
@@ -213,11 +235,16 @@ export const Gestionale: React.FC = () => {
               <div style={{ position: "absolute", left: 14, right: 14, top: indY - FRAME.y, height: NAV_H, borderRadius: 10, background: "linear-gradient(90deg, rgba(132,204,22,0.22) 0%, rgba(132,204,22,0.10) 60%, rgba(132,204,22,0.04) 100%)", boxShadow: "0 0 20px -8px rgba(132,204,22,0.50)", display: "flex" }}>
                 <div style={{ width: 4, borderRadius: 999, backgroundColor: C.accent, margin: "6px 0 6px 4px", boxShadow: SHADOW.glow }} />
               </div>
-              {NAV.map((v, i) => (
-                <div key={v} style={{ position: "relative", height: NAV_H, display: "flex", alignItems: "center", padding: "0 16px", fontSize: 15, color: i === navIndex ? "#fff" : "rgba(255,255,255,0.75)", fontWeight: i === navIndex ? 600 : 400 }}>
-                  {v}
-                </div>
-              ))}
+              {NAV.map((v, i) => {
+                // (E) La voce cliccata si abbassa di scatto (press-dip) PRIMA che il track reagisca.
+                const pb = i === 1 ? NAV1_PRESS : i === 3 ? NAV3_PRESS : null;
+                const press = pb ? pressButton(frame, pb, 0.94) : undefined;
+                return (
+                  <div key={v} style={{ position: "relative", height: NAV_H, display: "flex", alignItems: "center", padding: "0 16px", fontSize: 15, color: i === navIndex ? "#fff" : "rgba(255,255,255,0.75)", fontWeight: i === navIndex ? 600 : 400, ...press }}>
+                    {v}
+                  </div>
+                );
+              })}
               <div style={{ marginTop: "auto", paddingLeft: 8 }}>
                 <div style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: "0.12em", color: "rgba(255,255,255,0.4)", fontWeight: 600 }}>Rete</div>
                 <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 8, color: "rgba(255,255,255,0.85)", fontSize: 13 }}>
@@ -318,7 +345,7 @@ export const Gestionale: React.FC = () => {
                           {match ? (
                             <div style={{ position: "absolute", inset: 0, backgroundColor: C.accentSoft, borderLeft: `3px solid ${C.accent}`, ...maskReveal(frame, { start: MATCH.start + s2f(0.18) * (i === 0 ? 0 : 1), dur: MATCH.dur, end: MATCH.end + s2f(0.18) * (i === 0 ? 0 : 1) }, { dir: "l" }) }} />
                           ) : null}
-                          <span style={{ position: "relative", fontWeight: 500 }}>{id}</span>
+                          <span style={{ position: "relative", minWidth: 0, fontWeight: 500 }}>{id}</span>
                           <span style={{ position: "relative", fontFamily: "monospace" }}>{kw}</span>
                           <span style={{ position: "relative" }}><span style={chip(stato)}>{stato}</span></span>
                         </div>
@@ -344,12 +371,13 @@ export const Gestionale: React.FC = () => {
                           const bc = { start: MANT_CHIPS.start + s2f(0.22) * i, dur: MANT_CHIPS.dur, end: MANT_CHIPS.end + s2f(0.22) * i };
                           return (
                             <div key={id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 16px", borderTop: `1px solid ${C.border}`, ...enter(frame, b, { y: 14 }) }}>
-                              <span style={{ width: 34, height: 34, borderRadius: 999, backgroundColor: C.surface2, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 15 }}>🔧</span>
-                              <span style={{ flex: 1 }}>
+                              <span style={{ flexShrink: 0, width: 34, height: 34, borderRadius: 999, backgroundColor: C.surface2, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 15 }}>🔧</span>
+                              {/* (G) minWidth:0 → id/descrizione lunghe vanno a capo invece di spingere fuori la cella */}
+                              <span style={{ flex: 1, minWidth: 0 }}>
                                 <span style={{ fontWeight: 500, fontSize: 14, display: "block" }}>{id}</span>
                                 <span style={{ color: C.muted, fontSize: 12 }}>{task}</span>
                               </span>
-                              <span style={{ fontFamily: "monospace", fontSize: 12.5, color: C.muted }}>{when}</span>
+                              <span style={{ flexShrink: 0, fontFamily: "monospace", fontSize: 12.5, color: C.muted }}>{when}</span>
                               <span style={{ transform: `scale(${prog(frame, bc, EASE_SNAP)})` }}><span style={chip(stato)}>{stato}</span></span>
                             </div>
                           );
@@ -391,8 +419,9 @@ export const Gestionale: React.FC = () => {
                     const bc = { start: b.start + s2f(0.15), dur: b.dur, end: b.end + s2f(0.15) };
                     return (
                       <div key={s} style={{ display: "flex", alignItems: "center", gap: 10, ...enter(frame, b, { y: 8 }) }}>
-                        <span style={{ width: 22, height: 22, borderRadius: 999, backgroundColor: C.accent, color: C.accentContrast, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, transform: `scale(${prog(frame, bc, EASE_SNAP)})` }}>✓</span>
-                        <span style={{ fontSize: 14.5 }}>{s}</span>
+                        <span style={{ flexShrink: 0, width: 22, height: 22, borderRadius: 999, backgroundColor: C.accent, color: C.accentContrast, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, transform: `scale(${prog(frame, bc, EASE_SNAP)})` }}>✓</span>
+                        {/* (G) testo lungo: flex+minWidth:0 → va a capo dentro il drawer invece di sforare/troncare */}
+                        <span style={{ fontSize: 14.5, flex: 1, minWidth: 0 }}>{s}</span>
                       </div>
                     );
                   })}
@@ -412,7 +441,7 @@ export const Gestionale: React.FC = () => {
                       <div key={id} style={{ position: "relative", display: "grid", gridTemplateColumns: "1fr 90px 110px", padding: "10px 14px", fontSize: 13.5, alignItems: "center", borderTop: `1px solid ${C.border}` }}>
                         {/* M4d COMMIT SWEEP: banda accentSoft che scandisce la riga L→R mentre si risolve */}
                         <div aria-hidden style={{ position: "absolute", inset: 0, backgroundColor: C.accentSoft, ...maskReveal(frame, nf, { dir: "l" }), pointerEvents: "none" }} />
-                        <span style={{ position: "relative", fontWeight: 500 }}>{id}</span>
+                        <span style={{ position: "relative", minWidth: 0, fontWeight: 500 }}>{id}</span>
                         <span style={{ position: "relative", fontFamily: "monospace" }}>{kw}</span>
                         <span style={{ position: "relative", display: "flex", justifyContent: "flex-end", perspective: 400 }}>
                           <span style={{ ...chip("Offline"), opacity: 1 - outP, transform: `rotateY(${90 * outP}deg)` }}>Offline</span>
@@ -443,7 +472,7 @@ export const Gestionale: React.FC = () => {
 
       <Cursor
         shots={SHOTS}
-        clicks={[PRESS_AI]}
+        clicks={[NAV1_PRESS, PRESS_AI, NAV3_PRESS]}
         calms={CAM_CALMS}
         moves={[
           { beat: CUR_NAV1, ...P.nav(1), mode: "hand" },

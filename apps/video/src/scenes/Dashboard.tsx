@@ -29,6 +29,7 @@ import {
   seq,
   shotOn,
   typeInset,
+  typeTrackShots,
   whip,
 } from "../kit/motion";
 import { Caption, captionBeats, ChapterCard, chapterIntroBeats, Cursor, DeviceFrame, FRAME, Odometer, StageBackdrop } from "../kit/ui";
@@ -63,8 +64,14 @@ t.hold(0.5);
 const CAM_RESET1 = t.add(1.0);
 const SAY1 = captionBeats(t);
 // ② Prodotti
+// E — causa→effetto: il cursore VIAGGIA alla voce nav (CUR_NAV1), ATTERRA a
+// CUR_NAV1.end, poi la PREME (PRESS_NAV1, ~4f dopo l'atterraggio) e SOLO ALLORA
+// (≈3f dopo l'inizio del press) il TRACK scorre. Prima TRACK partiva 18f PRIMA
+// dell'atterraggio del cursore (gap -0.6 su add) → "la UI si muove e poi il mouse
+// clicca". Ora press → track (indicatore + slide seguono TRACK).
 const CUR_NAV1 = t.add(1.0);
-const TRACK1 = t.add(1.0, -0.6);
+const PRESS_NAV1 = t.add(0.28, 0.13);
+const TRACK1 = t.add(1.0, -0.17);
 const SAY2 = captionBeats(t);
 t.hold(0.4);
 const CUR_ADD = t.add(1.0);
@@ -84,7 +91,8 @@ const NEWCARD = t.add(DUR.beat, -0.1);
 t.hold(1.2);
 // ③ Visite
 const CUR_NAV2 = t.add(1.0);
-const TRACK2 = t.add(1.0, -0.6);
+const PRESS_NAV2 = t.add(0.28, 0.13); // E — press dopo l'atterraggio, prima dello slide
+const TRACK2 = t.add(1.0, -0.17);
 const SAY3 = captionBeats(t);
 const KPI_IN = t.add(DUR.beat, -0.8);
 const COUNT_KPI = t.add(2.0, -0.3);
@@ -99,7 +107,8 @@ const DETAIL_AREA = t.add(DUR.beat, -0.3);
 t.hold(1.2);
 // ④ Ordini
 const CUR_NAV3 = t.add(1.0);
-const TRACK3 = t.add(1.0, -0.6);
+const PRESS_NAV3 = t.add(0.28, 0.13); // E — press dopo l'atterraggio, prima dello slide
+const TRACK3 = t.add(1.0, -0.17);
 const SAY4 = captionBeats(t);
 const ORD_STATS = t.add(DUR.beat, -0.8);
 const ORD_COUNT = t.add(1.5, -0.4);
@@ -107,7 +116,10 @@ const ORD_ROWS = t.add(DUR.beat, -1.2); // + stagger 0.14
 t.hold(0.7);
 const CUR_ORD = t.add(DUR.beat);
 const PRESS_ORD = t.add(0.3, 0.1);
-const ORD_ACTIVE = t.add(DUR.micro, "<");
+// E — la riga #1042 si accende ~4f DOPO l'inizio del press (era "<" = insieme al
+// press): causa (click sulla riga) prima dell'effetto (riga attiva). Lo stato-fine
+// (riga accesa) resta identico → match-cut intatto.
+const ORD_ACTIVE = t.add(DUR.micro, -0.17);
 t.hold(0.5);
 const ORD_DETAIL = t.add(DUR.beat);
 t.hold(1.6);
@@ -119,6 +131,8 @@ const NAV_H = 44; // altezza esplicita di ogni voce nav (layout deterministico)
 const NAV_TOP = 78; // 22 padding-top + 32 logo row + 24 margine sotto logo
 const NAV_ITEMS = ["Contenuti", "Prodotti", "Visite", "Ordini"];
 const navY = (i: number) => FRAME.y + NAV_TOP + i * NAV_H;
+// E — press-dip sulla voce nav cliccata (idx 0 = Contenuti, mai cliccata → null).
+const NAV_PRESS: (Beat | null)[] = [null, PRESS_NAV1, PRESS_NAV2, PRESS_NAV3];
 const P = {
   heroRow: { x: FRAME.x + SIDE_W + 190, y: FRAME.y + 220 },
   replace: { x: FRAME.x + SIDE_W + 424, y: FRAME.y + 543 },
@@ -131,9 +145,16 @@ const P = {
   kpi0: { x: FRAME.x + SIDE_W + 190, y: FRAME.y + 200 },
   ord0: { x: FRAME.x + SIDE_W + 560, y: FRAME.y + 288 },
 };
+// F — la camera SEGUE il caret mentre il titolo "Energia solare per la tua azienda"
+// viene digitato: push-in vicino sull'inizio del testo (x≈882, y≈704 in coord layout)
+// e pan fino alla fine (x≈1110), così la lettera in scrittura resta ~al centro.
+// Sostituisce il vecchio shot STATICO sul campo. (shotOn cappa la scala a 1.7.)
+const TITLE_X0 = 882; // X schermo (camera neutra) dove inizia il testo del Titolo
+const TITLE_Y = 704; // centro verticale del campo Titolo
+const TITLE_X1 = 1110; // fine del testo digitato (~33 caratteri a 15px)
 const SHOTS = [
   { at: CAM_EDIT.end, from: CAM_EDIT.start, ...shotOn(FRAME.x + SIDE_W + 800, FRAME.y + 480, 1.15) },
-  { at: TYPE_TITLE.end, from: TYPE_TITLE.start - s2f(0.3), ...shotOn(FRAME.x + SIDE_W + 850, FRAME.y + 560, 1.2) },
+  ...typeTrackShots(TYPE_TITLE, TITLE_X0, TITLE_Y, TITLE_X1, 1.9),
   { at: CAM_PUB.end, from: CAM_PUB.start, ...shotOn(P.publish.x, P.publish.y, 1.4) },
   { at: CAM_RESET1.end, from: CAM_RESET1.start, x: 0, y: 0, scale: 1 },
   { at: CAM_MODAL.end, from: CAM_MODAL.start, ...shotOn(960, 540, 1.18) },
@@ -235,7 +256,7 @@ export const Dashboard: React.FC = () => {
     <AbsoluteFill style={{ backgroundColor: C.surface }}>
       {/* D1.1 — fondale del set illuminato: PRIMO figlio, FUORI dal layer camera (match-cut standard). */}
       <StageBackdrop />
-      <AbsoluteFill style={cameraAt(frame, SHOTS, [PRESS_HERO, PRESS_REPL, PRESS_PUB, PRESS_ADD, PRESS_SAVE, PRESS_ORD], [COUNT_KPI])}>
+      <AbsoluteFill style={cameraAt(frame, SHOTS, [PRESS_HERO, PRESS_REPL, PRESS_PUB, PRESS_NAV1, PRESS_ADD, PRESS_SAVE, PRESS_NAV2, PRESS_NAV3, PRESS_ORD], [COUNT_KPI])}>
         <AbsoluteFill style={whipStyle}>
           <DeviceFrame>
             {/* SIDEBAR */}
@@ -246,7 +267,7 @@ export const Dashboard: React.FC = () => {
               </div>
               <div style={{ position: "absolute", left: 16, right: 16, top: indY - FRAME.y, height: NAV_H, borderRadius: 10, backgroundColor: C.accentSoft, transition: "none" }} />
               {NAV_ITEMS.map((v, i) => (
-                <div key={v} style={{ position: "relative", height: NAV_H, display: "flex", alignItems: "center", padding: "0 14px", fontSize: 16, color: i === navIndex ? C.foreground : C.muted, fontWeight: i === navIndex ? 600 : 400 }}>
+                <div key={v} style={{ position: "relative", height: NAV_H, display: "flex", alignItems: "center", padding: "0 14px", fontSize: 16, color: i === navIndex ? C.foreground : C.muted, fontWeight: i === navIndex ? 600 : 400, ...(NAV_PRESS[i] ? pressButton(frame, NAV_PRESS[i]!, 0.96) : {}) }}>
                   {v}
                 </div>
               ))}
@@ -409,7 +430,9 @@ export const Dashboard: React.FC = () => {
                     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
                       <div style={{ ...cardBox, backgroundColor: C.background, padding: 14 }}>
                         <div style={label(11)}>Trend visite</div>
-                        <svg viewBox="0 0 200 60" style={{ width: "100%", height: 64, marginTop: 8 }}>
+                        {/* preserveAspectRatio="none": stesso motivo del grafico dettaglio
+                            — senza, la sparkline veniva compressa al centro della card. */}
+                        <svg viewBox="0 0 200 60" preserveAspectRatio="none" style={{ width: "100%", height: 64, marginTop: 8 }}>
                           <defs>
                             <linearGradient id="sparkg" x1="0" y1="0" x2="0" y2="1">
                               <stop offset="0" stopColor={C.accent} stopOpacity={0.15} />
@@ -438,7 +461,15 @@ export const Dashboard: React.FC = () => {
                         <span style={label(11)}>Dettaglio visite · per settimana</span>
                         <span style={{ fontSize: 12, color: C.accentInk, fontWeight: 600 }}>▲ 12% vs periodo precedente</span>
                       </div>
-                      <svg viewBox="0 0 400 80" style={{ width: "100%", height: 90, marginTop: 8 }}>
+                      {/* preserveAspectRatio="none": la viewBox 400×80 è molto più
+                          "larga" (5:1) del box reso (~12:1) → col default "xMidYMid meet"
+                          il grafico veniva rimpicciolito e CENTRATO (dati compressi al
+                          centro, zero a Sett.1 e Sett.4). Con "none" x=0→bordo sx e x=400→
+                          bordo dx: la linea+area coprono TUTTA la larghezza, allineate alle
+                          4 etichette. (NB: niente vectorEffect non-scaling-stroke — rompe
+                          il draw progressivo pathLength+dash; il tratto resta ~2.5px perché
+                          la linea è quasi orizzontale, scala-Y ≈1.1.) */}
+                      <svg viewBox="0 0 400 80" preserveAspectRatio="none" style={{ width: "100%", height: 90, marginTop: 8 }}>
                         <defs>
                           <linearGradient id="detailg" x1="0" y1="0" x2="0" y2="1">
                             <stop offset="0" stopColor={C.accent} stopOpacity={0.2} />
@@ -535,7 +566,7 @@ export const Dashboard: React.FC = () => {
 
       <Cursor
         shots={SHOTS}
-        clicks={[PRESS_HERO, PRESS_REPL, PRESS_PUB, PRESS_ADD, PRESS_SAVE, PRESS_ORD]}
+        clicks={[PRESS_HERO, PRESS_REPL, PRESS_PUB, PRESS_NAV1, PRESS_ADD, PRESS_SAVE, PRESS_NAV2, PRESS_NAV3, PRESS_ORD]}
         calms={[COUNT_KPI]}
         moves={[
           { beat: CUR_HERO, ...P.heroRow, mode: "hand" },
