@@ -138,10 +138,16 @@ const P = {
   replace: { x: FRAME.x + SIDE_W + 424, y: FRAME.y + 543 },
   publish: { x: FRAME.x + SIDE_W + 1056, y: FRAME.y + 820 },
   nav: (i: number) => ({ x: FRAME.x + 125, y: navY(i) + NAV_H / 2 }),
-  add: { x: FRAME.x + SIDE_W + 1000, y: FRAME.y + 120 },
-  formNome: { x: 960, y: 440 },
-  formPrezzo: { x: 960, y: 530 },
-  formSave: { x: 960, y: 700 },
+  // add: centro del bottone "+ Aggiungi prodotto" (header pannello ②: pad 24 + riga
+  // ~34 → centro y≈97; il bottone è right-aligned, centro x≈1040 dal main-left).
+  add: { x: FRAME.x + SIDE_W + 1040, y: FRAME.y + 97 },
+  // I-beam all'INIZIO del testo (bordo sx del campo, modale 400px centrata: testo a
+  // ~960-200+22+12), non al centro-campo — la scritta parte da lì. Le y sono i centri
+  // REALI dei campi misurati dallo still (centro campo Nome/Prezzo a schermo 454/535
+  // con camera 1.18 → layout 467/536).
+  formNome: { x: 800, y: 467 },
+  formPrezzo: { x: 800, y: 536 },
+  formSave: { x: 950, y: 682 }, // centro reale del bottone "Salva prodotto" (misurato da still)
   kpi0: { x: FRAME.x + SIDE_W + 190, y: FRAME.y + 200 },
   ord0: { x: FRAME.x + SIDE_W + 560, y: FRAME.y + 288 },
 };
@@ -571,11 +577,17 @@ export const Dashboard: React.FC = () => {
         moves={[
           { beat: CUR_HERO, ...P.heroRow, mode: "hand" },
           { beat: CUR_REPL, ...P.replace, mode: "hand" },
+          // (E) CAUSA→EFFETTO: il cursore raggiunge il campo Titolo PRIMA che la
+          // digitazione parta (prima mancava del tutto: il mouse restava su "Carica
+          // immagine" mentre la camera zoomava sul titolo che si scriveva da solo).
+          { beat: { start: TYPE_TITLE.start - s2f(0.45), dur: s2f(0.45), end: TYPE_TITLE.start }, x: TITLE_X0 - 6, y: TITLE_Y, mode: "text" },
           { beat: CUR_PUB, ...P.publish, mode: "hand" },
           { beat: CUR_NAV1, ...P.nav(1), mode: "hand" },
           { beat: CUR_ADD, ...P.add, mode: "hand" },
-          { beat: { ...TYPE_NOME, end: TYPE_NOME.start + s2f(0.4), dur: s2f(0.4) }, ...P.formNome, mode: "text" },
-          { beat: { ...TYPE_PREZZO, end: TYPE_PREZZO.start + s2f(0.3), dur: s2f(0.3) }, ...P.formPrezzo, mode: "text" },
+          // (E) il viaggio del cursore FINISCE dove la digitazione INIZIA (prima il
+          // beat partiva a TYPE_x.start: il testo scriveva col mouse ancora in volo).
+          { beat: { start: TYPE_NOME.start - s2f(0.45), dur: s2f(0.45), end: TYPE_NOME.start }, ...P.formNome, mode: "text" },
+          { beat: { start: TYPE_PREZZO.start - s2f(0.3), dur: s2f(0.3), end: TYPE_PREZZO.start }, ...P.formPrezzo, mode: "text" },
           { beat: CUR_SAVE, ...P.formSave, mode: "hand" },
           { beat: CUR_NAV2, ...P.nav(2), mode: "hand" },
           { beat: CUR_NAV3, ...P.nav(3), mode: "hand" },

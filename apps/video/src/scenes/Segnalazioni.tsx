@@ -82,7 +82,10 @@ const NAV_TOP = 78;
 const navY = (k: number) => FRAME.y + NAV_TOP + k * NAV_H; // k può essere frazionario
 const P = {
   btn: { x: FRAME.x + FRAME.w - 150, y: FRAME.y + 30 },
-  desc: { x: FRAME.x + FRAME.w - 210, y: FRAME.y + 300 },
+  // desc: I-beam all'INIZIO del testo digitato (drawer 400: bordo sx -400 + pad body
+  // 26 + pad input 14 ≈ -360, prima riga y≈234) — prima puntava al centro-box, e nel
+  // close-up 1.9× il cursore risultava staccato dal caret.
+  desc: { x: FRAME.x + FRAME.w - 352, y: FRAME.y + 253 },
   send: { x: FRAME.x + FRAME.w - 280, y: FRAME.y + 340 },
   ticket: { x: FRAME.x + SIDE_W + 420, y: FRAME.y + 235 },
 };
@@ -327,7 +330,8 @@ export const Segnalazioni: React.FC = () => {
         calms={[NEW_FLIP]}
         moves={[
           { beat: CUR_BTN, ...P.btn, mode: "hand" },
-          { beat: { ...TYPE_DESC, end: TYPE_DESC.start + s2f(0.3), dur: s2f(0.3) }, ...P.desc, mode: "text" },
+          // (E) arrivo del cursore = inizio digitazione (prima il testo partiva col mouse in volo).
+          { beat: { start: TYPE_DESC.start - s2f(0.45), dur: s2f(0.45), end: TYPE_DESC.start }, ...P.desc, mode: "text" },
           { beat: CUR_SEND, ...P.send, mode: "hand" },
         ]}
         hideAfter={PRESS_SEND}

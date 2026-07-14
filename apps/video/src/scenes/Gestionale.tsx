@@ -476,9 +476,11 @@ export const Gestionale: React.FC = () => {
         calms={CAM_CALMS}
         moves={[
           { beat: CUR_NAV1, ...P.nav(1), mode: "hand" },
-          { beat: { ...TYPE_QUERY, end: TYPE_QUERY.start + s2f(0.3), dur: s2f(0.3) }, ...P.query, mode: "text" },
+          // (E) il viaggio del cursore FINISCE dove la digitazione INIZIA (prima il
+          // beat partiva a TYPE_x.start: il testo scriveva col mouse ancora in volo).
+          { beat: { start: TYPE_QUERY.start - s2f(0.3), dur: s2f(0.3), end: TYPE_QUERY.start }, ...P.query, mode: "text" },
           { beat: CUR_AI, ...P.ai, mode: "hand" },
-          { beat: { ...TYPE_REQ, end: TYPE_REQ.start + s2f(0.3), dur: s2f(0.3) }, ...P.req, mode: "text" },
+          { beat: { start: TYPE_REQ.start - s2f(0.3), dur: s2f(0.3), end: TYPE_REQ.start }, ...P.req, mode: "text" },
           { beat: CUR_NAV3, ...P.nav(3), mode: "hand" },
         ]}
         hideAfter={{ start: CAM_MANT.start - s2f(0.3), dur: s2f(0.3), end: CAM_MANT.start }}

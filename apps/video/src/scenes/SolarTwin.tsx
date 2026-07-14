@@ -66,7 +66,9 @@ const DEMO = { start: VIDEO.start, dur: s2f(4.5), end: VIDEO.start + s2f(4.5) };
 const DEMO_K1 = DEMO.start + Math.round(DEMO.dur * 0.36); // fine 1ª fase (giù)
 const DEMO_K2 = DEMO.start + Math.round(DEMO.dur * 0.66); // fine 2ª fase (su)
 
-const MARQUEE = { start: SLIDE.start, end: EXIT.end }; // drift continuo
+// Drift del marquee: parte a slide COMPLETATO, così al reveal la riga inizia
+// esatta su «Energia» (frase completa) e solo dopo comincia a scorrere.
+const MARQUEE = { start: SLIDE.end, end: EXIT.end };
 const CHROME_H = 124; // barra browser (52) + header sito (72)
 
 // Camera neutra (nessun respiro, nessuna oscillazione): il video resta fermo e pieno.
@@ -472,10 +474,13 @@ export const SolarTwin: React.FC = () => {
                     <div style={{ opacity: prog(frame, AB_KICKER, EASE_IN_SCENE), transform: `translateY(${val(frame, AB_KICKER, 16, 0)}px)`, color: C.accentInk, fontSize: 14, textTransform: "uppercase", letterSpacing: "0.22em", padding: "0 56px", fontFamily }}>
                       Chi siamo
                     </div>
-                    <div style={{ whiteSpace: "nowrap", fontFamily, fontWeight: 700, fontSize: 74, textTransform: "uppercase", letterSpacing: "-0.02em", transform: `translateX(${-6 - 20 * marq}%)` }}>
+                    {/* Riga 1: parte da inizio frase («ENERGIA…» completa) e scorre a sinistra. */}
+                    <div style={{ whiteSpace: "nowrap", fontFamily, fontWeight: 700, fontSize: 74, textTransform: "uppercase", letterSpacing: "-0.02em", transform: `translateX(${(-20 * marq).toFixed(4)}%)` }}>
                       {"Energia pulita · Dal sole alla casa · ".repeat(3)}
                     </div>
-                    <div style={{ whiteSpace: "nowrap", fontFamily, fontWeight: 700, fontSize: 74, textTransform: "uppercase", letterSpacing: "-0.02em", color: "transparent", WebkitTextStroke: "1.5px rgba(11,16,32,0.32)", transform: `translateX(${-26 + 20 * marq}%)` }}>
+                    {/* Riga 2 (scorre a destra): parte a -33.33% = UNA ripetizione intera →
+                        inizia esatta su «PROGETTIAMO» e il drift verso destra non apre buchi. */}
+                    <div style={{ whiteSpace: "nowrap", fontFamily, fontWeight: 700, fontSize: 74, textTransform: "uppercase", letterSpacing: "-0.02em", color: "transparent", WebkitTextStroke: "1.5px rgba(11,16,32,0.32)", transform: `translateX(${(-33.3333 + 20 * marq).toFixed(4)}%)` }}>
                       {"Progettiamo · Installiamo · Monitoriamo · ".repeat(3)}
                     </div>
                     <div style={{ opacity: prog(frame, AB_COPY, EASE_IN_SCENE), transform: `translateY(${val(frame, AB_COPY, 22, 0)}px)`, color: C.muted, fontSize: 20, maxWidth: 680, padding: "0 56px", fontFamily, overflowWrap: "break-word", lineHeight: 1.4 }}>

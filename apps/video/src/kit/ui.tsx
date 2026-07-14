@@ -236,7 +236,9 @@ export const Caption: React.FC<{
     <div
       style={{
         position: "absolute",
-        bottom: 96,
+        // SOTTO il device frame (bordo inferiore a y≈977): la caption vive sul fondale
+        // del set, mai sopra la UI in scena (es. composer bar dell'Assistente).
+        bottom: 30,
         left: "50%",
         transform: `translateX(-50%) translateY(${16 * (1 - inP) - 10 * outP}px)`,
         opacity: 1 - outP,
