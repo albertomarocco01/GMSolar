@@ -23,7 +23,7 @@
     "prettier": "^3.8.4",
     "prettier-plugin-tailwindcss": "^0.8.0",
     "puppeteer-core": "^25.2.1",
-    "turbo": "^2.10.2",
+    "turbo": "^2.10.5",
     "typescript": "^5"
   }
 }
